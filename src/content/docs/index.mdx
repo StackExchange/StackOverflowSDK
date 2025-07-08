@@ -1,36 +1,71 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
+title: Welcome to Stack Overflow for Teams SDK
+description: Build powerful applications with the official Stack Overflow for Teams SDK. Access your team's private knowledge base programmatically.
 template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
+  tagline: Start building with the Stack Overflow for Teams API using our official SDK
   image:
-    file: ../../assets/houston.webp
+    file: ../../assets/stackoverflow-black.svg
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: Quick Start Guide
+      link: /guides/quickstart/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
-      icon: external
+    - text: API Reference
+      link: /api/reference/
+      icon: document
+    - text: View on GitHub
+      link: https://github.com/stackoverflow/teams-sdk
+      icon: github
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next steps
+## Get started in minutes
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
+	<Card title="Installation" icon="rocket">
+		Install the SDK with npm, yarn, or your preferred package manager and start accessing your team's knowledge base immediately.
 	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
+	<Card title="Authentication" icon="approve-check">
+		Set up authentication to securely access your team's private Stack Overflow for Teams instance and data.
 	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
+	<Card title="Query Team Knowledge" icon="comment-alt">
+		Search and retrieve questions, answers, and articles from your team's private knowledge repository.
 	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
+	<Card title="Team Management" icon="information">
+		Access team member profiles, activity, and collaborate on internal documentation and Q&A.
 	</Card>
 </CardGrid>
+
+## Why use the Stack Overflow for Teams SDK?
+
+<CardGrid>
+	<Card title="Official Support" icon="approve-check-circle">
+		Built and maintained by Stack Overflow with full Teams API coverage and guaranteed compatibility.
+	</Card>
+	<Card title="Type Safety" icon="laptop">
+		Complete TypeScript definitions for all Teams endpoints, models, and responses.
+	</Card>
+	<Card title="Rate Limiting" icon="seti:clock">
+		Built-in rate limiting and retry logic to handle API quotas automatically for your team instance.
+	</Card>
+</CardGrid>
+
+## Popular use cases
+
+Whether you're building internal tools, integrating with existing workflows, or creating custom team applications, the Stack Overflow for Teams SDK provides everything you need to leverage your team's collective knowledge.
+
+**Internal Tooling**: Build IDE extensions, code review tools, or documentation generators that tap into your team's institutional knowledge.
+
+**Workflow Integration**: Connect your Teams instance with CI/CD pipelines, project management tools, or custom dashboards.
+
+**Knowledge Management**: Create applications that help organize, surface, and distribute your team's expertise and best practices.
+
+**Custom Team Apps**: Build specialized interfaces, mobile apps, or integrations tailored to your team's specific needs and workflows.
+
+## Ready to start building?
+
+Choose your preferred language and dive into the documentation. Our SDK provides a higher-level abstraction for programmatically interacting with Stack Overflow for Teams, removing friction and enabling you to focus on building great experiences for your team.
+
+The SDK goes beyond just API endpoints - it's designed to provide the ideal developer experience with built-in tools, best practices, and comprehensive guidance for building applications that enhance your team's collaborative knowledge sharing.
