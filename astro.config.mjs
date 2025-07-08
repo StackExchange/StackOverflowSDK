@@ -6,6 +6,7 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	integrations: [
 		starlight({
+			favicon: '/favicon.ico',
 			title: 'Stack Overflow for Teams SDK',
 			logo: {
 				light: './src/assets/stackoverflow-black.svg',
