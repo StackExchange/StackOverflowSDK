@@ -5,6 +5,7 @@ import starlightOpenAPI, { openAPISidebarGroups } from "starlight-openapi";
 
 // https://astro.build/config
 export default defineConfig({
+openapi-generator
   integrations: [
     starlight({
       plugins: [
@@ -31,16 +32,40 @@ export default defineConfig({
           href: "https://github.com/withastro/starlight",
         },
       ],
-      sidebar: [
-        {
-          label: "Guides",
-          items: [
-            // Each item here is one entry in the navigation menu.
-            { label: "Getting Started", slug: "guides/quickstart" },
-            { label: "Authentication", slug: "guides/authentication" },
-            { label: "Rate Limits", slug: "guides/rate-limiting" },
-          ],
-        },
+   		sidebar: [
+   			{
+   				label: 'Guides',
+   				items: [
+   					{ label: 'Getting Started', slug: 'guides/quickstart' },
+   					{ label: 'Authentication', slug: 'guides/authentication' },
+   					{ label: 'Rate Limits', slug: 'guides/rate-limiting' },
+   				],
+   			},
+   			{
+   				label: 'Questions',
+   				collapsed: true,
+   				items: [
+   					{ label: 'create', slug: 'questions/create' },
+   				]
+   			},
+   			{
+   				label: 'Answers',
+   				collapsed: true,
+   				items: [
+   					{ label: 'list', slug: 'answers/list' },
+   				]
+   			},
+   			{
+   				label: 'Tags',
+   				collapsed: true,
+   				items: [
+   					{ label: 'search', slug: 'tags/search' },
+   				]
+   			},
+   			{
+   				label: 'API Reference',
+   				autogenerate: { directory: 'reference' },
+   			},
         ...openAPISidebarGroups,
       ],
     }),
