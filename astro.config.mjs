@@ -44,10 +44,6 @@ export default defineConfig({
    					{ label: 'search', slug: 'tags/search' },
    				]
    			},
-   			{
-   				label: 'API Reference',
-   				autogenerate: { directory: 'reference' },
-   			},
    		],
    	}),
    ],
