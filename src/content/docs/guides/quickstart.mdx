@@ -1,0 +1,269 @@
+---
+title: Quickstart
+description: Get up and running with the Stack Overflow Teams SDK in under 5 minutes.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+Get your Stack Overflow Teams integration running in minutes with our JavaScript SDK. This quickstart covers authentication, making your first API call, and handling responses.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm">
+    ```bash
+    npm install @stackoverflow/teams-sdk
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @stackoverflow/teams-sdk
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @stackoverflow/teams-sdk
+    ```
+  </TabItem>
+</Tabs>
+
+## 1. Set Up OAuth Configuration
+
+First, create an OAuth application in your Stack Overflow Teams admin panel to get your client credentials.
+
+```typescript title="config.ts"
+export const config = {
+  baseUrl: 'https://your-site.stackoverflowteams.com',
+  clientId: 'your-client-id-here',
+  redirectUri: 'http://localhost:3000/callback'
+};
+```
+
+:::tip[Development Setup]
+For local development, make sure to register `http://localhost:3000/callback` as a valid redirect URI in your OAuth application settings.
+:::
+
+## 2. Initialize the SDK
+
+```typescript title="app.ts"
+import { StackOverflowTeams } from '@stackoverflow/teams-sdk';
+import { config } from './config';
+
+const client = new StackOverflowTeams({
+  baseUrl: config.baseUrl,
+  clientId: config.clientId,
+  redirectUri: config.redirectUri
+});
+```
+
+## 3. Handle Authentication
+
+<Tabs>
+  <TabItem label="Web App">
+    ```typescript title="auth.ts"
+    // Redirect user to authorization
+    function initiateAuth() {
+      const authUrl = client.getAuthorizationUrl(['read_inbox', 'write_access']);
+      window.location.href = authUrl;
+    }
+
+    // Handle callback after user authorizes
+    async function handleCallback() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      
+      if (code) {
+        try {
+          const token = await client.exchangeCodeForToken(code);
+          localStorage.setItem('access_token', token.access_token);
+          console.log('Authentication successful!');
+        } catch (error) {
+          console.error('Authentication failed:', error);
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Node.js">
+    ```typescript title="server.ts"
+    import express from 'express';
+    
+    const app = express();
+    
+    // Start auth flow
+    app.get('/auth', (req, res) => {
+      const authUrl = client.getAuthorizationUrl(['read_inbox', 'write_access']);
+      res.redirect(authUrl);
+    });
+    
+    // Handle callback
+    app.get('/callback', async (req, res) => {
+      const { code } = req.query;
+      
+      try {
+        const token = await client.exchangeCodeForToken(code as string);
+        // Store token securely (e.g., in session or database)
+        req.session.accessToken = token.access_token;
+        res.redirect('/dashboard');
+      } catch (error) {
+        res.status(400).send('Authentication failed');
+      }
+    });
+    ```
+  </TabItem>
+</Tabs>
+
+## 4. Make Your First API Call
+
+Once authenticated, you can start making API calls:
+
+```typescript title="api-calls.ts"
+// Set the access token
+client.setAccessToken(localStorage.getItem('access_token'));
+
+// Fetch user's inbox
+async function getInbox() {
+  try {
+    const inbox = await client.getInbox();
+    console.log('Inbox items:', inbox.items);
+    return inbox;
+  } catch (error) {
+    console.error('Failed to fetch inbox:', error);
+  }
+}
+
+// Search for questions
+async function searchQuestions(query: string) {
+  try {
+    const results = await client.searchQuestions({
+      q: query,
+      sort: 'relevance',
+      pagesize: 10
+    });
+    console.log('Search results:', results.items);
+    return results;
+  } catch (error) {
+    console.error('Search failed:', error);
+  }
+}
+
+// Post a new question
+async function postQuestion(title: string, body: string, tags: string[]) {
+  try {
+    const question = await client.postQuestion({
+      title,
+      body,
+      tags: tags.join(';')
+    });
+    console.log('Question posted:', question);
+    return question;
+  } catch (error) {
+    console.error('Failed to post question:', error);
+  }
+}
+```
+
+## 5. Complete Example
+
+Here's a complete working example:
+
+```typescript title="complete-example.ts"
+import { StackOverflowTeams } from '@stackoverflow/teams-sdk';
+
+class TeamsIntegration {
+  private client: StackOverflowTeams;
+
+  constructor() {
+    this.client = new StackOverflowTeams({
+      baseUrl: 'https://your-site.stackoverflowteams.com',
+      clientId: 'your-client-id',
+      redirectUri: 'http://localhost:3000/callback'
+    });
+  }
+
+  async authenticate() {
+    // Check if we already have a token
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      this.client.setAccessToken(token);
+      return true;
+    }
+
+    // Start OAuth flow
+    const authUrl = this.client.getAuthorizationUrl(['read_inbox', 'write_access']);
+    window.location.href = authUrl;
+    return false;
+  }
+
+  async handleCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code) {
+      const token = await this.client.exchangeCodeForToken(code);
+      localStorage.setItem('access_token', token.access_token);
+      this.client.setAccessToken(token.access_token);
+      return true;
+    }
+    return false;
+  }
+
+  async getRecentQuestions() {
+    return await this.client.getQuestions({
+      sort: 'creation',
+      order: 'desc',
+      pagesize: 5
+    });
+  }
+}
+
+// Usage
+const integration = new TeamsIntegration();
+
+// Initialize
+if (window.location.pathname === '/callback') {
+  await integration.handleCallback();
+} else {
+  await integration.authenticate();
+}
+
+// Use the API
+const questions = await integration.getRecentQuestions();
+console.log(questions);
+```
+
+## Next Steps
+
+<CardGrid>
+  <Card title="Authentication Guide" icon="rocket">
+    Learn about OAuth 2.0 with PKCE implementation details and security best practices.
+  </Card>
+  <Card title="API Reference" icon="document">
+    Explore all available SDK methods and their parameters.
+  </Card>
+  <Card title="Examples" icon="puzzle">
+    Browse real-world examples and integration patterns.
+  </Card>
+  <Card title="Error Handling" icon="warning">
+    Learn how to handle errors and implement retry logic.
+  </Card>
+</CardGrid>
+
+:::note[Rate Limits]
+The API has rate limits in place. The SDK automatically handles rate limiting and will retry requests with exponential backoff. You can configure retry behavior in the SDK options.
+:::
+
+## Troubleshooting
+
+**Authentication fails with "Invalid redirect URI"**
+- Ensure your redirect URI exactly matches what's registered in your OAuth application
+- Check that you're using the correct protocol (http vs https)
+
+**"Access token expired" errors**
+- Implement token refresh logic or re-authenticate the user
+- Consider requesting the `no_expiry` scope for long-running applications (use cautiously)
+
+**API calls return 403 Forbidden**
+- Verify your access token is valid and not expired
+- Check that your requested scopes include the necessary permissions for the API endpoint

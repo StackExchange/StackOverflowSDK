@@ -1,0 +1,98 @@
+---
+title: Secure API Token Generation with OAuth and PKCE
+description: Learn how to authenticate with our API using OAuth 2.0 with PKCE and SDK integration.
+---
+This guide shows you how to authenticate with the Stack Overflow for Teams API using OAuth 2.0 with PKCE (Proof Key for Code Exchange). PKCE is a security extension that makes OAuth flows safe for public clients like web apps and mobile applications.
+
+The authentication process involves two main steps:
+1. **Authorization**: Redirect users to authorize your app and receive a temporary code
+2. **Token Exchange**: Exchange the code for an access token using PKCE verification
+
+Our SDK handles all the PKCE complexity automatically, including generating code verifiers, creating challenges, and managing the secure token exchange.
+
+## Authenticating with the SDK
+
+Integrate OAuth 2.0 with PKCE authentication:
+
+```ts title="Authenticate.ts"
+import { StackOverflowTeams } from '@stackoverflow/teams-sdk';
+
+const client = new StackOverflowTeams({
+  baseUrl: 'https://your-site.stackoverflowteams.com',
+  clientId: 'your-client-id',
+  redirectUri: 'https://your-app.com/callback'
+});
+
+// Redirect user to log in and authorize
+const authUrl = client.getAuthorizationUrl(['read_inbox', 'write_access']);
+window.location.href = authUrl;
+
+// After redirect back, exchange code for access token
+const token = await client.exchangeCodeForToken('authorization-code');
+console.log('Access token:', token.access_token);
+```
+
+---
+
+## What Happens Behind the Scenes
+
+When you call `getAuthorizationUrl()`:
+
+* The SDK generates a random **code verifier**
+* It creates a **code challenge** by hashing the verifier (using `S256`)
+* It builds the authorization URL with your `clientId`, `redirectUri`, `scope`, `code_challenge`, and `code_challenge_method=S256`
+* The browser navigates to that URL for the user to log in and approve access
+
+After the user authorizes:
+
+* The server redirects to your `redirectUri` with a temporary `code`
+* You call `exchangeCodeForToken()` with the `code` and the original **code verifier**
+* The SDK sends a secure token request to the API, swapping the `code` for an **access token**
+
+> PKCE ensures this flow can't be intercepted or abused by malicious apps, even without a client secret.
+
+---
+
+## Required SDK Config Options
+
+| Option          | Description                           | Required |
+| --------------- | ------------------------------------- | :------- |
+| `baseUrl`       | Your Teams site URL                   | ✅        |
+| `clientId`      | OAuth application Client ID           | ✅        |
+| `redirectUri`   | Redirect URI registered with your app | ✅        |
+| `timeout`       | Request timeout in seconds            | optional |
+| `retryAttempts` | Retry attempts on failure             | optional |
+
+---
+
+## API Scopes
+
+Pass scopes as an array of strings to control what your app can access:
+
+```typescript
+client.getAuthorizationUrl(['read_inbox', 'write_access'])
+```
+
+| Scope          | Description                            |
+| :------------- | :------------------------------------- |
+| `read_inbox`   | Read user's global inbox               |
+| `write_access` | Write on behalf of the user            |
+| `no_expiry`    | Token never expires *(use cautiously)* |
+
+---
+
+## Best Practices
+
+* PKCE is always enforced
+* Store tokens securely (never in plain localStorage)
+* Request minimal scopes
+* Validate the `state` parameter to prevent CSRF
+* Use HTTPS for all OAuth requests
+
+---
+
+## Reference
+
+* [PKCE (RFC 7636)](https://tools.ietf.org/html/rfc7636)
+* [OAuth 2.0 Best Practices](https://tools.ietf.org/html/draft-ietf-oauth-security-topics)
+* [Stack Overflow for Teams API v3 Docs](https://stackoverflow.com/teams/api)
