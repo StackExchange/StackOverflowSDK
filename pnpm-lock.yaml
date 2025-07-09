@@ -24,7 +24,9 @@ importers:
         specifier: ^0.34.2
         version: 0.34.2
 
-  packages/sdk:
+  packages/sdk: {}
+
+  packages/sdk-core:
     devDependencies:
       '@openapitools/openapi-generator-cli':
         specifier: ^2.21.0
