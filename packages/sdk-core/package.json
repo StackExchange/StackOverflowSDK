@@ -1,0 +1,16 @@
+{
+  "name": "sdk-core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "generateSDK": "openapi-generator-cli generate -i ./mock/swagger.json -g typescript -o ./src/generated-sdk"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.21.0"
+  }
+}
