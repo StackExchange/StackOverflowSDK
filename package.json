@@ -1,5 +1,5 @@
 {
-  "name": "Stack Overflow for Teams SDK",
+  "name": "soteams-sdk",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
