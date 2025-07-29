@@ -8,6 +8,9 @@ export default defineConfig({
    	starlight({
    		favicon: '/favicon.ico',
    		title: 'Stack Overflow for Teams SDK',
+		editLink: {
+        baseUrl: 'https://github.com/EstoesMoises/StackOverflowSDK/edit/main/apps/docs',
+      	},
    		logo: {
    			light: './src/assets/stackoverflow-black.svg',
    			dark: './src/assets/stackoverflow-black.svg',
