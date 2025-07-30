@@ -1,8 +1,9 @@
 {
-  "name": "",
+  "name": "so-generated-sdk",
   "version": "",
   "description": "OpenAPI client for ",
   "author": "OpenAPI-Generator Contributors",
+  "private":"true",
   "repository": {
     "type": "git",
     "url": "https://github.com/GIT_USER_ID/GIT_REPO_ID.git"

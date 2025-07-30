@@ -5,8 +5,7 @@
   "scripts": {
     "dev:docs": "pnpm --filter soteams-sdk-docs dev",
     "build:docs": "pnpm --filter soteams-sdk-docs build",
-    "preview:docs": "pnpm --filter soteams-sdk-docs preview",
-    "generate": "pnpm --filter so-teams-sdk generateSDK"
+    "preview:docs": "pnpm --filter soteams-sdk-docs preview"
   },
   "engines": {
     "node": ">=18.20.8"
