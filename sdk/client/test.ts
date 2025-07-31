@@ -1,12 +1,11 @@
 // Main Stack Overflow
-import StackOverflowSDK from "./index";
+import StackOverflowSDK from ".";
+import 'dotenv/config'
 
 const sdk = new StackOverflowSDK({ 
-  accessToken: 'j5QMXkmjpAeNbhlW9VX0ew))'
+  accessToken: process.env.ACCESS_TOKEN
 });
 
-const answers = await sdk.answers.create(920,
-  { 'body': 'Hola'}
-)
+const articles = await sdk.comments.getRecentComments('article', 20, )
 
-console.log(answers)
+console.log(articles)
