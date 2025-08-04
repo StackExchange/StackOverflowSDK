@@ -1,10 +1,10 @@
 import { BaseClient } from './shared';
-import { StackyMainApi } from '../generated/dist';
+import { StackyMainApi } from '../generated/index.js';
 
 export class StackyClient extends BaseClient {
   private mainApi: StackyMainApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>) {
     super();
     this.mainApi = new StackyMainApi(config);
     // Note: Stacky API has no Teams API variant - only Main API

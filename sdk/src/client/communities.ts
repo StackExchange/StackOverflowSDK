@@ -1,5 +1,5 @@
 import { BaseClient } from './shared';
-import { CommunitiesMainApi } from '../generated/dist';
+import { CommunitiesMainApi } from '../generated/index.js';
 import { 
   CommunityResponseModel,
   PaginatedCommunities,
@@ -7,7 +7,7 @@ import {
   CommunityLeaveModel,
   CommunitySortParameter,
   SortOrder
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface GetCommunitiesOptions {
   page?: number;
@@ -27,7 +27,7 @@ export interface LeaveCommunityBulkOptions {
 export class CommunityClient extends BaseClient {
   private mainApi: CommunitiesMainApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>) {
     super();
     this.mainApi = new CommunitiesMainApi(config);
     // Note: Communities API has no Teams API variant - only Main API

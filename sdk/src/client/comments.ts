@@ -1,12 +1,12 @@
 import { BaseClient } from './shared';
-import { CommentsMainApi, CommentsTeamsApi } from '../generated/dist';
-import { CommentResponseModel } from '../generated/dist';
+import { CommentsMainApi, CommentsTeamsApi } from '../generated/index.js';
+import { CommentResponseModel } from '../generated/index.js';
 
 export class CommentClient extends BaseClient {
   private mainApi: CommentsMainApi;
   private teamsApi?: CommentsTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new CommentsMainApi(config);
     if (teamId) {

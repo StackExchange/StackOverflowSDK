@@ -1,5 +1,5 @@
 import { BaseClient } from './shared';
-import { CollectionsMainApi, CollectionsTeamsApi } from '../generated/dist';
+import { CollectionsMainApi, CollectionsTeamsApi } from '../generated/index.js';
 import { 
   CollectionRequestModel,
   EditCollectionRequestModel,
@@ -8,7 +8,7 @@ import {
   CollectionsSortParameter,
   CollectionsPermissionsFilter,
   SortOrder
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface CreateCollectionOptions {
   title: string;
@@ -40,7 +40,7 @@ export class CollectionClient extends BaseClient {
   private mainApi: CollectionsMainApi;
   private teamsApi?: CollectionsTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new CollectionsMainApi(config);
     if (teamId) {

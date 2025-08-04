@@ -1,5 +1,5 @@
 import { BaseClient } from './shared';
-import { UsersMainApi, UsersTeamsApi } from '../generated/dist';
+import { UsersMainApi, UsersTeamsApi } from '../generated/index.js';
 import { 
   PaginatedUsers,
   PaginatedManageUsers,
@@ -9,7 +9,7 @@ import {
   UsersSortParameter,
   ManageUsersSortParameter,
   SortOrder
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface GetUsersOptions {
   page?: number;
@@ -32,7 +32,7 @@ export class UserClient extends BaseClient {
   private mainApi: UsersMainApi;
   private teamsApi?: UsersTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new UsersMainApi(config);
     if (teamId) {
@@ -141,13 +141,13 @@ export class UserClient extends BaseClient {
   }
 
   // Sorting convenience methods
-  async getAllByName(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
-    return this.getAll({ 
-      ...options, 
-      sort: UsersSortParameter.DisplayName,
-      order: SortOrder.Asc 
-    });
-  }
+  // async getAllByName(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
+  //   return this.getAll({ 
+  //     ...options, 
+  //     sort: UsersSortParameter.DisplayName,
+  //     order: SortOrder.Asc 
+  //   });
+  // }
 
   async getAllByReputation(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
     return this.getAll({ 
@@ -157,38 +157,38 @@ export class UserClient extends BaseClient {
     });
   }
 
-  async getAllByCreationDate(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
-    return this.getAll({ 
-      ...options, 
-      sort: UsersSortParameter.CreationDate,
-      order: SortOrder.Desc 
-    });
-  }
+  // async getAllByCreationDate(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
+  //   return this.getAll({ 
+  //     ...options, 
+  //     sort: UsersSortParameter.CreationDate,
+  //     order: SortOrder.Desc 
+  //   });
+  // }
 
-  async getAllByLastAccessDate(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
-    return this.getAll({ 
-      ...options, 
-      sort: UsersSortParameter.LastAccessDate,
-      order: SortOrder.Desc 
-    });
-  }
+  // async getAllByLastAccessDate(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers> {
+  //   return this.getAll({ 
+  //     ...options, 
+  //     sort: UsersSortParameter.LastAccessDate,
+  //     order: SortOrder.Desc 
+  //   });
+  // }
 
-  // Management-specific sorting methods
-  async manageByName(options: Omit<ManageUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedManageUsers> {
-    return this.manage({ 
-      ...options, 
-      sort: ManageUsersSortParameter.DisplayName,
-      order: SortOrder.Asc 
-    });
-  }
+  // // Management-specific sorting methods
+  // async manageByName(options: Omit<ManageUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedManageUsers> {
+  //   return this.manage({ 
+  //     ...options, 
+  //     sort: ManageUsersSortParameter.DisplayName,
+  //     order: SortOrder.Asc 
+  //   });
+  // }
 
-  async manageByCreationDate(options: Omit<ManageUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedManageUsers> {
-    return this.manage({ 
-      ...options, 
-      sort: ManageUsersSortParameter.CreationDate,
-      order: SortOrder.Desc 
-    });
-  }
+  // async manageByCreationDate(options: Omit<ManageUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedManageUsers> {
+  //   return this.manage({ 
+  //     ...options, 
+  //     sort: ManageUsersSortParameter.CreationDate,
+  //     order: SortOrder.Desc 
+  //   });
+  // }
 
   async manageByLastAccessDate(options: Omit<ManageUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedManageUsers> {
     return this.manage({ 
@@ -275,17 +275,17 @@ export class UserClient extends BaseClient {
     });
   }
 
-  async getNewestUsers(limit?: number): Promise<PaginatedUsers> {
-    return this.getAllByCreationDate({ 
-      pageSize: limit as any || 30 
-    });
-  }
+  // async getNewestUsers(limit?: number): Promise<PaginatedUsers> {
+  //   return this.getAllByCreationDate({ 
+  //     pageSize: limit as any || 30 
+  //   });
+  // }
 
-  async getMostActiveUsers(limit?: number): Promise<PaginatedUsers> {
-    return this.getAllByLastAccessDate({ 
-      pageSize: limit as any || 30 
-    });
-  }
+  // async getMostActiveUsers(limit?: number): Promise<PaginatedUsers> {
+  //   return this.getAllByLastAccessDate({ 
+  //     pageSize: limit as any || 30 
+  //   });
+  // }
 
   // Advanced management queries
   async getDeactivatedUsersInPeriod(from: Date, to: Date): Promise<PaginatedManageUsers> {

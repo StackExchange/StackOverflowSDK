@@ -1,15 +1,47 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "rootDir": "./",
     "strict": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
+    "target": "es5",
+    "moduleResolution": "node", 
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "removeComments": true,
+    "noLib": false,
+    "lib": [
+      "es6",
+      "ES2017.Object", 
+      "ES2021.String",
+      "dom"
+    ],
     "types": ["node"],
-    "skipLibCheck": true
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "noEmitOnError": true,
+    "preserveConstEnums": true,
+    
+    /* Additional Checks - matching generated API */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false, 
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true
   },
-  "include": ["./"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }

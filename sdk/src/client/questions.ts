@@ -1,5 +1,5 @@
 import { BaseClient } from './shared';
-import { QuestionsMainApi, QuestionsTeamsApi } from '../generated/dist';
+import { QuestionsMainApi, QuestionsTeamsApi } from '../generated/index.js';
 import { 
   QuestionRequestModel,
   QuestionResponseModel,
@@ -10,7 +10,7 @@ import {
   SortOrder,
   FlagOptionResponseModel,
   FlagRequestModel
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface CreateQuestionOptions {
   title: string;
@@ -51,7 +51,7 @@ export class QuestionClient extends BaseClient {
   private mainApi: QuestionsMainApi;
   private teamsApi?: QuestionsTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new QuestionsMainApi(config);
     if (teamId) {

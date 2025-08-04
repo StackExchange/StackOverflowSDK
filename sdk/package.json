@@ -1,14 +1,28 @@
 {
   "name": "so-teams-sdk",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
+  "description": "SDK for Stack Overflow Teams API",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
-    "generateSDK": "openapi-generator-cli generate -i ./mock/swagger.json -g typescript -o ./generated",
+    "generateSDK": "openapi-generator-cli generate -i ./src/mock/swagger.json -g typescript -o ./src/generated",
+    "build": "pnpm generateSDK && pnpm compile",
+    "compile": "tsc",
+    "clean": "rm -rf dist/",
+    "prepublishOnly": "pnpm clean && pnpm build",
     "test": "ts-node client/test.ts"
   },
-  "keywords": [],
+  "keywords": ["stackoverflow", "teams", "api", "sdk"],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.13.1",

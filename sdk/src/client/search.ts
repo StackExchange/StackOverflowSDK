@@ -1,9 +1,9 @@
 import { BaseClient } from './shared';
-import { SearchMainApi, SearchTeamsApi } from '../generated/dist';
+import { SearchMainApi, SearchTeamsApi } from '../generated/index.js';
 import { 
   PaginatedSearchResults,
   SearchSortParameter
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface SearchOptions {
   query?: string;
@@ -16,7 +16,7 @@ export class SearchClient extends BaseClient {
   private mainApi: SearchMainApi;
   private teamsApi?: SearchTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new SearchMainApi(config);
     if (teamId) {

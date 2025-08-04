@@ -1,12 +1,12 @@
 import { BaseClient } from './shared';
-import { UserGroupsMainApi, UserGroupsTeamsApi } from '../generated/dist';
+import { UserGroupsMainApi, UserGroupsTeamsApi } from '../generated/index.js';
 import { 
   PaginatedUserGroups,
   UserGroupResponseModel,
   UserGroupRequestModel,
   UserGroupsSortParameter,
   SortOrder
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface CreateUserGroupOptions {
   name: string;
@@ -31,7 +31,7 @@ export class UserGroupClient extends BaseClient {
   private mainApi: UserGroupsMainApi;
   private teamsApi?: UserGroupsTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new UserGroupsMainApi(config);
     if (teamId) {

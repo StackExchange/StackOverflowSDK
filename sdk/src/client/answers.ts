@@ -1,6 +1,5 @@
-// client/answers.ts - Much cleaner with shared error handling!
 import { BaseClient } from './shared';
-import { AnswersMainApi, AnswersTeamsApi } from '../generated/dist';
+import { AnswersMainApi, AnswersTeamsApi } from '../generated/index.js';
 import { 
   AnswerRequestModel, 
   AnswerResponseModel, 
@@ -8,7 +7,7 @@ import {
   PaginatedAnswers,
   AnswersSortParameter,
   SortOrder 
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface CreateAnswerOptions {
   body: string;
@@ -26,7 +25,7 @@ export class AnswerClient extends BaseClient {
   private mainApi: AnswersMainApi;
   private teamsApi?: AnswersTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new AnswersMainApi(config);
     if (teamId) {

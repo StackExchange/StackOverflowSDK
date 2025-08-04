@@ -1,17 +1,16 @@
-// client/index.ts - Main SDK entry point
-import { createConfiguration, ConfigurationParameters } from '../generated/dist/configuration';
-import { AuthMethodsConfiguration } from '../generated/dist/auth/auth';
-import { ServerConfiguration, server1 } from '../generated/dist/servers';
-import { AnswerClient } from './answers';
-// Import other clients as you create them
-import { QuestionClient } from './questions';
-import { CollectionClient } from './collections';
-// import { UserClient } from './users';
-// import { TeamClient } from './teams';
-// import { SearchClient } from './search';
-// import { TagClient } from './tags';
-import { CommentClient } from './comments';
-import { ArticleClient } from './articles';
+import { createConfiguration, ConfigurationParameters } from '../generated/configuration.js';
+import { AuthMethodsConfiguration } from '../generated/auth/auth.js';
+import { ServerConfiguration, server1 } from '../generated/servers.js';
+import { AnswerClient } from './answers.js';
+import { QuestionClient } from './questions.js';
+import { CollectionClient } from './collections.js';
+import { UserClient } from './users.js';
+import { UserGroupClient } from './userGroups.js';
+import { SearchClient } from './search.js';
+import { TagClient } from './tags.js';
+import { CommentClient } from './comments.js';
+import { ArticleClient } from './articles.js';
+import { CommunityClient } from './communities.js';
 
 export interface SDKConfig {
   accessToken?: string;
@@ -27,12 +26,13 @@ export class StackOverflowSDK {
   // Add other clients as you create them
   public readonly questions: QuestionClient;
   public readonly collections: CollectionClient;
-  // public readonly users: UserClient;
+  public readonly users: UserClient;
   public readonly articles: ArticleClient;
   public readonly comments: CommentClient;
-  // public readonly tags: TagClient;
-  // public readonly search: SearchClient;
-  // public readonly teams: TeamClient;
+  public readonly tags: TagClient;
+  public readonly search: SearchClient;
+  public readonly usergroups: UserGroupClient
+  public readonly communities: CommunityClient 
 
   constructor(config: SDKConfig) {
     // Prepare auth configuration
@@ -66,8 +66,11 @@ export class StackOverflowSDK {
     this.articles = new ArticleClient(this.config);
     this.collections = new CollectionClient(this.config);
     this.comments = new CommentClient(this.config);
-    // this.users = new UserClient(this.config);
-    // etc...
+    this.users = new UserClient(this.config);
+    this.tags = new TagClient(this.config);
+    this.search = new SearchClient(this.config)
+    this.usergroups = new UserGroupClient(this.config)
+    this.communities = new CommunityClient(this.config)
   }
 
   // Convenience method for switching to team context
@@ -93,12 +96,16 @@ export class TeamContext {
 }
 
 // Export the main SDK and types
-export { AnswerClient } from './answers';
-// Export other clients as you create them
-export { QuestionClient } from './questions';
-export { ArticleClient } from './articles';
-export { CollectionClient } from './collections'
-// export { UserClient } from './users';
+export { AnswerClient } from './answers.js';
+export { QuestionClient } from './questions.js';
+export { ArticleClient } from './articles.js';
+export { CollectionClient } from './collections.js';
+export { CommentClient } from './comments.js';
+export { SearchClient } from './search.js';
+export { CommunityClient } from './communities.js' 
+export { UserClient } from './users.js'
+export { TagClient } from './tags.js'
+export { UserGroupClient } from './userGroups.js'
 
 // Default export for convenience
 export default StackOverflowSDK;

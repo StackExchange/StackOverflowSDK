@@ -1,4 +1,3 @@
-// client/shared/errors.ts - Centralized error handling
 export class SDKError extends Error {
   constructor(
     message: string,

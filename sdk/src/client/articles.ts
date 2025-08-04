@@ -1,5 +1,5 @@
 import { BaseClient } from './shared';
-import { ArticlePermissionsRequestModel, ArticlesMainApi, ArticlesTeamsApi, ArticleType } from '../generated/dist';
+import { ArticlePermissionsRequestModel, ArticlesMainApi, ArticlesTeamsApi, ArticleType } from '../generated/index.js';
 import { 
   ArticleRequestModel,
   ArticleResponseModel,
@@ -8,7 +8,7 @@ import {
   ArticleSortParameter,
   LinkedOrRelatedQuestionsSortParameter,
   SortOrder
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface CreateArticleOptions {
   title: string;
@@ -49,7 +49,7 @@ export class ArticleClient extends BaseClient {
   private mainApi: ArticlesMainApi;
   private teamsApi?: ArticlesTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new ArticlesMainApi(config);
     if (teamId) {

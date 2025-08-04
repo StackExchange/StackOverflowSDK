@@ -1,5 +1,5 @@
 import { BaseClient } from './shared';
-import { TagsMainApi, TagsTeamsApi } from '../generated/dist';
+import { TagsMainApi, TagsTeamsApi } from '../generated/index.js';
 import { 
   PaginatedTags,
   TagResponseModel,
@@ -8,7 +8,7 @@ import {
   TagWatchersResponseModel,
   TagsSortParameter,
   SortOrder
-} from '../generated/dist';
+} from '../generated/index.js';
 
 export interface GetTagsOptions {
   page?: number;
@@ -29,7 +29,7 @@ export class TagClient extends BaseClient {
   private mainApi: TagsMainApi;
   private teamsApi?: TagsTeamsApi;
 
-  constructor(config: ReturnType<typeof import('../generated/dist/configuration').createConfiguration>, private teamId?: string) {
+  constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>, private teamId?: string) {
     super();
     this.mainApi = new TagsMainApi(config);
     if (teamId) {
