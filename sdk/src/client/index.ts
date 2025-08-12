@@ -1,6 +1,12 @@
 import { createConfiguration, ConfigurationParameters } from '../generated/configuration.js';
 import { AuthMethodsConfiguration } from '../generated/auth/auth.js';
 import { ServerConfiguration, server1 } from '../generated/servers.js';
+import { HttpLibrary } from '../generated/http/http.js';
+
+// Import the fixed HTTP library helper
+import { FixedIsomorphicFetchHttpLibrary } from '../helper/fixedHttpLibrary.js';
+
+// Import your client modules
 import { AnswerClient } from './answers.js';
 import { QuestionClient } from './questions.js';
 import { CollectionClient } from './collections.js';
@@ -15,7 +21,7 @@ import { CommunityClient } from './communities.js';
 export interface SDKConfig {
   accessToken?: string;
   baseUrl?: string;
-  // Add other config options as needed
+  httpApi?: HttpLibrary; // Optional - defaults to FixedIsomorphicFetchHttpLibrary
 }
 
 export class StackOverflowSDK {
@@ -23,7 +29,6 @@ export class StackOverflowSDK {
   
   // Core Q&A functionality
   public readonly answers: AnswerClient;
-  // Add other clients as you create them
   public readonly questions: QuestionClient;
   public readonly collections: CollectionClient;
   public readonly users: UserClient;
@@ -31,8 +36,8 @@ export class StackOverflowSDK {
   public readonly comments: CommentClient;
   public readonly tags: TagClient;
   public readonly search: SearchClient;
-  public readonly usergroups: UserGroupClient
-  public readonly communities: CommunityClient 
+  public readonly usergroups: UserGroupClient;
+  public readonly communities: CommunityClient;
 
   constructor(config: SDKConfig) {
     // Prepare auth configuration
@@ -46,7 +51,9 @@ export class StackOverflowSDK {
 
     // Create configuration parameters
     const configParams: ConfigurationParameters = {
-      authMethods: authConfig
+      authMethods: authConfig,
+      // 🔧 DEFAULT: Use fixed HTTP library that handles missing Content-Type headers
+      httpApi: config.httpApi || new FixedIsomorphicFetchHttpLibrary()
     };
 
     // Configure base server
@@ -59,18 +66,17 @@ export class StackOverflowSDK {
 
     this.config = createConfiguration(configParams);
 
-    // Initialize client modules (only answers for now)
+    // Initialize client modules
     this.answers = new AnswerClient(this.config);
-    // Add others as you create them:
     this.questions = new QuestionClient(this.config);
     this.articles = new ArticleClient(this.config);
     this.collections = new CollectionClient(this.config);
     this.comments = new CommentClient(this.config);
     this.users = new UserClient(this.config);
     this.tags = new TagClient(this.config);
-    this.search = new SearchClient(this.config)
-    this.usergroups = new UserGroupClient(this.config)
-    this.communities = new CommunityClient(this.config)
+    this.search = new SearchClient(this.config);
+    this.usergroups = new UserGroupClient(this.config);
+    this.communities = new CommunityClient(this.config);
   }
 
   // Convenience method for switching to team context
@@ -82,16 +88,12 @@ export class StackOverflowSDK {
 // Team-specific context for cleaner API
 export class TeamContext {
   public readonly answers: AnswerClient;
-  // Add other team clients as you build them
   public readonly questions: QuestionClient;
-  // public readonly users: UserClient;
 
   constructor(private config: ReturnType<typeof createConfiguration>, private teamId: string) {
     // Initialize team-specific clients
     this.answers = new AnswerClient(config, teamId);
-    // Add others as you create them:
     this.questions = new QuestionClient(config, teamId);
-    // this.users = new UserClient(config, teamId);
   }
 }
 
@@ -102,37 +104,13 @@ export { ArticleClient } from './articles.js';
 export { CollectionClient } from './collections.js';
 export { CommentClient } from './comments.js';
 export { SearchClient } from './search.js';
-export { CommunityClient } from './communities.js' 
-export { UserClient } from './users.js'
-export { TagClient } from './tags.js'
-export { UserGroupClient } from './userGroups.js'
+export { CommunityClient } from './communities.js';
+export { UserClient } from './users.js';
+export { TagClient } from './tags.js';
+export { UserGroupClient } from './userGroups.js';
+
+// Export the helper for advanced users who want to customize
+export { FixedIsomorphicFetchHttpLibrary } from '../helper/fixedHttpLibrary.js';
 
 // Default export for convenience
 export default StackOverflowSDK;
-
-/* 
-Usage example:
-
-import StackOverflowSDK from './client';
-// or
-import { StackOverflowSDK } from './client';
-
-// Using default server (https://support-autotest.stackenterprise.co/api/v3)
-const sdk = new StackOverflowSDK({ 
-  accessToken: 'your-oauth2-token'
-});
-
-// Using custom server
-const sdk = new StackOverflowSDK({ 
-  accessToken: 'your-oauth2-token',
-  baseUrl: 'https://your-custom-stackenterprise.com/api/v3'
-});
-
-// Main Stack Overflow usage
-const answers = await sdk.answers.getAll(123);
-await sdk.answers.upvote(123, 456);
-
-// Teams context
-const team = sdk.forTeam('team-123');
-await team.answers.create(123, { body: 'Great answer!' });
-*/
