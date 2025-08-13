@@ -9,10 +9,15 @@ export class SDKError extends Error {
   ) {
     super(message);
     this.name = 'SDKError';
+    
+    // Clean up the stack trace to hide internal error handling
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
 
   /**
-   * Get a detailed error summary for debugging
+   * Get a concise error summary for debugging
    */
   getDebugInfo() {
     return {
@@ -20,18 +25,23 @@ export class SDKError extends Error {
       message: this.message,
       operation: this.operation,
       statusCode: this.statusCode,
-      responseBody: this.responseBody,
-      responseHeaders: this.responseHeaders,
+      responseBody: this.responseBody?.substring(0, 200) + (this.responseBody && this.responseBody.length > 200 ? '...' : ''),
       originalErrorMessage: this.originalError?.message,
-      stack: this.stack
     };
+  }
+
+  /**
+   * Clean toString that's less noisy
+   */
+  override toString(): string {
+    return `${this.name}: ${this.message}`;
   }
 }
 
 export class AuthenticationError extends SDKError {
   constructor(operation: string, originalError?: any, responseBody?: string, responseHeaders?: Record<string, string>) {
     super(
-      `Authentication failed. Please check your access token and API URL. Operation: ${operation}`,
+      `Authentication failed for ${operation}. Please check your access token.`,
       operation,
       originalError,
       401,
@@ -45,10 +55,10 @@ export class AuthenticationError extends SDKError {
 export class TokenExpiredError extends SDKError {
   constructor(operation: string, originalError?: any, responseBody?: string, responseHeaders?: Record<string, string>) {
     super(
-      `Access token expired. Please refresh your token and try again. Operation: ${operation}`,
+      `Access token expired for ${operation}. Please refresh your token.`,
       operation,
       originalError,
-      402,
+      401, // Token expired is usually still 401
       responseBody,
       responseHeaders
     );
@@ -59,7 +69,7 @@ export class TokenExpiredError extends SDKError {
 export class ForbiddenError extends SDKError {
   constructor(operation: string, originalError?: any, responseBody?: string, responseHeaders?: Record<string, string>) {
     super(
-      `Access forbidden. You may not have permission for this operation: ${operation}`,
+      `Access forbidden for ${operation}. Insufficient permissions.`,
       operation,
       originalError,
       403,
@@ -73,7 +83,7 @@ export class ForbiddenError extends SDKError {
 export class NotFoundError extends SDKError {
   constructor(operation: string, originalError?: any, responseBody?: string, responseHeaders?: Record<string, string>) {
     super(
-      `Resource not found for operation: ${operation}. Check if the resource ID exists.`,
+      `Resource not found for ${operation}.`,
       operation,
       originalError,
       404,
@@ -87,7 +97,7 @@ export class NotFoundError extends SDKError {
 export class ContentParseError extends SDKError {
   constructor(operation: string, originalError?: any, responseBody?: string, responseHeaders?: Record<string, string>) {
     super(
-      `Failed to parse response content for operation: ${operation}. Server returned an unexpected response format.`,
+      `Failed to parse response for ${operation}. Unexpected response format.`,
       operation,
       originalError,
       500,
@@ -101,46 +111,40 @@ export class ContentParseError extends SDKError {
 /**
  * Extract response details from various error formats
  */
-async function extractResponseDetails(error: any): Promise<{
+function extractResponseDetails(error: any): {
   statusCode?: number;
   responseBody?: string;
   responseHeaders?: Record<string, string>;
-}> {
-  const details: any = {};
+} {
+  // Extract status code - check multiple possible locations
+  const statusCode = error.code || 
+                    error.status || 
+                    error.statusCode || 
+                    error.originalError?.status || 
+                    error.originalError?.response?.status ||
+                    error.response?.status;
 
-  // Try to extract status code from various places
-  details.statusCode = error.status || 
-                      error.statusCode || 
-                      error.originalError?.status || 
-                      error.originalError?.response?.status ||
-                      error.response?.status;
+  // Extract headers
+  let responseHeaders = error.headers || 
+                       error.originalError?.headers || 
+                       error.response?.headers;
 
-  // Try to extract headers
-  if (error.headers) {
-    details.responseHeaders = error.headers;
-  } else if (error.originalError?.headers) {
-    details.responseHeaders = error.originalError.headers;
-  } else if (error.response?.headers) {
-    details.responseHeaders = error.response.headers;
-  }
+  // Extract response body
+  let responseBody = error.body || 
+                    error.responseText ||
+                    error.originalError?.response?.data ||
+                    error.response?.data;
 
-  // Try to extract response body
-  try {
-    if (error.originalError?.response?.text && typeof error.originalError.response.text === 'function') {
-      details.responseBody = await error.originalError.response.text();
-    } else if (error.originalError?.response?.data) {
-      details.responseBody = String(error.originalError.response.data);
-    } else if (error.response?.data) {
-      details.responseBody = String(error.response.data);
-    } else if (error.responseText) {
-      details.responseBody = error.responseText;
+  // Convert body to string if it's not already
+  if (responseBody && typeof responseBody !== 'string') {
+    try {
+      responseBody = JSON.stringify(responseBody);
+    } catch {
+      responseBody = String(responseBody);
     }
-  } catch (e) {
-    // If we can't extract the body, that's okay
-    details.responseBody = 'Unable to extract response body';
   }
 
-  return details;
+  return { statusCode, responseBody, responseHeaders };
 }
 
 /**
@@ -156,55 +160,49 @@ function classifyError(
   
   // Check response body content for clues
   const bodyLower = responseBody?.toLowerCase() || '';
+  const errorMessage = error.message?.toLowerCase() || '';
   
-  // Authentication-related keywords in response
-  if (bodyLower.includes('unauthorized') || 
-      bodyLower.includes('invalid token') || 
-      bodyLower.includes('authentication failed') ||
-      bodyLower.includes('access denied')) {
+  // Token/Authentication issues - check both body and message
+  if (bodyLower.includes('invalid bearer token') || 
+      bodyLower.includes('invalid token') ||
+      errorMessage.includes('invalid bearer token')) {
     return new AuthenticationError(operation, error, responseBody, responseHeaders);
   }
 
   // Token expiration keywords
   if (bodyLower.includes('token expired') || 
       bodyLower.includes('token invalid') ||
-      bodyLower.includes('please refresh')) {
+      bodyLower.includes('please refresh') ||
+      errorMessage.includes('token expired')) {
     return new TokenExpiredError(operation, error, responseBody, responseHeaders);
   }
 
-  // Forbidden access
-  if (bodyLower.includes('forbidden') || 
-      bodyLower.includes('permission denied') ||
-      statusCode === 403) {
-    return new ForbiddenError(operation, error, responseBody, responseHeaders);
-  }
-
-  // Not found
-  if (bodyLower.includes('not found') || statusCode === 404) {
-    return new NotFoundError(operation, error, responseBody, responseHeaders);
-  }
-
-  // Authentication based on status codes
-  if (statusCode === 401) {
-    return new AuthenticationError(operation, error, responseBody, responseHeaders);
-  }
-
-  // Content parsing issues (no Content-Type header)
-  if (error.message?.includes('Cannot parse content') || 
-      error.message?.includes('No Content-Type defined')) {
-    
-    // If status suggests auth issue, classify as such
-    if (statusCode === 401 || statusCode === 403) {
+  // Status code based classification
+  switch (statusCode) {
+    case 401:
+      // For 401, determine if it's expired or invalid token
+      if (bodyLower.includes('expired') || errorMessage.includes('expired')) {
+        return new TokenExpiredError(operation, error, responseBody, responseHeaders);
+      }
       return new AuthenticationError(operation, error, responseBody, responseHeaders);
-    }
     
+    case 403:
+      return new ForbiddenError(operation, error, responseBody, responseHeaders);
+    
+    case 404:
+      return new NotFoundError(operation, error, responseBody, responseHeaders);
+  }
+
+  // Content parsing issues
+  if (errorMessage.includes('cannot parse content') || 
+      errorMessage.includes('no content-type defined')) {
     return new ContentParseError(operation, error, responseBody, responseHeaders);
   }
 
   // Server errors
   if (statusCode && statusCode >= 500) {
     return new SDKError(
-      `Server error (${statusCode}) for operation: ${operation}`,
+      `Server error (${statusCode}) for ${operation}`,
       operation,
       error,
       statusCode,
@@ -215,7 +213,7 @@ function classifyError(
 
   // Default case
   return new SDKError(
-    `API call failed for ${operation}: ${error.message || error}`,
+    `Request failed for ${operation}: ${error.message || 'Unknown error'}`,
     operation,
     error,
     statusCode,
@@ -225,55 +223,22 @@ function classifyError(
 }
 
 /**
- * Enhanced centralized error handler for all API calls
+ * Main error handler for all API calls
  */
 export async function handleApiCall<T>(
   apiCall: () => Promise<T>, 
-  operation: string,
-  debug = false
+  operation: string
 ): Promise<T> {
   try {
     return await apiCall();
   } catch (error: any) {
-    if (debug) {
-      console.error(`🚨 API Error for ${operation}:`, {
-        message: error.message,
-        status: error.status,
-        originalError: error
-      });
-    }
-
     // Extract response details
-    const { statusCode, responseBody, responseHeaders } = await extractResponseDetails(error);
-
-    if (debug) {
-      console.error(`🔍 Extracted details:`, {
-        statusCode,
-        responseBody: responseBody?.substring(0, 200) + (responseBody?.length > 200 ? '...' : ''),
-        responseHeaders
-      });
-    }
+    const { statusCode, responseBody, responseHeaders } = extractResponseDetails(error);
 
     // Classify and throw appropriate error
     const classifiedError = classifyError(operation, error, statusCode, responseBody, responseHeaders);
-    
-    if (debug) {
-      console.error(`📋 Error classified as:`, classifiedError.name);
-      console.error(`📋 Full error details:`, classifiedError.getDebugInfo());
-    }
-
     throw classifiedError;
   }
-}
-
-/**
- * Enhanced error handler with automatic debugging for development
- */
-export async function handleApiCallWithDebug<T>(
-  apiCall: () => Promise<T>, 
-  operation: string
-): Promise<T> {
-  return handleApiCall(apiCall, operation, true);
 }
 
 /**
@@ -294,50 +259,23 @@ export function isRecoverableError(error: any): boolean {
 }
 
 /**
- * Enhanced wrapper for your existing error types that adds response inspection
+ * Get user-friendly error message for display
  */
-export async function enhancedHandleApiCall<T>(
-  apiCall: () => Promise<T>, 
-  operation: string
-): Promise<T> {
-  try {
-    return await apiCall();
-  } catch (error: any) {
-    // Extract additional details
-    const { statusCode, responseBody, responseHeaders } = await extractResponseDetails(error);
-    
-    // Check for the specific ObjectSerializer error (usually auth issues)
-    if (error.message?.includes('Cannot parse content. No Content-Type defined')) {
-      // Try to determine the real cause based on response details
-      if (statusCode === 401 || responseBody?.toLowerCase().includes('unauthorized')) {
-        throw new AuthenticationError(operation, error, responseBody, responseHeaders);
-      } else if (statusCode === 403 || responseBody?.toLowerCase().includes('forbidden')) {
-        throw new ForbiddenError(operation, error, responseBody, responseHeaders);
-      } else {
-        throw new TokenExpiredError(operation, error, responseBody, responseHeaders);
-      }
-    }
-    
-    // Check for specific HTTP status codes with enhanced details
-    switch (statusCode || error.status) {
-      case 401:
-        throw new AuthenticationError(operation, error, responseBody, responseHeaders);
-      case 402:
-        throw new TokenExpiredError(operation, error, responseBody, responseHeaders);
-      case 403:
-        throw new ForbiddenError(operation, error, responseBody, responseHeaders);
-      case 404:
-        throw new NotFoundError(operation, error, responseBody, responseHeaders);
-      default:
-        // For other errors, provide more context
-        throw new SDKError(
-          `API call failed for ${operation}: ${error.message || error}`,
-          operation,
-          error,
-          statusCode || error.status,
-          responseBody,
-          responseHeaders
-        );
-    }
+export function getUserFriendlyMessage(error: any): string {
+  if (error instanceof AuthenticationError) {
+    return 'Authentication failed. Please check your credentials.';
   }
+  if (error instanceof TokenExpiredError) {
+    return 'Your session has expired. Please log in again.';
+  }
+  if (error instanceof ForbiddenError) {
+    return 'You do not have permission to perform this action.';
+  }
+  if (error instanceof NotFoundError) {
+    return 'The requested resource was not found.';
+  }
+  if (error instanceof SDKError) {
+    return error.message;
+  }
+  return 'An unexpected error occurred. Please try again.';
 }
