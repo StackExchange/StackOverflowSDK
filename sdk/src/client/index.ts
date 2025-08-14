@@ -1,11 +1,9 @@
 import { createConfiguration, ConfigurationParameters } from '../generated/configuration.js';
 import { AuthMethodsConfiguration } from '../generated/auth/auth.js';
-import { ServerConfiguration, server1 } from '../generated/servers.js';
+import { ServerConfiguration } from '../generated/servers.js';
 import { HttpLibrary } from '../generated/http/http.js';
-
 // Import the fixed HTTP library helper
 import { FixedIsomorphicFetchHttpLibrary } from '../helper/fixedHttpLibrary.js';
-
 // Import your client modules
 import { AnswerClient } from './answers.js';
 import { QuestionClient } from './questions.js';
@@ -20,8 +18,8 @@ import { CommunityClient } from './communities.js';
 
 export interface SDKConfig {
   accessToken?: string;
-  baseUrl?: string;
-  httpApi?: HttpLibrary; // Optional - defaults to FixedIsomorphicFetchHttpLibrary
+  baseUrl: string; 
+  httpApi?: HttpLibrary; // defaults to FixedIsomorphicFetchHttpLibrary
 }
 
 export class StackOverflowSDK {
@@ -52,17 +50,9 @@ export class StackOverflowSDK {
     // Create configuration parameters
     const configParams: ConfigurationParameters = {
       authMethods: authConfig,
-      // 🔧 DEFAULT: Use fixed HTTP library that handles missing Content-Type headers
-      httpApi: config.httpApi || new FixedIsomorphicFetchHttpLibrary()
+      httpApi: config.httpApi || new FixedIsomorphicFetchHttpLibrary(),
+      baseServer: new ServerConfiguration(config.baseUrl, {})
     };
-
-    // Configure base server
-    if (config.baseUrl) {
-      configParams.baseServer = new ServerConfiguration(config.baseUrl, {});
-    } else {
-      // Use default server from generated code
-      configParams.baseServer = server1;
-    }
 
     this.config = createConfiguration(configParams);
 

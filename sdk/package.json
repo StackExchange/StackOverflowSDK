@@ -20,7 +20,7 @@
     "compile": "tsc",
     "clean": "rm -rf dist/",
     "prepublishOnly": "pnpm clean && pnpm build",
-    "test": "ts-node ./test.ts"
+    "test": "npx tsx ./test.ts"
   },
   "keywords": ["stackoverflow", "teams", "api", "sdk"],
   "author": "",

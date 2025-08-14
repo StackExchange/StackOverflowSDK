@@ -175,28 +175,28 @@ export class AnswerClient extends BaseClient {
     }, 'unaccept');
   }
 
-  // Additional utility methods
-  async getFlagOptions(questionId: number, answerId: number) {
-    return this.handleApiCall(async () => {
-      if (this.teamId && this.teamsApi) {
-        return await this.teamsApi.teamsTeamQuestionsQuestionIdAnswersAnswerIdFlagsOptionsGet(
-          questionId, answerId, this.teamId
-        );
-      }
+  // Flagging is possible through the API, for now I see this as an inherited utility from the Public forum as it is not used as much on SOE, I'll review this in future but for now will not support.
+//   async getFlagOptions(questionId: number, answerId: number) {
+//     return this.handleApiCall(async () => {
+//       if (this.teamId && this.teamsApi) {
+//         return await this.teamsApi.teamsTeamQuestionsQuestionIdAnswersAnswerIdFlagsOptionsGet(
+//           questionId, answerId, this.teamId
+//         );
+//       }
       
-      return await this.mainApi.questionsQuestionIdAnswersAnswerIdFlagsOptionsGet(questionId, answerId);
-    }, 'getFlagOptions');
-  }
+//       return await this.mainApi.questionsQuestionIdAnswersAnswerIdFlagsOptionsGet(questionId, answerId);
+//     }, 'getFlagOptions');
+//   }
 
-  async flag(questionId: number, answerId: number, flagData: any) {
-    return this.handleApiCall(async () => {
-      if (this.teamId && this.teamsApi) {
-        return await this.teamsApi.teamsTeamQuestionsQuestionIdAnswersAnswerIdFlagsPost(
-          questionId, answerId, this.teamId, flagData
-        );
-      }
+//   async flag(questionId: number, answerId: number, flagData: any) {
+//     return this.handleApiCall(async () => {
+//       if (this.teamId && this.teamsApi) {
+//         return await this.teamsApi.teamsTeamQuestionsQuestionIdAnswersAnswerIdFlagsPost(
+//           questionId, answerId, this.teamId, flagData
+//         );
+//       }
       
-      return await this.mainApi.questionsQuestionIdAnswersAnswerIdFlagsPost(questionId, answerId, flagData);
-    }, 'flag');
-  }
+//       return await this.mainApi.questionsQuestionIdAnswersAnswerIdFlagsPost(questionId, answerId, flagData);
+//     }, 'flag');
+//   }
 }

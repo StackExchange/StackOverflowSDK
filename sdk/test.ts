@@ -1,13 +1,13 @@
 import { StackOverflowSDK } from './src'
-import { FixedIsomorphicFetchHttpLibrary } from './src/helper/fixedHttpLibrary'
 
 // Wrap everything in an async IIFE (Immediately Invoked Function Expression)
 (async () => {
     const sdk = new StackOverflowSDK({
-        accessToken: 't7zc5InEjMzlvHWUd))',
+        baseUrl: 'https://support-test-teams.stackenterprise.co/api/v3',
+        accessToken: 'B6ayyI2ag5zFXGjDXlvZdw))',
     })
 
-    const questions = await sdk.questions.getAll()
+    const questions = await sdk.articles.getByAuthor(1)
 
     console.log(questions)
 })()
