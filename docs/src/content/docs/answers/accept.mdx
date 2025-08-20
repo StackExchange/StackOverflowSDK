@@ -1,0 +1,259 @@
+---
+title: answers.accept()
+description: Marks an answer as the accepted answer for a question. Requires moderator permissions or question ownership.
+---
+
+Marks an answer as the accepted answer for a question. Requires moderator permissions or question ownership.
+
+## Syntax
+
+```typescript
+async accept(questionId: number, answerId: number): Promise<AnswerSummaryResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to accept |
+
+## Return Value
+
+Returns a `Promise<AnswerSummaryResponseModel>` containing updated answer summary information with the accepted status.
+
+## Examples
+
+### Basic Answer Acceptance
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Accept an answer (requires moderator permissions or question ownership)
+const result = await sdk.answers.accept(123, 456);
+console.log(`Answer ${result.id} is now accepted`);
+```
+
+### Accept with Verification
+
+```typescript
+try {
+  // Get answer details before accepting
+  const answer = await sdk.answers.get(123, 456);
+  console.log(`About to accept answer by: ${answer.owner?.displayName}`);
+  console.log(`Answer score: ${answer.score}`);
+  
+  if (!answer.isAccepted) {
+    const result = await sdk.answers.accept(123, 456);
+    console.log('Answer accepted successfully');
+    console.log(`Accepted answer ID: ${result.id}`);
+  } else {
+    console.log('Answer is already accepted');
+  }
+} catch (error) {
+  console.error('Failed to accept answer:', error.message);
+}
+```
+
+### Question Owner Workflow
+
+```typescript
+async function selectBestAnswer(questionId: number, candidateAnswerIds: number[]) {
+  try {
+    // Review candidate answers
+    const answers = await Promise.all(
+      candidateAnswerIds.map(id => sdk.answers.get(questionId, id))
+    );
+    
+    // Find the highest-scored answer that's not already accepted
+    const bestAnswer = answers
+      .filter(a => !a.isAccepted)
+      .sort((a, b) => b.score - a.score)[0];
+    
+    if (bestAnswer) {
+      const result = await sdk.answers.accept(questionId, bestAnswer.id);
+      console.log(`Accepted best answer with score ${bestAnswer.score}`);
+      return result;
+    } else {
+      console.log('No suitable answer found to accept');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error selecting best answer:', error.message);
+    throw error;
+  }
+}
+
+await selectBestAnswer(123, [456, 789, 101]);
+```
+
+### Team Context
+
+```typescript
+// Using team context (requires team moderator permissions)
+const teamSDK = sdk.forTeam('team-123');
+const result = await teamSDK.answers.accept(123, 456);
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const acceptResult = await teamAnswerClient.accept(123, 456);
+```
+
+### Moderator Workflow
+
+```typescript
+async function moderatorAcceptAnswer(questionId: number, answerId: number, reason?: string) {
+  try {
+    // Get question and answer context
+    const [question, answer] = await Promise.all([
+      sdk.questions.get(questionId),
+      sdk.answers.get(questionId, answerId)
+    ]);
+    
+    console.log(`Moderator accepting answer for question: "${question.title}"`);
+    console.log(`Answer by: ${answer.owner?.displayName}, Score: ${answer.score}`);
+    
+    if (reason) {
+      console.log(`Reason: ${reason}`);
+    }
+    
+    const result = await sdk.answers.accept(questionId, answerId);
+    console.log('Answer accepted by moderator');
+    
+    return result;
+  } catch (error) {
+    console.error('Moderator acceptance failed:', error.message);
+    throw error;
+  }
+}
+
+await moderatorAcceptAnswer(123, 456, 'High quality answer that solves the problem');
+```
+
+### Handle Previous Acceptance
+
+```typescript
+async function acceptAnswerWithReplacement(questionId: number, newAnswerId: number) {
+  try {
+    // Check if there's already an accepted answer
+    const answers = await sdk.answers.getAll(questionId);
+    const currentAccepted = answers.items.find(a => a.isAccepted);
+    
+    if (currentAccepted) {
+      console.log(`Unaccepting previous answer: ${currentAccepted.id}`);
+      await sdk.answers.unaccept(questionId, currentAccepted.id);
+    }
+    
+    // Accept the new answer
+    const result = await sdk.answers.accept(questionId, newAnswerId);
+    console.log(`New answer ${newAnswerId} is now accepted`);
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to replace accepted answer:', error.message);
+    throw error;
+  }
+}
+
+await acceptAnswerWithReplacement(123, 456);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions (not question owner or moderator) |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.answers.accept(123, 456);
+  console.log('Answer accepted successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer or question not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot accept answer - insufficient permissions');
+    console.error('You must be the question owner or have moderator permissions');
+  } else {
+    console.error('Failed to accept answer:', error.message);
+  }
+}
+```
+
+### Permission Validation
+
+```typescript
+async function safeAcceptAnswer(questionId: number, answerId: number) {
+  try {
+    const result = await sdk.answers.accept(questionId, answerId);
+    return { 
+      success: true, 
+      answerId: result.id,
+      message: 'Answer accepted successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'insufficient_permissions',
+        message: 'You must be the question owner or have moderator permissions to accept answers'
+      };
+    } else if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Question or answer not found'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeAcceptAnswer(123, 456);
+if (result.success) {
+  console.log('Answer accepted:', result.answerId);
+} else {
+  console.log('Could not accept answer:', result.message);
+}
+```
+
+## Notes
+
+- **Permission Requirements**: This method requires either:
+  - Being the owner of the question, OR
+  - Having moderator permissions on the platform/team
+- Only one answer can be accepted per question at a time
+- Accepting a new answer will automatically unaccept any previously accepted answer
+- Accepted answers typically receive special visual treatment in the UI (checkmark, highlighted, etc.)
+- Accepted answers may receive reputation bonuses for their authors
+- The acceptance status is immediately reflected in the returned response
+- Questions can exist without any accepted answer - acceptance is optional
+- Some platforms may restrict acceptance to a certain time period after the question was asked
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Team contexts may have different permission models than public Q&A sites
+- Moderators can accept answers on behalf of question owners when appropriate

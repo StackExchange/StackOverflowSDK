@@ -1,98 +1,147 @@
 ---
-title: Secure API Token Generation with OAuth and PKCE
-description: Learn how to authenticate with our API using OAuth 2.0 with PKCE and SDK integration.
+title: Authentication
+description: Learn how to authenticate with the Stack Overflow API to use the SDK.
 ---
-This guide shows you how to authenticate with the Stack Overflow for Teams API using OAuth 2.0 with PKCE (Proof Key for Code Exchange). PKCE is a security extension that makes OAuth flows safe for public clients like web apps and mobile applications.
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
-The authentication process involves two main steps:
-1. **Authorization**: Redirect users to authorize your app and receive a temporary code
-2. **Token Exchange**: Exchange the code for an access token using PKCE verification
+The Stack Overflow SDK requires an access token to authenticate API requests. This guide explains how to obtain and use access tokens with the SDK.
 
-Our SDK handles all the PKCE complexity automatically, including generating code verifiers, creating challenges, and managing the secure token exchange.
+## Overview
 
-## Authenticating with the SDK
-
-Integrate OAuth 2.0 with PKCE authentication:
-
-```ts title="Authenticate.ts"
-import { StackOverflowTeams } from '@stackoverflow/teams-sdk';
-
-const client = new StackOverflowTeams({
-  baseUrl: 'https://your-site.stackoverflowteams.com',
-  clientId: 'your-client-id',
-  redirectUri: 'https://your-app.com/callback'
-});
-
-// Redirect user to log in and authorize
-const authUrl = client.getAuthorizationUrl(['read_inbox', 'write_access']);
-window.location.href = authUrl;
-
-// After redirect back, exchange code for access token
-const token = await client.exchangeCodeForToken('authorization-code');
-console.log('Access token:', token.access_token);
-```
-
----
-
-## What Happens Behind the Scenes
-
-When you call `getAuthorizationUrl()`:
-
-* The SDK generates a random **code verifier**
-* It creates a **code challenge** by hashing the verifier (using `S256`)
-* It builds the authorization URL with your `clientId`, `redirectUri`, `scope`, `code_challenge`, and `code_challenge_method=S256`
-* The browser navigates to that URL for the user to log in and approve access
-
-After the user authorizes:
-
-* The server redirects to your `redirectUri` with a temporary `code`
-* You call `exchangeCodeForToken()` with the `code` and the original **code verifier**
-* The SDK sends a secure token request to the API, swapping the `code` for an **access token**
-
-> PKCE ensures this flow can't be intercepted or abused by malicious apps, even without a client secret.
-
----
-
-## Required SDK Config Options
-
-| Option          | Description                           | Required |
-| --------------- | ------------------------------------- | :------- |
-| `baseUrl`       | Your Teams site URL                   | ✅        |
-| `clientId`      | OAuth application Client ID           | ✅        |
-| `redirectUri`   | Redirect URI registered with your app | ✅        |
-| `timeout`       | Request timeout in seconds            | optional |
-| `retryAttempts` | Retry attempts on failure             | optional |
-
----
-
-## API Scopes
-
-Pass scopes as an array of strings to control what your app can access:
+The SDK uses OAuth 2.0 with access tokens for authentication. All API calls require a valid access token to be passed during SDK initialization.
 
 ```typescript
-client.getAuthorizationUrl(['read_inbox', 'write_access'])
+import StackOverflowSDK from 'stackoverflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  baseUrl: 'https://[your-site].stackenterprise.co',
+  accessToken: 'your-access-token-here'
+});
 ```
 
-| Scope          | Description                            |
-| :------------- | :------------------------------------- |
-| `read_inbox`   | Read user's global inbox               |
-| `write_access` | Write on behalf of the user            |
-| `no_expiry`    | Token never expires *(use cautiously)* |
+## Obtaining Access Tokens
 
----
+### For Stack Overflow for Teams Enterprise
 
-## Best Practices
+If you're using Stack Overflow for Teams Enterprise, follow the comprehensive OAuth implementation guide to generate secure API tokens:
 
-* PKCE is always enforced
-* Store tokens securely (never in plain localStorage)
-* Request minimal scopes
-* Validate the `state` parameter to prevent CSRF
-* Use HTTPS for all OAuth requests
+**[Secure API Token Generation with OAuth and PKCE →](https://stackoverflow.help/en/articles/19820283-secure-api-token-generation-with-oauth-and-pkce)**
 
----
+This guide covers:
+- OAuth Authorization Code flow
+- PKCE (Proof Key for Code Exchange) implementation
+- Token generation and management
+- Security best practices
 
-## Reference
+### For Public Stack Overflow for Teams
 
-* [PKCE (RFC 7636)](https://tools.ietf.org/html/rfc7636)
-* [OAuth 2.0 Best Practices](https://tools.ietf.org/html/draft-ietf-oauth-security-topics)
-* [Stack Overflow for Teams API v3 Docs](https://stackoverflow.com/teams/api)
+-- fill out
+
+## Using Access Tokens
+
+Once you have an access token, initialize the SDK with your credentials:
+
+```typescript title="sdk-setup.ts"
+import StackOverflowSDK from 'stackoverflow-sdk';
+
+// For Stack Overflow for Teams
+const teamsSDK = new StackOverflowSDK({
+  baseUrl: 'https://your-site.stackenterprise.co',
+  accessToken: 'your-teams-access-token'
+});
+
+// For public Stack Overflow
+const publicSDK = new StackOverflowSDK({
+  baseUrl: 'https://api.stackexchange.com',
+  accessToken: 'your-public-access-token'
+});
+```
+
+## Token Scopes
+
+Different API operations require different scopes. Common scopes include:
+
+| Scope | Description |
+|-------|-------------|
+| `read_inbox` | Access user's inbox |
+| `write_access` | Perform write operations |
+| `private_info` | Access private user data |
+| `no_expiry` | Token never expires (use with caution) |
+
+## Environment Variables
+
+For security, store your access tokens in environment variables:
+
+```typescript title="config.ts"
+export const config = {
+  baseUrl: process.env.STACKOVERFLOW_BASE_URL,
+  accessToken: process.env.STACKOVERFLOW_ACCESS_TOKEN
+};
+```
+
+```typescript title="app.ts"
+import StackOverflowSDK from 'stackoverflow-sdk';
+import { config } from './config';
+
+const sdk = new StackOverflowSDK(config);
+```
+
+## Token Management
+
+### Token Expiration
+
+Unless you use the `no_expiry` scope, access tokens expire after 24 hours. Monitor token expiration and implement refresh logic as needed.
+
+### Error Handling
+
+Handle authentication errors gracefully:
+
+```typescript title="auth-error-handling.ts"
+async function makeAuthenticatedRequest() {
+  try {
+    const questions = await sdk.questions.getQuestions();
+    return questions;
+  } catch (error) {
+    if (error.status === 401) {
+      console.error('Authentication failed - token may be expired or invalid');
+      // Implement token refresh or re-authentication logic
+    } else if (error.status === 403) {
+      console.error('Insufficient permissions - check token scopes');
+    }
+    throw error;
+  }
+}
+```
+
+## Security Best Practices
+
+<CardGrid>
+  <Card title="Secure Storage" icon="lock">
+    Never hardcode access tokens in your source code. Use environment variables or secure configuration management.
+  </Card>
+  <Card title="Token Rotation" icon="refresh">
+    Regularly rotate your access tokens and implement proper token lifecycle management.
+  </Card>
+  <Card title="Scope Limitation" icon="shield">
+    Request only the minimum scopes required for your application functionality.
+  </Card>
+  <Card title="HTTPS Only" icon="certificate">
+    Always use HTTPS when transmitting access tokens to prevent interception.
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+Once you have your access token configured:
+
+- [Quickstart Guide](/quickstart) - Get started with the SDK
+- [Questions API](/api/questions) - Learn about fetching questions
+- [Error Handling](/guides/error-handling) - Implement robust error handling
+
+:::note[Rate Limits]
+Authentication doesn't bypass API rate limits. Authenticated requests typically have higher rate limits than anonymous requests, but limits still apply.
+:::
+
+:::tip[Development vs Production]
+Use different access tokens for development and production environments. Consider using shorter-lived tokens in production for enhanced security.
+:::

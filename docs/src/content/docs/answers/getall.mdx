@@ -1,0 +1,141 @@
+---
+title: answers.getAll()
+description: Retrieve all answers for a specific question with pagination and sorting options.
+---
+
+Retrieves a paginated list of answers for a specific question.
+
+## Syntax
+
+```typescript
+async getAll(questionId: number, options?: GetAnswersOptions): Promise<PaginatedAnswers>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to retrieve answers for |
+| `options` | `GetAnswersOptions` | No | Configuration options for pagination and sorting |
+
+### GetAnswersOptions
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of answers to return per page |
+| `sort` | `AnswersSortParameter` | No | | Sort answers by: `"score"`, `"modified"`, or `"creation"` |
+| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+
+## Return Value
+
+Returns a `Promise<PaginatedAnswers>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of answers for the question |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `AnswersSortParameter` | Sort parameter used |
+| `order` | `SortOrder` | Sort order used |
+| `items` | `AnswerSummaryResponseModel[]` | Array of answer summary objects |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all answers for question ID 123
+const answers = await sdk.answers.getAll(123);
+console.log(`Found ${answers.totalCount} answers`);
+```
+
+### With Pagination
+
+```typescript
+// Get the second page with 50 answers per page
+const answers = await sdk.answers.getAll(123, {
+  page: 2,
+  pageSize: 50
+});
+```
+
+### With Sorting
+
+```typescript
+// Get answers sorted by score (highest first)
+const topAnswers = await sdk.answers.getAll(123, {
+  sort: 'score',
+  order: 'desc',
+  pageSize: 15
+});
+
+// Get newest answers first
+const newestAnswers = await sdk.answers.getAll(123, {
+  sort: 'creation',
+  order: 'desc'
+});
+```
+
+### Team Context
+
+```typescript
+// Using team context for team-specific operations
+const teamSDK = sdk.forTeam('team-123');
+const teamAnswers = await teamSDK.answers.getAll(123);
+
+// Or initialize directly with team context
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const answers = await teamAnswerClient.getAll(123);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the question |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const answers = await sdk.answers.getAll(123);
+  console.log(answers.items);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Question not found');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required');
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+## Notes
+
+- This method automatically handles both public and team contexts based on how the client was initialized
+- When no sorting options are provided, the API uses its default sorting behavior
+- Page numbers are 1-based (first page is `page: 1`)
+- The `items` array contains `AnswerSummaryResponseModel` objects, which include essential answer information but may not include all fields available in the full `AnswerResponseModel`

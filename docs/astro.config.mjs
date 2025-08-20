@@ -30,6 +30,7 @@ export default defineConfig({
    				label: 'Questions',
    				collapsed: true,
    				items: [
+
    					{ label: 'create', slug: 'questions/create' },
    				]
    			},
@@ -37,7 +38,17 @@ export default defineConfig({
    				label: 'Answers',
    				collapsed: true,
    				items: [
-   					{ label: 'list', slug: 'answers/list' },
+					{ label: 'getAll', slug: 'answers/getall'},
+					{ label: 'get', slug: 'answers/get' },
+					{ label: 'create', slug: 'answers/create'},
+					{ label: 'update', slug: 'answers/update' },
+					{ label: 'delete', slug: 'answers/delete' },
+					{ label: 'upvote', slug: 'answers/upvote' },
+					{ label: 'removeupvote', slug: 'answers/removeupvote' },
+					{ label: 'downvote', slug: 'answers/downvote' },
+					{ label: 'removedownvote', slug: 'answers/removedownvote' },
+					{ label: 'accept', slug: 'answers/accept' },
+					{ label: 'unaccept', slug: 'answers/unaccept' },
    				]
    			},
    			{

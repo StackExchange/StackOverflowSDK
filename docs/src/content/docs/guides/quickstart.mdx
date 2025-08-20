@@ -1,146 +1,63 @@
 ---
 title: Quickstart
-description: Get up and running with the Stack Overflow Teams SDK in under 5 minutes.
+description: Get up and running with the Stack Overflow SDK in under 5 minutes.
 ---
-
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-Get your Stack Overflow Teams integration running in minutes with our JavaScript SDK. This quickstart covers authentication, making your first API call, and handling responses.
+Get your Stack Overflow integration running in minutes with our JavaScript SDK. This quickstart covers installation, initialization, and making your first API calls.
 
 ## Installation
 
 <Tabs>
   <TabItem label="npm">
     ```bash
-    npm install @stackoverflow/teams-sdk
+    npm install stackoverflow-sdk
     ```
   </TabItem>
   <TabItem label="yarn">
     ```bash
-    yarn add @stackoverflow/teams-sdk
+    yarn add stackoverflow-sdk
     ```
   </TabItem>
   <TabItem label="pnpm">
     ```bash
-    pnpm add @stackoverflow/teams-sdk
+    pnpm add stackoverflow-sdk
     ```
   </TabItem>
 </Tabs>
 
-## 1. Set Up OAuth Configuration
-
-First, create an OAuth application in your Stack Overflow Teams admin panel to get your client credentials.
-
-```typescript title="config.ts"
-export const config = {
-  baseUrl: 'https://your-site.stackoverflowteams.com',
-  clientId: 'your-client-id-here',
-  redirectUri: 'http://localhost:3000/callback'
-};
-```
-
-:::tip[Development Setup]
-For local development, make sure to register `http://localhost:3000/callback` as a valid redirect URI in your OAuth application settings.
-:::
-
-## 2. Initialize the SDK
+## 1. Initialize the SDK
 
 ```typescript title="app.ts"
-import { StackOverflowTeams } from '@stackoverflow/teams-sdk';
-import { config } from './config';
+import StackOverflowSDK from 'stackoverflow-sdk';
 
-const client = new StackOverflowTeams({
-  baseUrl: config.baseUrl,
-  clientId: config.clientId,
-  redirectUri: config.redirectUri
+const sdk = new StackOverflowSDK({
+  baseUrl: 'https://api.stackexchange.com',
+  accessToken: 'your-access-token'
 });
 ```
 
-## 3. Handle Authentication
+## 2. Make Your First API Call
 
-<Tabs>
-  <TabItem label="Web App">
-    ```typescript title="auth.ts"
-    // Redirect user to authorization
-    function initiateAuth() {
-      const authUrl = client.getAuthorizationUrl(['read_inbox', 'write_access']);
-      window.location.href = authUrl;
-    }
-
-    // Handle callback after user authorizes
-    async function handleCallback() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      if (code) {
-        try {
-          const token = await client.exchangeCodeForToken(code);
-          localStorage.setItem('access_token', token.access_token);
-          console.log('Authentication successful!');
-        } catch (error) {
-          console.error('Authentication failed:', error);
-        }
-      }
-    }
-    ```
-  </TabItem>
-  <TabItem label="Node.js">
-    ```typescript title="server.ts"
-    import express from 'express';
-    
-    const app = express();
-    
-    // Start auth flow
-    app.get('/auth', (req, res) => {
-      const authUrl = client.getAuthorizationUrl(['read_inbox', 'write_access']);
-      res.redirect(authUrl);
-    });
-    
-    // Handle callback
-    app.get('/callback', async (req, res) => {
-      const { code } = req.query;
-      
-      try {
-        const token = await client.exchangeCodeForToken(code as string);
-        // Store token securely (e.g., in session or database)
-        req.session.accessToken = token.access_token;
-        res.redirect('/dashboard');
-      } catch (error) {
-        res.status(400).send('Authentication failed');
-      }
-    });
-    ```
-  </TabItem>
-</Tabs>
-
-## 4. Make Your First API Call
-
-Once authenticated, you can start making API calls:
+Start exploring Stack Overflow data with these basic examples:
 
 ```typescript title="api-calls.ts"
-// Set the access token
-client.setAccessToken(localStorage.getItem('access_token'));
-
-// Fetch user's inbox
-async function getInbox() {
+// Fetch recent questions
+async function getQuestions() {
   try {
-    const inbox = await client.getInbox();
-    console.log('Inbox items:', inbox.items);
-    return inbox;
+    const questions = await sdk.questions.getQuestions();
+    console.log('Recent questions:', questions.items);
+    return questions;
   } catch (error) {
-    console.error('Failed to fetch inbox:', error);
+    console.error('Failed to fetch questions:', error);
   }
 }
 
-// Search for questions
-async function searchQuestions(query: string) {
+// Search for content
+async function searchContent(query: string) {
   try {
-    const results = await client.searchQuestions({
-      q: query,
-      sort: 'relevance',
-      pagesize: 10
-    });
+    const results = await sdk.search.search(query);
     console.log('Search results:', results.items);
     return results;
   } catch (error) {
@@ -148,18 +65,94 @@ async function searchQuestions(query: string) {
   }
 }
 
-// Post a new question
-async function postQuestion(title: string, body: string, tags: string[]) {
+// Get user information
+async function getUser(userId: number) {
   try {
-    const question = await client.postQuestion({
-      title,
-      body,
-      tags: tags.join(';')
-    });
-    console.log('Question posted:', question);
-    return question;
+    const user = await sdk.users.getUserById(userId);
+    console.log('User details:', user);
+    return user;
   } catch (error) {
-    console.error('Failed to post question:', error);
+    console.error('Failed to fetch user:', error);
+  }
+}
+```
+
+## 3. Working with Different Content Types
+
+<Tabs>
+  <TabItem label="Questions & Answers">
+    ```typescript title="qa-example.ts"
+    // Get questions with their answers
+    const questions = await sdk.questions.getQuestions();
+    
+    // Get specific question details
+    const questionId = 12345;
+    const question = await sdk.questions.getQuestionById(questionId);
+    
+    // Get answers for a question
+    const answers = await sdk.answers.getAnswers();
+    
+    // Get specific answer
+    const answerId = 67890;
+    const answer = await sdk.answers.getAnswerById(answerId);
+    ```
+  </TabItem>
+  <TabItem label="Users & Communities">
+    ```typescript title="users-example.ts"
+    // Get user information
+    const users = await sdk.users.getUsers();
+    
+    // Get communities
+    const communities = await sdk.communities.getCommunities();
+    
+    // Get user groups
+    const userGroups = await sdk.usergroups.getUserGroups();
+    ```
+  </TabItem>
+  <TabItem label="Content & Tags">
+    ```typescript title="content-example.ts"
+    // Browse articles
+    const articles = await sdk.articles.getArticles();
+    
+    // Get collections
+    const collections = await sdk.collections.getCollections();
+    
+    // Explore tags
+    const tags = await sdk.tags.getTags();
+    
+    // Get comments
+    const comments = await sdk.comments.getComments();
+    ```
+  </TabItem>
+</Tabs>
+
+## 4. Team Context
+
+For Stack Overflow for Teams, use the team context:
+
+```typescript title="team-example.ts"
+// Switch to team context
+const teamContext = sdk.forTeam('your-team-id');
+
+// Get team-specific questions
+async function getTeamQuestions() {
+  try {
+    const teamQuestions = await teamContext.questions.getQuestions();
+    console.log('Team questions:', teamQuestions.items);
+    return teamQuestions;
+  } catch (error) {
+    console.error('Failed to fetch team questions:', error);
+  }
+}
+
+// Get team-specific answers
+async function getTeamAnswers() {
+  try {
+    const teamAnswers = await teamContext.answers.getAnswers();
+    console.log('Team answers:', teamAnswers.items);
+    return teamAnswers;
+  } catch (error) {
+    console.error('Failed to fetch team answers:', error);
   }
 }
 ```
@@ -169,101 +162,115 @@ async function postQuestion(title: string, body: string, tags: string[]) {
 Here's a complete working example:
 
 ```typescript title="complete-example.ts"
-import { StackOverflowTeams } from '@stackoverflow/teams-sdk';
+import StackOverflowSDK from 'stackoverflow-sdk';
 
-class TeamsIntegration {
-  private client: StackOverflowTeams;
+class StackOverflowIntegration {
+  private sdk: StackOverflowSDK;
 
-  constructor() {
-    this.client = new StackOverflowTeams({
-      baseUrl: 'https://your-site.stackoverflowteams.com',
-      clientId: 'your-client-id',
-      redirectUri: 'http://localhost:3000/callback'
+  constructor(accessToken: string) {
+    this.sdk = new StackOverflowSDK({
+      baseUrl: 'https://api.stackexchange.com',
+      accessToken
     });
   }
 
-  async authenticate() {
-    // Check if we already have a token
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      this.client.setAccessToken(token);
-      return true;
-    }
-
-    // Start OAuth flow
-    const authUrl = this.client.getAuthorizationUrl(['read_inbox', 'write_access']);
-    window.location.href = authUrl;
-    return false;
+  async getPopularQuestions() {
+    const questions = await this.sdk.questions.getQuestions();
+    return questions.items?.slice(0, 10); // Get top 10
   }
 
-  async handleCallback() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
+  async searchByTag(tag: string) {
+    const results = await this.sdk.search.search(`[${tag}]`);
+    return results.items;
+  }
+
+  async getUserProfile(userId: number) {
+    const user = await this.sdk.users.getUserById(userId);
+    return user;
+  }
+
+  // Team-specific methods
+  async getTeamContent(teamId: string) {
+    const teamContext = this.sdk.forTeam(teamId);
     
-    if (code) {
-      const token = await this.client.exchangeCodeForToken(code);
-      localStorage.setItem('access_token', token.access_token);
-      this.client.setAccessToken(token.access_token);
-      return true;
-    }
-    return false;
-  }
+    const [questions, answers] = await Promise.all([
+      teamContext.questions.getQuestions(),
+      teamContext.answers.getAnswers()
+    ]);
 
-  async getRecentQuestions() {
-    return await this.client.getQuestions({
-      sort: 'creation',
-      order: 'desc',
-      pagesize: 5
-    });
+    return { questions: questions.items, answers: answers.items };
   }
 }
 
 // Usage
-const integration = new TeamsIntegration();
+const integration = new StackOverflowIntegration('your-access-token');
 
-// Initialize
-if (window.location.pathname === '/callback') {
-  await integration.handleCallback();
-} else {
-  await integration.authenticate();
+// Get popular questions
+const popularQuestions = await integration.getPopularQuestions();
+console.log('Popular questions:', popularQuestions);
+
+// Search for JavaScript content
+const jsQuestions = await integration.searchByTag('javascript');
+console.log('JavaScript questions:', jsQuestions);
+
+// Get team content
+const teamContent = await integration.getTeamContent('team-123');
+console.log('Team content:', teamContent);
+```
+
+## Error Handling
+
+Always wrap your API calls in try-catch blocks:
+
+```typescript title="error-handling.ts"
+async function safeApiCall() {
+  try {
+    const data = await sdk.questions.getQuestions();
+    return data;
+  } catch (error) {
+    if (error.status === 401) {
+      console.error('Authentication failed - check your access token');
+    } else if (error.status === 429) {
+      console.error('Rate limit exceeded - please retry later');
+    } else {
+      console.error('API call failed:', error.message);
+    }
+    throw error;
+  }
 }
-
-// Use the API
-const questions = await integration.getRecentQuestions();
-console.log(questions);
 ```
 
 ## Next Steps
 
 <CardGrid>
-  <Card title="Authentication Guide" icon="rocket">
-    Learn about OAuth 2.0 with PKCE implementation details and security best practices.
+  <Card title="Questions API" icon="document">
+    Learn about fetching and managing questions with detailed examples.
   </Card>
-  <Card title="API Reference" icon="document">
-    Explore all available SDK methods and their parameters.
+  <Card title="Answers API" icon="puzzle">
+    Explore answer retrieval and management functionality.
   </Card>
-  <Card title="Examples" icon="puzzle">
-    Browse real-world examples and integration patterns.
+  <Card title="Search API" icon="magnifier">
+    Master content discovery with advanced search capabilities.
   </Card>
-  <Card title="Error Handling" icon="warning">
-    Learn how to handle errors and implement retry logic.
+  <Card title="Users API" icon="user">
+    Work with user profiles and community data.
   </Card>
 </CardGrid>
 
 :::note[Rate Limits]
-The API has rate limits in place. The SDK automatically handles rate limiting and will retry requests with exponential backoff. You can configure retry behavior in the SDK options.
+The Stack Overflow API has rate limits in place. Monitor your usage and implement appropriate retry logic for production applications.
 :::
 
 ## Troubleshooting
 
-**Authentication fails with "Invalid redirect URI"**
-- Ensure your redirect URI exactly matches what's registered in your OAuth application
-- Check that you're using the correct protocol (http vs https)
-
-**"Access token expired" errors**
-- Implement token refresh logic or re-authenticate the user
-- Consider requesting the `no_expiry` scope for long-running applications (use cautiously)
-
-**API calls return 403 Forbidden**
+**"Invalid access token" errors**
 - Verify your access token is valid and not expired
-- Check that your requested scopes include the necessary permissions for the API endpoint
+- Ensure you have the necessary permissions for the API endpoint
+
+**API calls return empty results**
+- Check that you're using the correct site parameter
+- Verify the endpoint supports the parameters you're sending
+
+**Network timeout errors**
+- Implement retry logic with exponential backoff
+- Consider reducing the page size for large data requests

@@ -1,0 +1,193 @@
+---
+title: answers.update()
+description: Updates an existing answer with new content, preserving the answer's history and metadata.
+---
+
+Updates an existing answer with new content, preserving the answer's history and metadata.
+
+## Syntax
+
+```typescript
+async update(questionId: number, answerId: number, options: CreateAnswerOptions): Promise<AnswerResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to update |
+| `options` | `CreateAnswerOptions` | Yes | The answer update options |
+
+### CreateAnswerOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `body` | `string` | Yes | The updated content of the answer in Markdown format |
+
+## Return Value
+
+Returns a `Promise<AnswerResponseModel>` containing the updated answer with all its properties. The `lastEditDate` and `lastEditor` fields will be updated to reflect the edit. See the [get() method documentation](./get) for details on the `AnswerResponseModel` structure.
+
+## Examples
+
+### Basic Answer Update
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Update an existing answer
+const updatedAnswer = await sdk.answers.update(123, 456, {
+  body: 'This is my **updated** answer with improved content.'
+});
+
+console.log(`Updated answer ${updatedAnswer.id}`);
+console.log(`Last edited: ${updatedAnswer.lastEditDate}`);
+```
+
+### Adding More Content
+
+```typescript
+// Get the current answer first
+const currentAnswer = await sdk.answers.get(123, 456);
+
+// Add additional content
+const enhancedContent = currentAnswer.bodyMarkdown + `
+
+## Update
+
+I've added this additional information based on the comments:
+
+\`\`\`javascript
+// Enhanced solution
+function betterSolution(input) {
+  return input.filter(x => x > 0).map(x => x * 2);
+}
+\`\`\`
+
+This handles edge cases better.
+`;
+
+const updatedAnswer = await sdk.answers.update(123, 456, {
+  body: enhancedContent
+});
+
+console.log('Answer enhanced successfully');
+```
+
+### Fixing Content
+
+```typescript
+const correctedContent = `
+# Corrected Solution
+
+I made an error in my previous answer. Here's the correct approach:
+
+\`\`\`python
+def correct_solution(data):
+    # Fixed the logic error
+    return [x for x in data if x % 2 == 0]
+\`\`\`
+
+**Edit**: Fixed the modulo operation - was using \`x % 2 == 1\` incorrectly.
+`;
+
+const correctedAnswer = await sdk.answers.update(123, 456, {
+  body: correctedContent
+});
+
+console.log(`Answer corrected at: ${correctedAnswer.lastEditDate}`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamAnswer = await teamSDK.answers.update(123, 456, {
+  body: 'Updated answer for team with internal links and references.'
+});
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const answer = await teamAnswerClient.update(123, 456, {
+  body: 'Team-specific updated content.'
+});
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to edit this answer |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const updatedAnswer = await sdk.answers.update(123, 456, {
+    body: 'My updated answer content'
+  });
+  
+  console.log('Answer updated successfully');
+  console.log(`Edit made at: ${updatedAnswer.lastEditDate}`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer or question not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot edit this answer - insufficient permissions');
+  } else if (error.message.includes('body')) {
+    console.error('Invalid answer content');
+  } else {
+    console.error('Failed to update answer:', error.message);
+  }
+}
+```
+
+### Permission Scenarios
+
+```typescript
+try {
+  await sdk.answers.update(123, 456, { body: 'Updated content' });
+} catch (error) {
+  if (error instanceof ForbiddenError) {
+    // Common reasons for edit restrictions:
+    // - Not the answer owner
+    // - Answer is locked by moderator
+    // - Community Wiki restrictions
+    // - Insufficient reputation for editing others' posts
+    console.error('Edit not allowed:', error.message);
+  }
+}
+```
+
+## Notes
+
+- Only the answer owner or users with sufficient editing privileges can update an answer
+- The `lastEditDate` field is automatically updated when an answer is modified
+- The `lastEditor` field tracks who made the most recent edit
+- Edit history is preserved in the system (though not exposed through this API)
+- The updated content replaces the entire answer body - partial updates are not supported
+- Answers may be locked by moderators, preventing further edits
+- Community Wiki answers may have different editing rules
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Frequent edits within a short time period may be subject to rate limiting

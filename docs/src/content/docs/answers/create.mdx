@@ -1,0 +1,172 @@
+---
+title: answers.create()
+description: Creates a new answer for a specific question with the provided content.
+---
+
+Creates a new answer for a specific question with the provided content.
+
+## Syntax
+
+```typescript
+async create(questionId: number, options: CreateAnswerOptions): Promise<AnswerResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to answer |
+| `options` | `CreateAnswerOptions` | Yes | The answer creation options |
+
+### CreateAnswerOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `body` | `string` | Yes | The content of the answer in Markdown format |
+
+## Return Value
+
+Returns a `Promise<AnswerResponseModel>` containing the newly created answer with all its properties. See the [get() method documentation](./get) for details on the `AnswerResponseModel` structure.
+
+## Examples
+
+### Basic Answer Creation
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Create a new answer
+const newAnswer = await sdk.answers.create(123, {
+  body: 'This is my answer with **markdown** formatting.'
+});
+
+console.log(`Created answer with ID: ${newAnswer.id}`);
+console.log(`Answer score: ${newAnswer.score}`);
+```
+
+### Detailed Answer with Code
+
+```typescript
+const answerContent = `
+Here's how to solve this problem:
+
+## Solution
+
+You can use the following approach:
+
+\`\`\`javascript
+function solve(input) {
+  // Your solution here
+  return input.map(x => x * 2);
+}
+\`\`\`
+
+This works because:
+1. We iterate through each element
+2. We multiply by 2
+3. We return the new array
+
+Hope this helps!
+`;
+
+const answer = await sdk.answers.create(456, {
+  body: answerContent
+});
+
+console.log(`Answer created: ${answer.webUrl}`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamAnswer = await teamSDK.answers.create(123, {
+  body: 'Answer for team question with internal references.'
+});
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const answer = await teamAnswerClient.create(123, {
+  body: 'Team-specific answer content.'
+});
+```
+
+### With Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const answer = await sdk.answers.create(123, {
+    body: 'My comprehensive answer to this question.'
+  });
+  
+  console.log(`Successfully created answer: ${answer.id}`);
+  console.log(`Answer URL: ${answer.webUrl}`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Question not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Not allowed to answer this question');
+  } else {
+    console.error('Failed to create answer:', error.message);
+  }
+}
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to answer this question |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+
+### Common Error Scenarios
+
+```typescript
+try {
+  const answer = await sdk.answers.create(123, {
+    body: 'My answer'
+  });
+} catch (error) {
+  if (error instanceof ForbiddenError) {
+    // Question might be locked, closed, or user lacks permissions
+    console.error('Cannot answer this question');
+  } else if (error instanceof NotFoundError) {
+    // Question doesn't exist or was deleted
+    console.error('Question not found');
+  } else if (error.message.includes('body')) {
+    // Validation error - body might be too short or empty
+    console.error('Answer content is invalid');
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+## Notes
+
+- The `body` parameter should contain Markdown-formatted content
+- The created answer will initially have a score of 0
+- The answer is automatically associated with the authenticated user as the owner
+- Questions may have restrictions that prevent new answers (closed, locked, etc.)
+- Answer content is subject to community guidelines and moderation
+- The method automatically handles both public and team contexts based on how the client was initialized
+- The returned `AnswerResponseModel` contains the complete answer data including generated fields like `id`, `creationDate`, and `webUrl`
