@@ -51,8 +51,18 @@ export default defineConfig({
 					{ label: 'update', slug: 'articles/update' },
 					{ label: 'delete', slug: 'articles/delete' },
 					{ label: 'upvote', slug: 'articles/upvote' },
-					{ label: 'removeupvote', slug: 'articles/removeupvote' },
-					{ label: 'getlinkedquestions', slug: 'articles/getlinkedquestions'},
+					{ label: 'removeUpvote', slug: 'articles/removeupvote' },
+					{ label: 'getLinkedQuestions', slug: 'articles/getlinkedquestions'},
+				]
+			},
+			{
+				label: 'Collections',
+				items: [
+					{ label: 'getAll', slug: 'collections/getall' },
+					{ label: 'get', slug: 'collections/get' },
+					{ label: 'create', slug: 'collections/create' },
+					{ label: 'update', slug: 'collections/update' },
+					{ label: 'delete', slug: 'collections/delete' },
 				]
 			},
    			{

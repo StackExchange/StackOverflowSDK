@@ -1,0 +1,465 @@
+---
+title: delete()
+description: Deletes a collection permanently. Requires collection ownership or appropriate permissions.
+---
+
+# delete()
+
+Deletes a collection permanently. Requires collection ownership or appropriate permissions.
+
+## Syntax
+
+```typescript
+async delete(collectionId: number): Promise<void>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `collectionId` | `number` | Yes | The unique identifier of the collection to delete |
+
+## Return Value
+
+Returns a `Promise<void>`. The method completes successfully if the deletion was processed.
+
+## Examples
+
+### Basic Collection Deletion
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Delete a collection
+await sdk.collections.delete(123);
+console.log('Collection deleted successfully');
+```
+
+### Delete with Confirmation
+
+```typescript
+async function deleteCollectionWithConfirmation(collectionId: number) {
+  try {
+    // Get collection details first
+    const collection = await sdk.collections.get(collectionId);
+    
+    console.log(`About to delete collection: "${collection.title}"`);
+    console.log(`Owner: ${collection.owner?.displayName}`);
+    console.log(`Content items: ${collection.content?.length || 0}`);
+    console.log(`Created: ${new Date(collection.creationDate).toDateString()}`);
+    
+    // Confirm deletion (in a real app, you'd show a dialog)
+    const confirmed = true; // Replace with actual confirmation logic
+    
+    if (confirmed) {
+      await sdk.collections.delete(collectionId);
+      console.log('Collection has been deleted');
+    } else {
+      console.log('Deletion cancelled');
+    }
+  } catch (error) {
+    console.error('Failed to delete collection:', error.message);
+  }
+}
+
+await deleteCollectionWithConfirmation(123);
+```
+
+### Bulk Deletion with Validation
+
+```typescript
+async function deleteMultipleCollections(collectionIds: number[]) {
+  const results = [];
+  
+  for (const collectionId of collectionIds) {
+    try {
+      // Verify collection exists and get details
+      const collection = await sdk.collections.get(collectionId);
+      
+      // Check if it's safe to delete (e.g., not critical collections)
+      if (collection.title.includes('[CRITICAL]')) {
+        console.warn(`Skipping critical collection: ${collection.title}`);
+        results.push({ 
+          collectionId, 
+          status: 'skipped', 
+          reason: 'critical_protection' 
+        });
+        continue;
+      }
+      
+      await sdk.collections.delete(collectionId);
+      results.push({ 
+        collectionId, 
+        status: 'deleted',
+        title: collection.title
+      });
+      console.log(`✓ Deleted: ${collection.title}`);
+    } catch (error) {
+      results.push({ 
+        collectionId, 
+        status: 'failed', 
+        error: error.message 
+      });
+      console.error(`✗ Failed to delete collection ${collectionId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const deletionResults = await deleteMultipleCollections([123, 456, 789]);
+console.log('Deletion results:', deletionResults);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+await teamSDK.collections.delete(123);
+
+// Or with direct client initialization
+import { CollectionClient } from 'stack-overflow-sdk';
+const teamCollectionClient = new CollectionClient(config, 'team-123');
+await teamCollectionClient.delete(123);
+```
+
+### Safe Deletion with Backup
+
+```typescript
+async function safeDeleteWithBackup(collectionId: number) {
+  try {
+    // Create a backup of the collection before deletion
+    const collection = await sdk.collections.get(collectionId);
+    
+    const backup = {
+      id: collection.id,
+      title: collection.title,
+      description: collection.description,
+      owner: collection.owner?.displayName,
+      editorUsers: collection.editorUsers?.map(u => ({ id: u.id, name: u.displayName })),
+      editorUserGroups: collection.editorUserGroups?.map(g => ({ id: g.id, name: g.name })),
+      content: collection.content?.map(c => ({ id: c.id, title: c.title, type: c.type })),
+      tags: collection.tags?.map(t => t.name),
+      creationDate: collection.creationDate,
+      deletedAt: new Date().toISOString()
+    };
+    
+    // Store backup (replace with your backup mechanism)
+    console.log('Backup created:', JSON.stringify(backup, null, 2));
+    
+    // Delete the collection
+    await sdk.collections.delete(collectionId);
+    
+    return {
+      success: true,
+      backup,
+      message: `Collection "${collection.title}" deleted and backed up`
+    };
+  } catch (error) {
+    console.error('Failed to delete collection:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+const result = await safeDeleteWithBackup(123);
+if (result.success) {
+  console.log(result.message);
+} else {
+  console.error('Deletion failed:', result.error);
+}
+```
+
+### Cleanup Old Collections
+
+```typescript
+async function cleanupOldCollections(olderThanDays: number = 365) {
+  try {
+    // Get old collections
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const oldCollections = await sdk.collections.getByDateRange(
+      new Date('2020-01-01'), // Start from a reasonable date
+      cutoffDate
+    );
+    
+    console.log(`Found ${oldCollections.totalCount} collections older than ${olderThanDays} days`);
+    
+    const deletionCandidates = oldCollections.items.filter(collection => {
+      // Only delete collections with no content or very low engagement
+      return (collection.content?.length || 0) === 0 && !collection.title.includes('[KEEP]');
+    });
+    
+    console.log(`${deletionCandidates.length} collections qualify for cleanup`);
+    
+    const results = [];
+    for (const collection of deletionCandidates) {
+      try {
+        await sdk.collections.delete(collection.id);
+        results.push({ id: collection.id, status: 'deleted', title: collection.title });
+        console.log(`Cleaned up: ${collection.title}`);
+      } catch (error) {
+        results.push({ id: collection.id, status: 'failed', error: error.message });
+        console.error(`Failed to cleanup collection ${collection.id}:`, error.message);
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Cleanup operation failed:', error.message);
+    throw error;
+  }
+}
+
+// Clean up collections older than 2 years with no content
+const cleanupResults = await cleanupOldCollections(730);
+console.log(`Cleanup completed: ${cleanupResults.filter(r => r.status === 'deleted').length} collections removed`);
+```
+
+### Archive Instead of Delete
+
+```typescript
+async function archiveCollection(collectionId: number) {
+  try {
+    // Get the current collection
+    const collection = await sdk.collections.get(collectionId);
+    
+    // Update it to mark as archived instead of deleting
+    const archivedCollection = await sdk.collections.update(collectionId, {
+      title: `[ARCHIVED] ${collection.title}`,
+      description: `> **This collection has been archived on ${new Date().toDateString()}**
+      
+${collection.description || ''}`
+    });
+    
+    console.log(`Collection archived: ${archivedCollection.title}`);
+    return archivedCollection;
+  } catch (error) {
+    console.error('Failed to archive collection:', error.message);
+    throw error;
+  }
+}
+
+// Archive instead of delete for important content
+const archivedCollection = await archiveCollection(123);
+```
+
+### Conditional Deletion
+
+```typescript
+async function deleteCollectionIfEmpty(collectionId: number) {
+  try {
+    const collection = await sdk.collections.get(collectionId);
+    
+    if ((collection.content?.length || 0) > 0) {
+      return {
+        deleted: false,
+        reason: 'collection_not_empty',
+        message: `Collection "${collection.title}" contains ${collection.content?.length} items and was not deleted`
+      };
+    }
+    
+    await sdk.collections.delete(collectionId);
+    return {
+      deleted: true,
+      message: `Empty collection "${collection.title}" has been deleted`
+    };
+  } catch (error) {
+    return {
+      deleted: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const result = await deleteCollectionIfEmpty(123);
+console.log(result.message);
+```
+
+### Ownership Transfer Before Deletion
+
+```typescript
+async function transferOwnershipBeforeDeletion(collectionId: number, newOwnerId: number) {
+  try {
+    // First transfer ownership
+    const transferredCollection = await sdk.collections.update(collectionId, {
+      ownerId: newOwnerId
+    });
+    
+    console.log(`Ownership transferred to user ${newOwnerId}`);
+    
+    // Optionally delete after transfer (if new owner wants to delete)
+    // await sdk.collections.delete(collectionId);
+    
+    return {
+      success: true,
+      collection: transferredCollection,
+      message: 'Ownership transferred successfully'
+    };
+  } catch (error) {
+    console.error('Failed to transfer ownership:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+const transferResult = await transferOwnershipBeforeDeletion(123, 456);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to delete this collection |
+| `NotFoundError` | 404 | Collection with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  await sdk.collections.delete(123);
+  console.log('Collection deleted successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Collection not found - may already be deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot delete this collection - insufficient permissions');
+  } else {
+    console.error('Failed to delete collection:', error.message);
+  }
+}
+```
+
+### Permission Scenarios
+
+```typescript
+async function safeDeleteCollection(collectionId: number) {
+  try {
+    await sdk.collections.delete(collectionId);
+    return { success: true, message: 'Collection deleted' };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      // Common reasons for deletion restrictions:
+      // - Not the collection owner
+      // - Collection has protection policies
+      // - Insufficient user permissions
+      return { 
+        success: false, 
+        reason: 'permissions', 
+        message: 'You do not have permission to delete this collection' 
+      };
+    } else if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found', 
+        message: 'Collection not found or already deleted' 
+      };
+    } else {
+      return { 
+        success: false, 
+        reason: 'error', 
+        message: error.message 
+      };
+    }
+  }
+}
+
+const result = await safeDeleteCollection(123);
+if (result.success) {
+  console.log(result.message);
+} else {
+  console.log('Could not delete collection:', result.message);
+}
+```
+
+### Pre-deletion Validation
+
+```typescript
+async function validateBeforeDeletion(collectionId: number) {
+  try {
+    const collection = await sdk.collections.get(collectionId);
+    
+    const validationResults = {
+      canDelete: true,
+      warnings: [],
+      errors: []
+    };
+    
+    // Check if collection is already deleted
+    if (collection.isDeleted) {
+      validationResults.errors.push('Collection is already deleted');
+      validationResults.canDelete = false;
+    }
+    
+    // Check content count
+    const contentCount = collection.content?.length || 0;
+    if (contentCount > 0) {
+      validationResults.warnings.push(`Collection contains ${contentCount} content items that will be removed`);
+    }
+    
+    // Check editor count
+    const editorCount = (collection.editorUsers?.length || 0) + (collection.editorUserGroups?.length || 0);
+    if (editorCount > 0) {
+      validationResults.warnings.push(`Collection has ${editorCount} editors who will lose access`);
+    }
+    
+    // Check if collection is referenced elsewhere (this would be custom logic)
+    // validationResults.warnings.push('Check if collection is referenced in documentation');
+    
+    return validationResults;
+  } catch (error) {
+    return {
+      canDelete: false,
+      errors: [`Failed to validate collection: ${error.message}`],
+      warnings: []
+    };
+  }
+}
+
+const validation = await validateBeforeDeletion(123);
+if (validation.canDelete) {
+  if (validation.warnings.length > 0) {
+    console.log('Warnings:', validation.warnings);
+  }
+  // Proceed with deletion
+  await sdk.collections.delete(123);
+} else {
+  console.error('Cannot delete collection:', validation.errors);
+}
+```
+
+## Notes
+
+- Only the collection owner or users with appropriate permissions can delete collections
+- Deletion is typically permanent - deleted collections cannot be recovered through the API
+- Deleting a collection does not delete the content items (questions/articles) it contained
+- All editor permissions and associations are removed when a collection is deleted
+- Consider archiving collections instead of deleting them for audit trails
+- The method automatically handles both public and team contexts based on how the client was initialized
+- After successful deletion, subsequent calls to `get()` for the same collection will throw a `NotFoundError`
+- Some collections may be protected from deletion due to organizational policies or dependencies
+- Consider creating backups before deletion for important collections that might need to be restored

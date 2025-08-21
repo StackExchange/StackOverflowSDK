@@ -1,0 +1,408 @@
+---
+title: update()
+description: Updates an existing collection's title, description, content, editor permissions, or ownership.
+---
+
+# update()
+
+Updates an existing collection's title, description, content, editor permissions, or ownership.
+
+## Syntax
+
+```typescript
+async update(collectionId: number, options: UpdateCollectionOptions): Promise<CollectionsResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `collectionId` | `number` | Yes | The unique identifier of the collection to update |
+| `options` | `UpdateCollectionOptions` | Yes | The collection update options |
+
+### UpdateCollectionOptions
+
+Based on the underlying `EditCollectionRequestModel`, the following properties are available:
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `ownerId` | `number` \| `null` | No | The ID of the user who should own the collection (transfers ownership) |
+| `title` | `string` | No | Updated title for the collection |
+| `description` | `string` | No | Updated description (supports Markdown) |
+| `editorUserIds` | `number[]` | No | Updated list of user IDs who can modify this collection |
+| `editorUserGroupIds` | `number[]` | No | Updated list of user group IDs whose members can modify this collection |
+| `contentIds` | `number[]` | No | Updated list of question/article IDs that this collection contains, in order |
+
+## Return Value
+
+Returns a `Promise<CollectionsResponseModel>` containing the updated collection with all its properties. See the [get() method documentation](./get) for details on the `CollectionsResponseModel` structure.
+
+## Examples
+
+### Basic Update
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Update collection title and description
+const updatedCollection = await sdk.collections.update(123, {
+  title: 'Updated TypeScript Best Practices',
+  description: `# Updated TypeScript Best Practices
+
+This collection has been updated with the latest TypeScript development practices.
+
+## New Topics Added
+- Advanced type patterns
+- Latest TypeScript features
+- Migration strategies
+
+## Updated Content
+All existing content has been reviewed and updated for accuracy.`
+});
+
+console.log(`Updated collection: ${updatedCollection.title}`);
+```
+
+### Add Content to Collection
+
+```typescript
+// Get current collection to preserve existing content
+const currentCollection = await sdk.collections.get(123);
+const currentContentIds = currentCollection.content?.map(item => item.id) || [];
+
+// Add new content while preserving existing
+const updatedCollection = await sdk.collections.update(123, {
+  contentIds: [...currentContentIds, 456, 789, 101] // Add new items
+});
+
+console.log(`Collection now has ${updatedCollection.content?.length || 0} items`);
+```
+
+### Reorder Collection Content
+
+```typescript
+// Reorder existing content
+const reorderedCollection = await sdk.collections.update(123, {
+  contentIds: [789, 456, 123, 101] // New order
+});
+
+console.log('Content reordered successfully');
+```
+
+### Update Editor Permissions
+
+```typescript
+// Add new editors and editor groups
+const updatedCollection = await sdk.collections.update(123, {
+  editorUserIds: [123, 456, 789, 101], // Add user 101
+  editorUserGroupIds: [10, 20, 30] // Add group 30
+});
+
+console.log(`Updated editors: ${updatedCollection.editorUsers?.length || 0} users, ${updatedCollection.editorUserGroups?.length || 0} groups`);
+```
+
+### Transfer Ownership
+
+```typescript
+// Transfer collection ownership to another user
+const transferredCollection = await sdk.collections.update(123, {
+  ownerId: 456 // New owner user ID
+});
+
+console.log(`Collection ownership transferred to: ${transferredCollection.owner?.displayName}`);
+```
+
+### Comprehensive Update
+
+```typescript
+// Update multiple aspects of the collection
+const comprehensiveUpdate = await sdk.collections.update(123, {
+  title: 'Complete Development Guide',
+  description: `# Complete Development Guide
+
+A comprehensive guide covering all aspects of software development.
+
+## Sections
+- Frontend Development
+- Backend Development  
+- DevOps and Deployment
+- Testing Strategies
+- Best Practices
+
+This collection is continuously updated with the latest practices and technologies.`,
+  editorUserIds: [123, 456, 789],
+  editorUserGroupIds: [10, 15, 20],
+  contentIds: [201, 202, 203, 204, 205, 206, 207, 208]
+});
+
+console.log(`Comprehensive update completed: ${comprehensiveUpdate.title}`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const updatedCollection = await teamSDK.collections.update(123, {
+  title: 'Updated Team Collection',
+  editorUserGroupIds: [25] // Team-specific group
+});
+
+// Or with direct client initialization
+import { CollectionClient } from 'stack-overflow-sdk';
+const teamCollectionClient = new CollectionClient(config, 'team-123');
+const collection = await teamCollectionClient.update(123, {
+  description: 'Updated team collection description'
+});
+```
+
+### Conditional Updates
+
+```typescript
+async function updateCollectionIfNeeded(collectionId: number, newContentId: number) {
+  try {
+    // Get current collection state
+    const currentCollection = await sdk.collections.get(collectionId);
+    
+    // Check if content already exists
+    const existingContentIds = currentCollection.content?.map(item => item.id) || [];
+    
+    if (existingContentIds.includes(newContentId)) {
+      console.log('Content already exists in collection');
+      return currentCollection;
+    }
+    
+    // Add new content
+    const updatedCollection = await sdk.collections.update(collectionId, {
+      contentIds: [...existingContentIds, newContentId]
+    });
+    
+    console.log(`Added new content to collection: ${updatedCollection.title}`);
+    return updatedCollection;
+  } catch (error) {
+    console.error('Failed to update collection:', error.message);
+    throw error;
+  }
+}
+
+const result = await updateCollectionIfNeeded(123, 456);
+```
+
+### Batch Content Management
+
+```typescript
+async function manageCollectionContent(collectionId: number, operations: {
+  add?: number[];
+  remove?: number[];
+  reorder?: number[];
+}) {
+  try {
+    const currentCollection = await sdk.collections.get(collectionId);
+    let currentContentIds = currentCollection.content?.map(item => item.id) || [];
+    
+    // Remove specified content
+    if (operations.remove) {
+      currentContentIds = currentContentIds.filter(id => !operations.remove!.includes(id));
+    }
+    
+    // Add new content
+    if (operations.add) {
+      const newIds = operations.add.filter(id => !currentContentIds.includes(id));
+      currentContentIds.push(...newIds);
+    }
+    
+    // Apply custom order if specified
+    if (operations.reorder) {
+      currentContentIds = operations.reorder;
+    }
+    
+    const updatedCollection = await sdk.collections.update(collectionId, {
+      contentIds: currentContentIds
+    });
+    
+    console.log(`Collection content updated: ${updatedCollection.content?.length || 0} items`);
+    return updatedCollection;
+  } catch (error) {
+    console.error('Failed to manage collection content:', error.message);
+    throw error;
+  }
+}
+
+// Example usage
+const managed = await manageCollectionContent(123, {
+  add: [456, 789],
+  remove: [101],
+  reorder: [456, 123, 789, 202]
+});
+```
+
+### Permission Management
+
+```typescript
+async function updateCollectionPermissions(collectionId: number, permissions: {
+  addUsers?: number[];
+  removeUsers?: number[];
+  addGroups?: number[];
+  removeGroups?: number[];
+}) {
+  try {
+    const currentCollection = await sdk.collections.get(collectionId);
+    
+    let editorUserIds = currentCollection.editorUsers?.map(user => user.id) || [];
+    let editorUserGroupIds = currentCollection.editorUserGroups?.map(group => group.id) || [];
+    
+    // Manage user permissions
+    if (permissions.addUsers) {
+      const newUsers = permissions.addUsers.filter(id => !editorUserIds.includes(id));
+      editorUserIds.push(...newUsers);
+    }
+    
+    if (permissions.removeUsers) {
+      editorUserIds = editorUserIds.filter(id => !permissions.removeUsers!.includes(id));
+    }
+    
+    // Manage group permissions
+    if (permissions.addGroups) {
+      const newGroups = permissions.addGroups.filter(id => !editorUserGroupIds.includes(id));
+      editorUserGroupIds.push(...newGroups);
+    }
+    
+    if (permissions.removeGroups) {
+      editorUserGroupIds = editorUserGroupIds.filter(id => !permissions.removeGroups!.includes(id));
+    }
+    
+    const updatedCollection = await sdk.collections.update(collectionId, {
+      editorUserIds,
+      editorUserGroupIds
+    });
+    
+    console.log(`Permissions updated: ${updatedCollection.editorUsers?.length || 0} users, ${updatedCollection.editorUserGroups?.length || 0} groups`);
+    return updatedCollection;
+  } catch (error) {
+    console.error('Failed to update permissions:', error.message);
+    throw error;
+  }
+}
+
+// Example usage
+const permissionUpdate = await updateCollectionPermissions(123, {
+  addUsers: [456, 789],
+  removeUsers: [101],
+  addGroups: [25]
+});
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to edit this collection |
+| `NotFoundError` | 404 | Collection with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const updatedCollection = await sdk.collections.update(123, {
+    title: 'Updated Collection Title',
+    description: 'Updated description',
+    contentIds: [456, 789]
+  });
+  
+  console.log('Collection updated successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Collection not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot edit this collection - insufficient permissions');
+  } else if (error.message.includes('contentIds')) {
+    console.error('Invalid content IDs - some referenced items may not exist');
+  } else {
+    console.error('Failed to update collection:', error.message);
+  }
+}
+```
+
+### Safe Update with Validation
+
+```typescript
+async function safeUpdateCollection(collectionId: number, options: UpdateCollectionOptions) {
+  try {
+    // Verify collection exists and we can edit it
+    const currentCollection = await sdk.collections.get(collectionId);
+    
+    if (currentCollection.isDeleted) {
+      return {
+        success: false,
+        reason: 'deleted',
+        message: 'Cannot update deleted collection'
+      };
+    }
+    
+    const updatedCollection = await sdk.collections.update(collectionId, options);
+    return {
+      success: true,
+      collection: updatedCollection,
+      message: 'Collection updated successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Collection not found'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'permissions',
+        message: 'Insufficient permissions to edit this collection'
+      };
+    }
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const result = await safeUpdateCollection(123, {
+  title: 'New Title'
+});
+
+if (result.success) {
+  console.log('Update successful:', result.collection.title);
+} else {
+  console.log('Update failed:', result.message);
+}
+```
+
+## Notes
+
+- All fields in `UpdateCollectionOptions` are optional - only specify the fields you want to change
+- Only collection owners or users with edit permissions can update collections
+- Setting `ownerId` transfers ownership to the specified user
+- The `contentIds` array completely replaces existing content - include all desired items
+- Editor permission arrays (`editorUserIds`, `editorUserGroupIds`) completely replace existing permissions
+- Content order in the collection matches the order of IDs in the `contentIds` array
+- The method automatically handles both public and team contexts based on how the client was initialized
+- All referenced users, groups, and content items must exist and be accessible
+- Ownership transfers may require additional permissions depending on platform configuration

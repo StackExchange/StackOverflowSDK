@@ -1,0 +1,431 @@
+---
+title: get()
+description: Retrieves a single collection by its ID with complete details including content, editors, and permissions.
+---
+
+# get()
+
+Retrieves a single collection by its ID with complete details including content, editors, and permissions.
+
+## Syntax
+
+```typescript
+async get(collectionId: number): Promise<CollectionsResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `collectionId` | `number` | Yes | The unique identifier of the collection to retrieve |
+
+## Return Value
+
+Returns a `Promise<CollectionsResponseModel>` containing the complete collection object with the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The collection's unique identifier |
+| `title` | `string` | A brief title to distinguish the collection and its contents |
+| `description` | `string` | A detailed description of what the collection contains (supports Markdown) |
+| `owner` | `UserSummaryResponseModel` | Information about the collection owner |
+| `creationDate` | `Date` | When the collection was created |
+| `isDeleted` | `boolean` | Whether the collection was deleted |
+| `content` | `CollectionContentSummaryResponseModel[]` | The content items (questions and/or articles) contained in this collection |
+| `editorUsers` | `UserSummaryResponseModel[]` | Users who can edit this collection |
+| `editorUserGroups` | `UserGroupResponseModel[]` | User groups whose members can modify this collection |
+| `tags` | `TagSummaryResponseModel[]` | Tags associated with the content items in the collection |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get a specific collection
+const collection = await sdk.collections.get(123);
+console.log(`Collection: ${collection.title}`);
+console.log(`Owner: ${collection.owner?.displayName}`);
+console.log(`Content items: ${collection.content?.length || 0}`);
+console.log(`Created: ${collection.creationDate}`);
+```
+
+### Accessing Collection Details
+
+```typescript
+const collection = await sdk.collections.get(123);
+
+// Display collection information
+console.log(`Collection: ${collection.title}`);
+console.log(`Description: ${collection.description}`);
+console.log(`Owner: ${collection.owner?.displayName}`);
+console.log(`Created: ${new Date(collection.creationDate).toDateString()}`);
+
+// Check if collection is deleted
+if (collection.isDeleted) {
+  console.log('⚠️ This collection has been deleted');
+} else {
+  console.log('✅ Collection is active');
+}
+
+// Display content summary
+const contentCount = collection.content?.length || 0;
+console.log(`📚 Contains ${contentCount} items`);
+
+if (collection.content && collection.content.length > 0) {
+  console.log('\nContent items:');
+  collection.content.forEach((item, index) => {
+    console.log(`${index + 1}. ${item.title} (Type: ${item.type})`);
+  });
+}
+```
+
+### Editor and Permission Information
+
+```typescript
+const collection = await sdk.collections.get(123);
+
+// Check who can edit this collection
+console.log(`Collection: ${collection.title}`);
+console.log(`Owner: ${collection.owner?.displayName}`);
+
+// Individual editor users
+if (collection.editorUsers && collection.editorUsers.length > 0) {
+  console.log('\nEditor users:');
+  collection.editorUsers.forEach(user => {
+    console.log(`- ${user.displayName} (ID: ${user.id})`);
+  });
+} else {
+  console.log('\nNo individual editor users assigned');
+}
+
+// Editor user groups
+if (collection.editorUserGroups && collection.editorUserGroups.length > 0) {
+  console.log('\nEditor groups:');
+  collection.editorUserGroups.forEach(group => {
+    console.log(`- ${group.name} (ID: ${group.id})`);
+  });
+} else {
+  console.log('\nNo editor groups assigned');
+}
+
+// Calculate total potential editors
+const individualEditors = collection.editorUsers?.length || 0;
+const groupEditors = collection.editorUserGroups?.length || 0;
+console.log(`\nTotal editing access: ${individualEditors} users + ${groupEditors} groups`);
+```
+
+### Content Analysis
+
+```typescript
+async function analyzeCollectionContent(collectionId: number) {
+  try {
+    const collection = await sdk.collections.get(collectionId);
+    
+    if (!collection.content || collection.content.length === 0) {
+      return {
+        collectionId,
+        title: collection.title,
+        isEmpty: true,
+        message: 'Collection contains no items'
+      };
+    }
+    
+    // Analyze content types
+    const contentTypes = collection.content.reduce((types, item) => {
+      types[item.type] = (types[item.type] || 0) + 1;
+      return types;
+    }, {} as Record<string, number>);
+    
+    // Analyze content scores (if available)
+    const scores = collection.content
+      .map(item => item.score || 0)
+      .filter(score => score !== undefined);
+    
+    const totalScore = scores.reduce((sum, score) => sum + score, 0);
+    const averageScore = scores.length > 0 ? totalScore / scores.length : 0;
+    
+    // Analyze tags
+    const allTags = collection.tags || [];
+    const tagNames = allTags.map(tag => tag.name).filter(Boolean);
+    
+    const analysis = {
+      collectionId: collection.id,
+      title: collection.title,
+      owner: collection.owner?.displayName,
+      contentSummary: {
+        totalItems: collection.content.length,
+        contentTypes,
+        averageScore: parseFloat(averageScore.toFixed(2)),
+        totalScore,
+        topItems: collection.content
+          .sort((a, b) => (b.score || 0) - (a.score || 0))
+          .slice(0, 3)
+          .map(item => ({
+            title: item.title,
+            type: item.type,
+            score: item.score
+          }))
+      },
+      tags: tagNames,
+      permissions: {
+        owner: collection.owner?.displayName,
+        editorUsers: collection.editorUsers?.length || 0,
+        editorGroups: collection.editorUserGroups?.length || 0
+      },
+      metadata: {
+        created: collection.creationDate,
+        isDeleted: collection.isDeleted
+      }
+    };
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to analyze collection content:', error.message);
+    throw error;
+  }
+}
+
+const contentAnalysis = await analyzeCollectionContent(123);
+console.log('Collection Analysis:', contentAnalysis);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamCollection = await teamSDK.collections.get(123);
+
+// Or with direct client initialization
+import { CollectionClient } from 'stack-overflow-sdk';
+const teamCollectionClient = new CollectionClient(config, 'team-123');
+const collection = await teamCollectionClient.get(123);
+```
+
+### Collection Validation
+
+```typescript
+async function validateCollectionAccess(collectionId: number, userId: number) {
+  try {
+    const collection = await sdk.collections.get(collectionId);
+    
+    // Check if collection exists and is not deleted
+    if (collection.isDeleted) {
+      return {
+        valid: false,
+        reason: 'deleted',
+        message: 'Collection has been deleted'
+      };
+    }
+    
+    // Check ownership
+    const isOwner = collection.owner?.id === userId;
+    
+    // Check editor permissions
+    const isEditor = collection.editorUsers?.some(user => user.id === userId) || false;
+    
+    // Check group permissions (would need additional group membership check)
+    const hasGroupAccess = collection.editorUserGroups && collection.editorUserGroups.length > 0;
+    
+    const accessLevel = isOwner ? 'owner' : isEditor ? 'editor' : hasGroupAccess ? 'potential_group_editor' : 'viewer';
+    
+    return {
+      valid: true,
+      collection: {
+        id: collection.id,
+        title: collection.title,
+        contentCount: collection.content?.length || 0
+      },
+      access: {
+        level: accessLevel,
+        canEdit: isOwner || isEditor,
+        canDelete: isOwner,
+        permissions: {
+          isOwner,
+          isEditor,
+          hasGroupAccess
+        }
+      }
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const accessValidation = await validateCollectionAccess(123, 456);
+if (accessValidation.valid) {
+  console.log(`Access level: ${accessValidation.access.level}`);
+  console.log(`Can edit: ${accessValidation.access.canEdit}`);
+} else {
+  console.log(`Access denied: ${accessValidation.message}`);
+}
+```
+
+### Bulk Collection Retrieval
+
+```typescript
+async function getMultipleCollections(collectionIds: number[]) {
+  const collections = [];
+  const errors = [];
+  
+  for (const id of collectionIds) {
+    try {
+      const collection = await sdk.collections.get(id);
+      collections.push(collection);
+      console.log(`✓ Loaded: ${collection.title}`);
+    } catch (error) {
+      errors.push({ id, error: error.message });
+      console.error(`✗ Failed to load collection ${id}:`, error.message);
+    }
+  }
+  
+  return { collections, errors };
+}
+
+const result = await getMultipleCollections([123, 456, 789]);
+console.log(`Successfully loaded ${result.collections.length} collections`);
+console.log(`Failed to load ${result.errors.length} collections`);
+```
+
+### Collection Comparison
+
+```typescript
+async function compareCollections(collectionIds: number[]) {
+  const comparisons = [];
+  
+  for (const id of collectionIds) {
+    try {
+      const collection = await sdk.collections.get(id);
+      
+      comparisons.push({
+        id: collection.id,
+        title: collection.title,
+        owner: collection.owner?.displayName,
+        contentCount: collection.content?.length || 0,
+        editorCount: (collection.editorUsers?.length || 0) + (collection.editorUserGroups?.length || 0),
+        tagCount: collection.tags?.length || 0,
+        created: collection.creationDate,
+        isDeleted: collection.isDeleted,
+        totalScore: collection.content?.reduce((sum, item) => sum + (item.score || 0), 0) || 0
+      });
+    } catch (error) {
+      comparisons.push({
+        id,
+        error: error.message
+      });
+    }
+  }
+  
+  // Sort by content count
+  const validComparisons = comparisons.filter(c => !c.error);
+  validComparisons.sort((a, b) => b.contentCount - a.contentCount);
+  
+  console.log('Collection Comparison (by content count):');
+  validComparisons.forEach((collection, index) => {
+    console.log(`${index + 1}. ${collection.title}: ${collection.contentCount} items`);
+  });
+  
+  return comparisons;
+}
+
+const comparison = await compareCollections([123, 456, 789]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the collection |
+| `NotFoundError` | 404 | Collection with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const collection = await sdk.collections.get(123);
+  console.log('Collection retrieved:', collection.title);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Collection not found or has been deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied - insufficient permissions to view this collection');
+  } else {
+    console.error('Failed to retrieve collection:', error.message);
+  }
+}
+```
+
+### Safe Collection Retrieval
+
+```typescript
+async function safeGetCollection(collectionId: number) {
+  try {
+    const collection = await sdk.collections.get(collectionId);
+    return { 
+      success: true, 
+      collection,
+      message: 'Collection retrieved successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Collection not found'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'access_denied',
+        message: 'Access denied to this collection'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeGetCollection(123);
+if (result.success) {
+  console.log('Collection loaded:', result.collection.title);
+} else {
+  console.log('Could not load collection:', result.message);
+}
+```
+
+## Notes
+
+- This method returns the complete collection object with all available fields
+- Collection content includes both questions and articles with summary information
+- The method automatically handles both public and team contexts based on how the client was initialized
+- User-specific fields reflect permissions and access rights for the authenticated user
+- Deleted collections may still be retrievable depending on permissions, but will have `isDeleted: true`
+- The `content` array provides summary information about included items, not full content details
+- Editor information helps determine who can modify the collection
+- Tags are aggregated from all content items within the collection
