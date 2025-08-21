@@ -1,0 +1,457 @@
+---
+title: create()
+description: Creates a new article with specified title, content, tags, type, and permission settings.
+---
+
+# create()
+
+Creates a new article with specified title, content, tags, type, and permission settings.
+
+## Syntax
+
+```typescript
+async create(options: CreateArticleOptions): Promise<ArticleResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `CreateArticleOptions` | Yes | The article creation options |
+
+### CreateArticleOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `title` | `string` | Yes | The article title |
+| `body` | `string` | Yes | The article content in Markdown format |
+| `tags` | `string[]` | Yes | Array of tags to associate with the article |
+| `type` | `ArticleType` | Yes | The type/category of the article: `"knowledgeArticle"`, `"announcement"`, `"policy"`, or `"howToGuide"` |
+| `permissions` | `ArticlePermissionsRequestModel` | Yes | Article permission and access control settings |
+
+### ArticlePermissionsRequestModel
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `editableBy` | `ArticlePermissionsType` | No | Who can edit this article: `"ownerOnly"`, `"specificEditors"`, or `"everyone"` |
+| `editorUserIds` | `number[]` | No | Specific user IDs who can edit this article |
+| `editorUserGroupIds` | `number[]` | No | Specific user group IDs who can edit this article |
+
+## Return Value
+
+Returns a `Promise<ArticleResponseModel>` containing the newly created article with all its properties. See the [get() method documentation](./get) for details on the `ArticleResponseModel` structure.
+
+## Examples
+
+### Basic Article Creation
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Create a new article
+const newArticle = await sdk.articles.create({
+  title: 'Getting Started with TypeScript',
+  body: `# Introduction
+
+This article covers the basics of TypeScript and how to get started.
+
+## Installation
+
+\`\`\`bash
+npm install -g typescript
+\`\`\`
+
+## Basic Types
+
+TypeScript provides several basic types...`,
+  tags: ['typescript', 'javascript', 'programming'],
+  type: 'knowledgeArticle',
+  permissions: {
+    editableBy: 'ownerOnly',
+    editorUserIds: [],
+    editorUserGroupIds: []
+  }
+});
+
+console.log(`Created article with ID: ${newArticle.id}`);
+console.log(`Article URL: ${newArticle.webUrl}`);
+```
+
+### Technical Documentation Article
+
+```typescript
+const documentationArticle = await sdk.articles.create({
+  title: 'API Authentication Guide',
+  body: `# API Authentication
+
+This guide explains how to authenticate with our API.
+
+## Overview
+
+Our API uses OAuth 2.0 for authentication...
+
+## Getting an Access Token
+
+1. Register your application
+2. Get authorization code
+3. Exchange for access token
+
+### Example Request
+
+\`\`\`javascript
+const response = await fetch('/oauth/token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    grant_type: 'authorization_code',
+    code: 'your-auth-code',
+    client_id: 'your-client-id'
+  })
+});
+\`\`\`
+
+## Best Practices
+
+- Store tokens securely
+- Refresh tokens before expiry
+- Use HTTPS for all requests
+
+## Troubleshooting
+
+Common authentication errors and solutions...`,
+  tags: ['api', 'authentication', 'oauth', 'documentation'],
+  type: 'howToGuide',
+  permissions: {
+    editableBy: 'specificEditors',
+    editorUserIds: [123, 456], // Specific users who can edit
+    editorUserGroupIds: [789] // Specific groups who can edit
+  }
+});
+
+console.log(`Documentation article created: ${documentationArticle.title}`);
+```
+
+### FAQ Article
+
+```typescript
+const faqArticle = await sdk.articles.create({
+  title: 'Frequently Asked Questions - Development Environment',
+  body: `# Development Environment FAQ
+
+## Q: How do I set up my local development environment?
+
+A: Follow these steps:
+
+1. Install Node.js (version 18+)
+2. Clone the repository
+3. Run \`npm install\`
+4. Configure environment variables
+5. Start the development server with \`npm run dev\`
+
+## Q: What IDE should I use?
+
+A: We recommend:
+- **VS Code** - Great TypeScript support
+- **IntelliJ IDEA** - Excellent for full-stack development
+- **Vim/Neovim** - For power users
+
+## Q: How do I run tests?
+
+A: Use these commands:
+
+\`\`\`bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+\`\`\`
+
+## Q: Where can I find code style guidelines?
+
+A: Check our [Style Guide](./style-guide) for detailed formatting rules.`,
+  tags: ['faq', 'development', 'setup', 'environment'],
+  type: 'announcement', // Using for FAQ-type content
+  permissions: {
+    editableBy: 'specificEditors',
+    editorUserIds: [],
+    editorUserGroupIds: [456] // Team leads group
+  }
+});
+
+console.log(`FAQ article created with ${faqArticle.tags.length} tags`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamArticle = await teamSDK.articles.create({
+  title: 'Team-Specific Best Practices',
+  body: 'Internal guidelines and practices for our team...',
+  tags: ['team', 'guidelines', 'internal'],
+  type: 'TEAM_GUIDE',
+  permissions: {
+    viewPermissions: 'TEAM_ONLY',
+    editPermissions: 'TEAM_MODERATORS'
+  }
+});
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const article = await teamArticleClient.create({
+  title: 'Team Article',
+  body: 'Content here...',
+  tags: ['internal'],
+  type: 'KNOWLEDGE_ARTICLE',
+  permissions: { /* permissions */ }
+});
+```
+
+### Batch Article Creation
+
+```typescript
+interface ArticleTemplate {
+  title: string;
+  body: string;
+  tags: string[];
+  type: ArticleType;
+}
+
+async function createMultipleArticles(
+  articles: ArticleTemplate[], 
+  defaultPermissions: ArticlePermissionsRequestModel
+) {
+  const createdArticles = [];
+  const errors = [];
+  
+  for (const template of articles) {
+    try {
+      const article = await sdk.articles.create({
+        ...template,
+        permissions: defaultPermissions
+      });
+      
+      createdArticles.push(article);
+      console.log(`✓ Created: ${article.title}`);
+    } catch (error) {
+      errors.push({ 
+        title: template.title, 
+        error: error.message 
+      });
+      console.error(`✗ Failed to create "${template.title}":`, error.message);
+    }
+  }
+  
+  return { createdArticles, errors };
+}
+
+const articleTemplates = [
+  {
+    title: 'Git Workflow Guide',
+    body: '# Git Workflow\n\nOur standard git workflow...',
+    tags: ['git', 'workflow', 'development'],
+    type: 'GUIDE'
+  },
+  {
+    title: 'Code Review Checklist', 
+    body: '# Code Review\n\nUse this checklist...',
+    tags: ['code-review', 'quality', 'process'],
+    type: 'CHECKLIST'
+  }
+];
+
+const defaultPermissions = {
+  editableBy: 'ownerOnly',
+  editorUserIds: [],
+  editorUserGroupIds: []
+};
+
+const result = await createMultipleArticles(articleTemplates, defaultPermissions);
+console.log(`Created ${result.createdArticles.length} articles successfully`);
+```
+
+### Permission Examples
+
+```typescript
+// Owner-only editing (default for personal articles)
+const personalArticle = await sdk.articles.create({
+  title: 'My Personal Notes',
+  body: 'Private notes and thoughts...',
+  tags: ['personal', 'notes'],
+  type: 'knowledgeArticle',
+  permissions: {
+    editableBy: 'ownerOnly'
+  }
+});
+
+// Specific editors (for collaborative articles)
+const collaborativeArticle = await sdk.articles.create({
+  title: 'Team Project Documentation',
+  body: 'Shared project documentation...',
+  tags: ['project', 'documentation', 'team'],
+  type: 'howToGuide',
+  permissions: {
+    editableBy: 'specificEditors',
+    editorUserIds: [123, 456, 789], // Specific team members
+    editorUserGroupIds: [10, 20] // Project team groups
+  }
+});
+
+// Everyone can edit (for community-driven content)
+const wikiArticle = await sdk.articles.create({
+  title: 'Community Knowledge Base',
+  body: 'Shared knowledge that everyone can contribute to...',
+  tags: ['wiki', 'community', 'knowledge'],
+  type: 'knowledgeArticle',
+  permissions: {
+    editableBy: 'everyone'
+  }
+});
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to create articles |
+| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ForbiddenError, SDKError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const article = await sdk.articles.create({
+    title: 'My New Article',
+    body: 'Article content here...',
+    tags: ['tutorial', 'guide'],
+    type: 'KNOWLEDGE_ARTICLE',
+    permissions: {
+      viewPermissions: 'PUBLIC',
+      editPermissions: 'AUTHOR_ONLY'
+    }
+  });
+  
+  console.log(`Article created successfully: ${article.title}`);
+  console.log(`Article ID: ${article.id}`);
+} catch (error) {
+  if (error instanceof ForbiddenError) {
+    console.error('Access denied - insufficient permissions to create articles');
+  } else if (error instanceof SDKError) {
+    if (error.message.includes('title')) {
+      console.error('Invalid title - must not be empty');
+    } else if (error.message.includes('body')) {
+      console.error('Invalid content - must not be empty');
+    } else if (error.message.includes('tags')) {
+      console.error('Invalid tags - at least one tag is required');
+    } else {
+      console.error('Validation error:', error.message);
+    }
+  } else {
+    console.error('Failed to create article:', error.message);
+  }
+}
+```
+
+### Validation and Safe Creation
+
+```typescript
+async function safeCreateArticle(options: CreateArticleOptions) {
+  // Client-side validation
+  if (!options.title?.trim()) {
+    return { 
+      success: false, 
+      reason: 'validation',
+      message: 'Title is required' 
+    };
+  }
+  
+  if (!options.body?.trim()) {
+    return { 
+      success: false, 
+      reason: 'validation',
+      message: 'Body content is required' 
+    };
+  }
+  
+  if (!options.tags?.length) {
+    return { 
+      success: false, 
+      reason: 'validation',
+      message: 'At least one tag is required' 
+    };
+  }
+  
+  try {
+    const article = await sdk.articles.create(options);
+    return { 
+      success: true, 
+      article,
+      message: 'Article created successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'permissions',
+        message: 'Insufficient permissions to create articles'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeCreateArticle({
+  title: 'Test Article',
+  body: 'Test content',
+  tags: ['test'],
+  type: 'KNOWLEDGE_ARTICLE',
+  permissions: { /* permissions */ }
+});
+
+if (result.success) {
+  console.log('Article created:', result.article.title);
+} else {
+  console.log('Could not create article:', result.message);
+}
+```
+
+## Notes
+
+- All fields in `CreateArticleOptions` are required
+- The `body` parameter should contain Markdown-formatted content
+- Tags help with article discoverability and organization
+- Article types may affect how the article is displayed and categorized
+- Permission settings control who can view and edit the article
+- The created article will initially have a score of 0 and no views
+- The article is automatically associated with the authenticated user as the owner
+- Article content is subject to community guidelines and moderation policies
+- The method automatically handles both public and team contexts based on how the client was initialized
+- The returned `ArticleResponseModel` contains the

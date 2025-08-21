@@ -1,0 +1,450 @@
+---
+title: update()
+description: Updates an existing article with new content, tags, type, or permission settings, preserving the article's history and metadata.
+---
+
+# update()
+
+Updates an existing article with new content, tags, type, or permission settings, preserving the article's history and metadata.
+
+## Syntax
+
+```typescript
+async update(articleId: number, options: UpdateArticleOptions): Promise<ArticleResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to update |
+| `options` | `UpdateArticleOptions` | Yes | The article update options |
+
+### UpdateArticleOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `title` | `string` | Yes | The updated article title |
+| `body` | `string` | Yes | The updated article content in Markdown format |
+| `tags` | `string[]` | Yes | Updated array of tags to associate with the article |
+| `type` | `ArticleType` | Yes | The updated type/category: `"knowledgeArticle"`, `"announcement"`, `"policy"`, or `"howToGuide"` |
+| `permissions` | `ArticlePermissionsRequestModel` | Yes | Updated article permission and access control settings |
+
+### ArticlePermissionsRequestModel
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `editableBy` | `ArticlePermissionsType` | No | Who can edit this article: `"ownerOnly"`, `"specificEditors"`, or `"everyone"` |
+| `editorUserIds` | `number[]` | No | Specific user IDs who can edit this article |
+| `editorUserGroupIds` | `number[]` | No | Specific user group IDs who can edit this article |
+
+## Return Value
+
+Returns a `Promise<ArticleResponseModel>` containing the updated article with all its properties. The `lastEditDate` and `lastEditor` fields will be updated to reflect the edit. See the [get() method documentation](./get) for details on the `ArticleResponseModel` structure.
+
+## Examples
+
+### Basic Article Update
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Update an existing article
+const updatedArticle = await sdk.articles.update(123, {
+  title: 'Updated: Getting Started with TypeScript',
+  body: `# Introduction (Updated)
+
+This updated article covers the latest TypeScript features and best practices.
+
+## What's New
+
+- TypeScript 5.0 features
+- Updated installation instructions
+- New best practices
+
+## Installation
+
+\`\`\`bash
+# Updated installation method
+npm install -g typescript@latest
+\`\`\`
+
+## Modern TypeScript Features
+
+Details about the latest features...`,
+  tags: ['typescript', 'javascript', 'programming', 'updated'],
+  type: 'knowledgeArticle',
+  permissions: {
+    editableBy: 'ownerOnly'
+  }
+});
+
+console.log(`Updated article: ${updatedArticle.title}`);
+console.log(`Last edited: ${updatedArticle.lastEditDate}`);
+```
+
+### Content Enhancement
+
+```typescript
+// Get the current article first to build upon it
+const currentArticle = await sdk.articles.get(123);
+
+// Enhance the existing content
+const enhancedContent = currentArticle.bodyMarkdown + `
+
+## Recent Updates
+
+**${new Date().toDateString()}**: Added troubleshooting section and updated examples.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Module not found errors**
+   - Solution: Check your import paths
+   - Verify dependencies are installed
+
+2. **Type errors in production**
+   - Solution: Run type checking in CI/CD
+   - Use strict mode settings
+
+### Getting Help
+
+- Check our [FAQ](./faq)
+- Join the discussion in #typescript channel
+- File issues in the project repository
+`;
+
+const enhancedArticle = await sdk.articles.update(123, {
+  title: currentArticle.title + ' (Enhanced)',
+  body: enhancedContent,
+  tags: [...currentArticle.tags, 'troubleshooting', 'enhanced'],
+  type: currentArticle.type,
+  permissions: currentArticle.permissions
+});
+
+console.log('Article enhanced with troubleshooting section');
+```
+
+### Change Article Type and Permissions
+
+```typescript
+// Convert a knowledge article to a policy with restricted editing
+const policyArticle = await sdk.articles.update(123, {
+  title: 'Code Review Policy (Official)',
+  body: `# Code Review Policy
+
+This document outlines our official code review requirements.
+
+## Requirements
+
+All code changes must:
+
+1. Pass automated tests
+2. Have at least one reviewer approval
+3. Follow coding standards
+4. Include appropriate documentation
+
+## Review Process
+
+1. **Submit PR**: Create pull request with clear description
+2. **Automated Checks**: Wait for CI/CD to pass
+3. **Peer Review**: Get approval from team member
+4. **Final Check**: Tech lead final approval for critical changes
+
+## Enforcement
+
+This policy is effective immediately and applies to all team members.`,
+  tags: ['policy', 'code-review', 'official', 'mandatory'],
+  type: 'policy', // Changed from knowledgeArticle to policy
+  permissions: {
+    editableBy: 'specificEditors',
+    editorUserIds: [456], // Only tech leads can edit policies
+    editorUserGroupIds: [789] // Management group
+  }
+});
+
+console.log(`Article converted to policy: ${policyArticle.type}`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamArticle = await teamSDK.articles.update(123, {
+  title: 'Updated Team Guidelines',
+  body: 'Updated internal guidelines and practices...',
+  tags: ['team', 'guidelines', 'updated'],
+  type: 'howToGuide',
+  permissions: {
+    editableBy: 'specificEditors',
+    editorUserIds: [],
+    editorUserGroupIds: [456] // Team moderators
+  }
+});
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const article = await teamArticleClient.update(123, {
+  title: 'Updated Article',
+  body: 'Updated content...',
+  tags: ['updated'],
+  type: 'knowledgeArticle',
+  permissions: { editableBy: 'ownerOnly' }
+});
+```
+
+### Batch Article Updates
+
+```typescript
+interface ArticleUpdate {
+  id: number;
+  updates: UpdateArticleOptions;
+}
+
+async function updateMultipleArticles(updates: ArticleUpdate[]) {
+  const results = [];
+  
+  for (const { id, updates } of updates) {
+    try {
+      const updatedArticle = await sdk.articles.update(id, updates);
+      results.push({ 
+        id, 
+        status: 'updated', 
+        title: updatedArticle.title 
+      });
+      console.log(`✓ Updated: ${updatedArticle.title}`);
+    } catch (error) {
+      results.push({ 
+        id, 
+        status: 'failed', 
+        error: error.message 
+      });
+      console.error(`✗ Failed to update article ${id}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const articleUpdates = [
+  {
+    id: 123,
+    updates: {
+      title: 'Updated Git Workflow',
+      body: 'Updated git workflow with new practices...',
+      tags: ['git', 'workflow', 'updated'],
+      type: 'howToGuide',
+      permissions: { editableBy: 'everyone' }
+    }
+  },
+  {
+    id: 456,
+    updates: {
+      title: 'Security Policy v2.0',
+      body: 'Updated security policy...',
+      tags: ['security', 'policy', 'v2'],
+      type: 'policy',
+      permissions: { 
+        editableBy: 'specificEditors',
+        editorUserIds: [789],
+        editorUserGroupIds: []
+      }
+    }
+  }
+];
+
+const results = await updateMultipleArticles(articleUpdates);
+console.log(`Updated ${results.filter(r => r.status === 'updated').length} articles successfully`);
+```
+
+### Permission Changes
+
+```typescript
+// Open up an article for community editing
+async function makeArticleCommunityEditable(articleId: number) {
+  const currentArticle = await sdk.articles.get(articleId);
+  
+  const updatedArticle = await sdk.articles.update(articleId, {
+    title: currentArticle.title,
+    body: currentArticle.bodyMarkdown,
+    tags: currentArticle.tags,
+    type: currentArticle.type,
+    permissions: {
+      editableBy: 'everyone' // Changed to allow everyone to edit
+    }
+  });
+  
+  console.log(`Article "${updatedArticle.title}" is now community-editable`);
+  return updatedArticle;
+}
+
+// Restrict editing to specific users
+async function restrictArticleEditing(articleId: number, editorIds: number[]) {
+  const currentArticle = await sdk.articles.get(articleId);
+  
+  const updatedArticle = await sdk.articles.update(articleId, {
+    title: currentArticle.title,
+    body: currentArticle.bodyMarkdown,
+    tags: currentArticle.tags,
+    type: currentArticle.type,
+    permissions: {
+      editableBy: 'specificEditors',
+      editorUserIds: editorIds,
+      editorUserGroupIds: []
+    }
+  });
+  
+  console.log(`Article editing restricted to ${editorIds.length} specific users`);
+  return updatedArticle;
+}
+
+await makeArticleCommunityEditable(123);
+await restrictArticleEditing(456, [789, 101]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to edit this article |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const updatedArticle = await sdk.articles.update(123, {
+    title: 'My Updated Article',
+    body: 'Updated content here...',
+    tags: ['updated', 'content'],
+    type: 'knowledgeArticle',
+    permissions: {
+      editableBy: 'ownerOnly'
+    }
+  });
+  
+  console.log('Article updated successfully');
+  console.log(`Edit made at: ${updatedArticle.lastEditDate}`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found or has been deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot edit this article - insufficient permissions');
+  } else if (error.message.includes('title')) {
+    console.error('Invalid title - must not be empty');
+  } else if (error.message.includes('body')) {
+    console.error('Invalid content - must not be empty');
+  } else {
+    console.error('Failed to update article:', error.message);
+  }
+}
+```
+
+### Safe Update with Validation
+
+```typescript
+async function safeUpdateArticle(articleId: number, options: UpdateArticleOptions) {
+  // Client-side validation
+  if (!options.title?.trim()) {
+    return { 
+      success: false, 
+      reason: 'validation',
+      message: 'Title is required' 
+    };
+  }
+  
+  if (!options.body?.trim()) {
+    return { 
+      success: false, 
+      reason: 'validation',
+      message: 'Body content is required' 
+    };
+  }
+  
+  if (!options.tags?.length) {
+    return { 
+      success: false, 
+      reason: 'validation',
+      message: 'At least one tag is required' 
+    };
+  }
+  
+  try {
+    // Check if article exists and we can edit it
+    const currentArticle = await sdk.articles.get(articleId);
+    
+    const updatedArticle = await sdk.articles.update(articleId, options);
+    return { 
+      success: true, 
+      article: updatedArticle,
+      message: 'Article updated successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Article not found'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'permissions',
+        message: 'Insufficient permissions to edit this article'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeUpdateArticle(123, {
+  title: 'Updated Article',
+  body: 'Updated content',
+  tags: ['updated'],
+  type: 'knowledgeArticle',
+  permissions: { editableBy: 'ownerOnly' }
+});
+
+if (result.success) {
+  console.log('Article updated:', result.article.title);
+} else {
+  console.log('Could not update article:', result.message);
+}
+```
+
+## Notes
+
+- All fields in `UpdateArticleOptions` are required - this replaces the entire article content
+- Only the article owner or users with edit permissions can update an article
+- The `lastEditDate` field is automatically updated when an article is modified
+- The `lastEditor` field tracks who made the most recent edit
+- Edit history is preserved in the system (though not exposed through this API)
+- The updated content replaces the entire article - partial updates are not supported
+- Changing article permissions affects who can make future edits
+- Article type changes may affect how the article is displayed and categorized
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Frequent edits within a short time period may be subject to rate limiting

@@ -26,17 +26,8 @@ export default defineConfig({
    					{ label: 'Rate Limits', slug: 'guides/rate-limiting' },
    				],
    			},
-   			{
-   				label: 'Questions',
-   				collapsed: true,
-   				items: [
-
-   					{ label: 'create', slug: 'questions/create' },
-   				]
-   			},
-   			{
+			{
    				label: 'Answers',
-   				collapsed: true,
    				items: [
 					{ label: 'getAll', slug: 'answers/getall'},
 					{ label: 'get', slug: 'answers/get' },
@@ -49,6 +40,27 @@ export default defineConfig({
 					{ label: 'removedownvote', slug: 'answers/removedownvote' },
 					{ label: 'accept', slug: 'answers/accept' },
 					{ label: 'unaccept', slug: 'answers/unaccept' },
+   				]
+   			},
+			{
+				label: 'Articles',
+				items: [
+					{ label: 'getAll', slug: 'articles/getall'},
+					{ label: 'get', slug:'articles/get'},
+					{ label: 'create', slug: 'articles/create'},
+					{ label: 'update', slug: 'articles/update' },
+					{ label: 'delete', slug: 'articles/delete' },
+					{ label: 'upvote', slug: 'articles/upvote' },
+					{ label: 'removeupvote', slug: 'articles/removeupvote' },
+					{ label: 'getlinkedquestions', slug: 'articles/getlinkedquestions'},
+				]
+			},
+   			{
+   				label: 'Questions',
+   				collapsed: true,
+   				items: [
+
+   					{ label: 'create', slug: 'questions/create' },
    				]
    			},
    			{

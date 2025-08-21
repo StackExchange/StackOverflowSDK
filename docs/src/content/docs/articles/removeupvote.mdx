@@ -1,0 +1,350 @@
+---
+title: removeUpvote()
+description: Removes a previously cast upvote from an article, returning the vote count to its previous state.
+---
+
+# removeUpvote()
+
+Removes a previously cast upvote from an article, returning the vote count to its previous state.
+
+## Syntax
+
+```typescript
+async removeUpvote(articleId: number): Promise<ArticleResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to remove the upvote from |
+
+## Return Value
+
+Returns a `Promise<ArticleResponseModel>` containing the complete updated article information with the adjusted vote count and score.
+
+## Examples
+
+### Basic Upvote Removal
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Remove an upvote from an article
+const result = await sdk.articles.removeUpvote(123);
+console.log(`Article score is now: ${result.score}`);
+console.log(`Total upvotes: ${result.upvoteCount}`);
+```
+
+### Remove Upvote with Score Tracking
+
+```typescript
+try {
+  const articleBefore = await sdk.articles.get(123);
+  console.log(`Current score: ${articleBefore.score}`);
+  console.log(`Current upvotes: ${articleBefore.upvoteCount}`);
+  
+  const result = await sdk.articles.removeUpvote(123);
+  
+  console.log(`Score after removing upvote: ${result.score}`);
+  console.log(`Upvotes after removal: ${result.upvoteCount}`);
+  console.log(`Score decreased by: ${articleBefore.score - result.score}`);
+} catch (error) {
+  console.error('Failed to remove upvote:', error.message);
+}
+```
+
+### Conditional Vote Removal
+
+```typescript
+async function removeUpvoteIfExists(articleId: number) {
+  try {
+    const result = await sdk.articles.removeUpvote(articleId);
+    console.log(`Removed upvote from article: ${result.title}`);
+    console.log(`New score: ${result.score}`);
+    return { removed: true, score: result.score };
+  } catch (error) {
+    if (error.message.includes('no upvote') || error.message.includes('not voted')) {
+      console.log('No upvote to remove');
+      return { removed: false, reason: 'no_upvote' };
+    } else {
+      console.error('Error removing upvote:', error.message);
+      throw error;
+    }
+  }
+}
+
+const result = await removeUpvoteIfExists(123);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const result = await teamSDK.articles.removeUpvote(123);
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const voteResult = await teamArticleClient.removeUpvote(123);
+```
+
+### Bulk Vote Removal
+
+```typescript
+async function removeUpvotesFromMultipleArticles(articleIds: number[]) {
+  const results = [];
+  
+  for (const articleId of articleIds) {
+    try {
+      const result = await sdk.articles.removeUpvote(articleId);
+      results.push({ 
+        articleId, 
+        status: 'removed', 
+        newScore: result.score,
+        title: result.title
+      });
+      console.log(`✓ Removed upvote from: ${result.title} (Score: ${result.score})`);
+    } catch (error) {
+      results.push({ 
+        articleId, 
+        status: 'failed', 
+        error: error.message 
+      });
+      console.error(`✗ Failed to remove upvote from article ${articleId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const results = await removeUpvotesFromMultipleArticles([123, 456, 789]);
+console.log('Vote removal results:', results);
+```
+
+### Vote State Management
+
+```typescript
+async function manageArticleVote(articleId: number, shouldUpvote: boolean) {
+  try {
+    const currentArticle = await sdk.articles.get(articleId);
+    
+    if (shouldUpvote) {
+      // Try to upvote
+      try {
+        const result = await sdk.articles.upvote(articleId);
+        console.log(`Upvoted article: ${result.title}`);
+        return { action: 'upvoted', score: result.score };
+      } catch (error) {
+        if (error.message.includes('already voted')) {
+          console.log('Article already upvoted');
+          return { action: 'already_upvoted', score: currentArticle.score };
+        }
+        throw error;
+      }
+    } else {
+      // Try to remove upvote
+      try {
+        const result = await sdk.articles.removeUpvote(articleId);
+        console.log(`Removed upvote from: ${result.title}`);
+        return { action: 'removed_upvote', score: result.score };
+      } catch (error) {
+        if (error.message.includes('no upvote')) {
+          console.log('No upvote to remove');
+          return { action: 'no_upvote_to_remove', score: currentArticle.score };
+        }
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Vote management error:', error.message);
+    throw error;
+  }
+}
+
+// Remove upvote from an article
+const result1 = await manageArticleVote(123, false);
+console.log(`Result: ${result1.action}, Score: ${result1.score}`);
+
+// Add upvote to an article
+const result2 = await manageArticleVote(456, true);
+console.log(`Result: ${result2.action}, Score: ${result2.score}`);
+```
+
+### Vote History Tracking
+
+```typescript
+interface VoteAction {
+  articleId: number;
+  action: 'upvote' | 'remove_upvote';
+  timestamp: string;
+  previousScore: number;
+  newScore: number;
+}
+
+class VoteTracker {
+  private voteHistory: VoteAction[] = [];
+  
+  async removeUpvoteWithTracking(articleId: number): Promise<ArticleResponseModel> {
+    const beforeVote = await sdk.articles.get(articleId);
+    const result = await sdk.articles.removeUpvote(articleId);
+    
+    this.voteHistory.push({
+      articleId,
+      action: 'remove_upvote',
+      timestamp: new Date().toISOString(),
+      previousScore: beforeVote.score,
+      newScore: result.score
+    });
+    
+    console.log(`Vote removed and tracked for article ${articleId}`);
+    return result;
+  }
+  
+  getVoteHistory(): VoteAction[] {
+    return [...this.voteHistory];
+  }
+  
+  getArticleVoteHistory(articleId: number): VoteAction[] {
+    return this.voteHistory.filter(vote => vote.articleId === articleId);
+  }
+}
+
+const voteTracker = new VoteTracker();
+const result = await voteTracker.removeUpvoteWithTracking(123);
+console.log('Vote history:', voteTracker.getVoteHistory());
+```
+
+### Undo Recent Upvotes
+
+```typescript
+async function undoRecentUpvotes(hoursAgo: number = 1) {
+  // This is a conceptual example - you'd need to track your own upvote history
+  const recentUpvotes = getRecentUpvoteHistory(hoursAgo); // Your implementation
+  
+  const results = [];
+  
+  for (const upvote of recentUpvotes) {
+    try {
+      const result = await sdk.articles.removeUpvote(upvote.articleId);
+      results.push({
+        articleId: upvote.articleId,
+        title: result.title,
+        status: 'removed',
+        scoreChange: upvote.scoreAtUpvote - result.score
+      });
+      console.log(`✓ Undid upvote for: ${result.title}`);
+    } catch (error) {
+      results.push({
+        articleId: upvote.articleId,
+        status: 'failed',
+        error: error.message
+      });
+      console.error(`✗ Failed to undo upvote for article ${upvote.articleId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+// Undo all upvotes from the last 2 hours
+const undoResults = await undoRecentUpvotes(2);
+console.log(`Undid ${undoResults.filter(r => r.status === 'removed').length} upvotes`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot remove upvote (no existing upvote, insufficient permissions) |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.articles.removeUpvote(123);
+  console.log('Upvote removed successfully, new score:', result.score);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found');
+  } else if (error instanceof ForbiddenError) {
+    if (error.message.includes('no upvote') || error.message.includes('not voted')) {
+      console.error('You have not upvoted this article');
+    } else {
+      console.error('Cannot remove upvote:', error.message);
+    }
+  } else {
+    console.error('Failed to remove upvote:', error.message);
+  }
+}
+```
+
+### Safe Vote Removal
+
+```typescript
+async function safeRemoveUpvote(articleId: number) {
+  try {
+    const result = await sdk.articles.removeUpvote(articleId);
+    return { 
+      success: true, 
+      score: result.score,
+      upvoteCount: result.upvoteCount,
+      message: 'Upvote removed successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      if (error.message.includes('no upvote') || error.message.includes('not voted')) {
+        return { 
+          success: false, 
+          reason: 'no_upvote',
+          message: 'No upvote exists to remove'
+        };
+      }
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeRemoveUpvote(123);
+if (result.success) {
+  console.log('Upvote removed, new score:', result.score);
+} else {
+  console.log('Could not remove upvote:', result.message);
+}
+```
+
+## Notes
+
+- This method can only be called if the user has previously upvoted the article
+- Calling this method when no upvote exists will result in a `ForbiddenError`
+- After removing an upvote, the user can upvote the same article again later
+- The score decrease depends on the voting system (typically decreases by 1)
+- Vote removal is immediate and reflected in the returned response
+- Users cannot remove votes on their own articles (since they can't vote on them in the first place)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Some platforms may have time limits on vote changes - after a certain period, votes may become locked
+- The returned `ArticleResponseModel` contains the complete updated article information
+- Both `score` and `upvoteCount` fields are typically decreased by 1 when an upvote is removed
