@@ -1,0 +1,673 @@
+---
+title: getLinked()
+description: Retrieves questions that are explicitly linked to a specific question, typically through cross-references, duplicate relationships, or manual associations.
+---
+
+# getLinked()
+
+Retrieves questions that are explicitly linked to a specific question, typically through cross-references, duplicate relationships, or manual associations.
+
+## Syntax
+
+```typescript
+async getLinked(questionId: number, options?: GetLinkedQuestionsOptions): Promise<PaginatedLinkedOrRelatedQuestions>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to find linked questions for |
+| `options` | `GetLinkedQuestionsOptions` | No | Configuration options for pagination and sorting |
+
+### GetLinkedQuestionsOptions
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of questions to return per page |
+| `sort` | `LinkedOrRelatedQuestionsSortParameter` | No | | Sort by: `"hot"`, `"creation"`, `"activity"`, or `"score"` |
+| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+
+## Return Value
+
+Returns a `Promise<PaginatedLinkedOrRelatedQuestions>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of linked questions found |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `LinkedOrRelatedQuestionsSortParameter` | Sort parameter used |
+| `order` | `SortOrder` | Sort order used |
+| `items` | `QuestionSummaryResponseModel[]` | Array of linked question summaries |
+
+## Examples
+
+### Basic Linked Questions Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get linked questions for a specific question
+const linkedQuestions = await sdk.questions.getLinked(12345);
+
+console.log(`Found ${linkedQuestions.totalCount} linked questions`);
+
+linkedQuestions.items.forEach(question => {
+  console.log(`- ${question.title}`);
+  console.log(`  Score: ${question.score}, Answers: ${question.answerCount}`);
+  console.log(`  Tags: ${question.tags?.map(t => t.name).join(', ')}`);
+  console.log(`  Link: ${question.webUrl}`);
+  console.log('');
+});
+```
+
+### Sorted Linked Questions
+
+```typescript
+// Get linked questions sorted by score (highest first)
+const topLinkedQuestions = await sdk.questions.getLinked(12345, {
+  sort: 'score',
+  order: 'desc',
+  pageSize: 20
+});
+
+console.log('Top linked questions by score:');
+topLinkedQuestions.items.forEach((question, index) => {
+  console.log(`${index + 1}. ${question.title} (Score: ${question.score})`);
+});
+
+// Get newest linked questions
+const recentLinkedQuestions = await sdk.questions.getLinked(12345, {
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 15
+});
+
+console.log('\nMost recently linked questions:');
+recentLinkedQuestions.items.forEach(question => {
+  console.log(`- ${question.title}`);
+  console.log(`  Created: ${question.creationDate}`);
+});
+
+// Get most active linked questions
+const activeLinkedQuestions = await sdk.questions.getLinked(12345, {
+  sort: 'activity',
+  order: 'desc',
+  pageSize: 10
+});
+
+console.log('\nMost active linked questions:');
+activeLinkedQuestions.items.forEach(question => {
+  console.log(`- ${question.title}`);
+  console.log(`  Last activity: ${question.lastActivityDate}`);
+});
+```
+
+### Linked Questions Analysis
+
+```typescript
+async function analyzeLinkedQuestions(questionId: number) {
+  try {
+    // Get the original question for context
+    const originalQuestion = await sdk.questions.get(questionId);
+    
+    // Get all linked questions
+    const linkedQuestions = await sdk.questions.getLinked(questionId, {
+      pageSize: 100, // Get as many as possible
+      sort: 'score',
+      order: 'desc'
+    });
+    
+    console.log(`Analyzing linked questions for: ${originalQuestion.title}`);
+    console.log(`Found ${linkedQuestions.totalCount} linked questions`);
+    
+    if (linkedQuestions.totalCount === 0) {
+      console.log('No linked questions found');
+      return { originalQuestion, linkedQuestions: [], analysis: null };
+    }
+    
+    // Analyze the linked questions
+    const analysis = {
+      totalLinked: linkedQuestions.totalCount,
+      scoreStats: {
+        highest: Math.max(...linkedQuestions.items.map(q => q.score || 0)),
+        lowest: Math.min(...linkedQuestions.items.map(q => q.score || 0)),
+        average: linkedQuestions.items.reduce((sum, q) => sum + (q.score || 0), 0) / linkedQuestions.items.length
+      },
+      answerStats: {
+        totalAnswers: linkedQuestions.items.reduce((sum, q) => sum + (q.answerCount || 0), 0),
+        answeredCount: linkedQuestions.items.filter(q => q.isAnswered).length,
+        unansweredCount: linkedQuestions.items.filter(q => !q.isAnswered).length,
+        averageAnswers: linkedQuestions.items.reduce((sum, q) => sum + (q.answerCount || 0), 0) / linkedQuestions.items.length
+      },
+      commonTags: analyzeCommonTags(linkedQuestions.items, originalQuestion.tags),
+      qualityDistribution: categorizeByQuality(linkedQuestions.items),
+      topLinkedQuestions: linkedQuestions.items.slice(0, 5),
+      recommendations: generateLinkedQuestionRecommendations(originalQuestion, linkedQuestions.items)
+    };
+    
+    console.log('\nLinked Questions Analysis:');
+    console.log(`- Score range: ${analysis.scoreStats.lowest} to ${analysis.scoreStats.highest}`);
+    console.log(`- Average score: ${analysis.scoreStats.average.toFixed(1)}`);
+    console.log(`- Answered: ${analysis.answerStats.answeredCount}/${linkedQuestions.totalCount}`);
+    console.log(`- Average answers per question: ${analysis.answerStats.averageAnswers.toFixed(1)}`);
+    
+    console.log('\nCommon tags across linked questions:');
+    analysis.commonTags.forEach(([tag, count]) => {
+      console.log(`- ${tag}: ${count} questions`);
+    });
+    
+    console.log('\nTop linked questions:');
+    analysis.topLinkedQuestions.forEach((q, index) => {
+      console.log(`${index + 1}. ${q.title} (Score: ${q.score})`);
+    });
+    
+    console.log('\nRecommendations:');
+    analysis.recommendations.forEach(rec => {
+      console.log(`- ${rec}`);
+    });
+    
+    return { originalQuestion, linkedQuestions: linkedQuestions.items, analysis };
+  } catch (error) {
+    console.error('Failed to analyze linked questions:', error.message);
+    throw error;
+  }
+}
+
+function analyzeCommonTags(linkedQuestions: any[], originalTags?: any[]): [string, number][] {
+  const tagCounts = new Map<string, number>();
+  
+  linkedQuestions.forEach(question => {
+    question.tags?.forEach(tag => {
+      tagCounts.set(tag.name, (tagCounts.get(tag.name) || 0) + 1);
+    });
+  });
+  
+  // Sort by frequency and return top 10
+  return Array.from(tagCounts.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10);
+}
+
+function categorizeByQuality(questions: any[]): { high: number, medium: number, low: number } {
+  return questions.reduce((categories, question) => {
+    const score = question.score || 0;
+    if (score >= 5) categories.high++;
+    else if (score >= 1) categories.medium++;
+    else categories.low++;
+    return categories;
+  }, { high: 0, medium: 0, low: 0 });
+}
+
+function generateLinkedQuestionRecommendations(original: any, linked: any[]): string[] {
+  const recommendations = [];
+  
+  const highQualityLinked = linked.filter(q => (q.score || 0) >= 5);
+  if (highQualityLinked.length > 0) {
+    recommendations.push(`${highQualityLinked.length} high-quality linked questions worth reviewing`);
+  }
+  
+  const unansweredLinked = linked.filter(q => !q.isAnswered);
+  if (unansweredLinked.length > linked.length * 0.3) {
+    recommendations.push('Many linked questions remain unanswered - opportunity to provide solutions');
+  }
+  
+  const recentLinked = linked.filter(q => {
+    const daysSince = (Date.now() - new Date(q.creationDate).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince <= 30;
+  });
+  
+  if (recentLinked.length > linked.length * 0.3) {
+    recommendations.push('Several recent linked questions - topic has ongoing relevance');
+  }
+  
+  return recommendations;
+}
+
+const linkAnalysis = await analyzeLinkedQuestions(12345);
+```
+
+### Linked Questions Navigation System
+
+```typescript
+async function createLinkedQuestionsNavigator(rootQuestionId: number) {
+  console.log(`Creating navigation system for question ${rootQuestionId}...`);
+  
+  const navigationMap = new Map<number, any>();
+  
+  async function buildNavigationTree(questionId: number, depth: number = 0, maxDepth: number = 3): Promise<any> {
+    // Prevent infinite recursion and excessive depth
+    if (depth >= maxDepth || navigationMap.has(questionId)) {
+      return navigationMap.get(questionId) || null;
+    }
+    
+    try {
+      const [question, linkedQuestions] = await Promise.all([
+        sdk.questions.get(questionId),
+        sdk.questions.getLinked(questionId, { pageSize: 50 })
+      ]);
+      
+      const nodeData = {
+        id: question.id,
+        title: question.title,
+        score: question.score,
+        answerCount: question.answerCount,
+        isAnswered: question.isAnswered,
+        tags: question.tags?.map(t => t.name) || [],
+        depth,
+        linkedQuestions: [],
+        linkCount: linkedQuestions.totalCount
+      };
+      
+      navigationMap.set(questionId, nodeData);
+      
+      console.log(`${'  '.repeat(depth)}Processing: ${question.title} (${linkedQuestions.totalCount} links)`);
+      
+      // Process linked questions recursively
+      for (const linkedQuestion of linkedQuestions.items.slice(0, 5)) { // Limit to prevent explosion
+        const childNode = await buildNavigationTree(linkedQuestion.id, depth + 1, maxDepth);
+        if (childNode) {
+          nodeData.linkedQuestions.push(childNode);
+        }
+      }
+      
+      return nodeData;
+    } catch (error) {
+      console.error(`Failed to process question ${questionId} at depth ${depth}:`, error.message);
+      return null;
+    }
+  }
+  
+  async function findShortestPath(fromId: number, toId: number): Promise<number[]> {
+    // Simple BFS to find shortest path between questions
+    const queue = [[fromId]];
+    const visited = new Set<number>();
+    
+    while (queue.length > 0) {
+      const path = queue.shift()!;
+      const currentId = path[path.length - 1];
+      
+      if (currentId === toId) {
+        return path;
+      }
+      
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+      
+      try {
+        const linkedQuestions = await sdk.questions.getLinked(currentId, { pageSize: 20 });
+        
+        for (const linked of linkedQuestions.items) {
+          if (!visited.has(linked.id)) {
+            queue.push([...path, linked.id]);
+          }
+        }
+      } catch (error) {
+        console.error(`Error finding links for question ${currentId}:`, error.message);
+      }
+      
+      // Prevent excessive search
+      if (path.length > 5) break;
+    }
+    
+    return []; // No path found
+  }
+  
+  function generateNavigationSummary(rootNode: any): any {
+    const summary = {
+      rootQuestion: rootNode.title,
+      totalNodesDiscovered: navigationMap.size,
+      maxDepth: Math.max(...Array.from(navigationMap.values()).map((node: any) => node.depth)),
+      highQualityNodes: Array.from(navigationMap.values()).filter((node: any) => node.score >= 5),
+      unansweredNodes: Array.from(navigationMap.values()).filter((node: any) => !node.isAnswered),
+      mostLinkedNodes: Array.from(navigationMap.values())
+        .sort((a: any, b: any) => b.linkCount - a.linkCount)
+        .slice(0, 5)
+    };
+    
+    return summary;
+  }
+  
+  // Build the initial tree
+  const rootNode = await buildNavigationTree(rootQuestionId);
+  
+  const summary = generateNavigationSummary(rootNode);
+  
+  console.log('\nNavigation System Summary:');
+  console.log(`- Root question: ${summary.rootQuestion}`);
+  console.log(`- Total questions discovered: ${summary.totalNodesDiscovered}`);
+  console.log(`- Maximum depth: ${summary.maxDepth}`);
+  console.log(`- High quality questions: ${summary.highQualityNodes.length}`);
+  console.log(`- Unanswered questions: ${summary.unansweredNodes.length}`);
+  
+  console.log('\nMost linked questions:');
+  summary.mostLinkedNodes.forEach((node: any, index: number) => {
+    console.log(`${index + 1}. ${node.title} (${node.linkCount} links)`);
+  });
+  
+  return {
+    rootNode,
+    navigationMap,
+    findShortestPath,
+    summary
+  };
+}
+
+const navigator = await createLinkedQuestionsNavigator(12345);
+
+// Find shortest path between two questions
+const path = await navigator.findShortestPath(12345, 12350);
+if (path.length > 0) {
+  console.log(`Found path: ${path.join(' → ')}`);
+} else {
+  console.log('No path found between questions');
+}
+```
+
+### Linked Questions Content Analysis
+
+```typescript
+async function analyzeLinkedQuestionsContent(questionId: number) {
+  try {
+    const [originalQuestion, linkedQuestions] = await Promise.all([
+      sdk.questions.get(questionId),
+      sdk.questions.getLinked(questionId, { pageSize: 100 })
+    ]);
+    
+    console.log(`Analyzing content relationships for: ${originalQuestion.title}`);
+    
+    if (linkedQuestions.totalCount === 0) {
+      console.log('No linked questions to analyze');
+      return null;
+    }
+    
+    // Analyze content patterns
+    const contentAnalysis = {
+      originalQuestion: {
+        id: originalQuestion.id,
+        title: originalQuestion.title,
+        tags: originalQuestion.tags?.map(t => t.name) || [],
+        bodyLength: originalQuestion.bodyMarkdown?.length || 0,
+        hasCode: (originalQuestion.bodyMarkdown || '').includes('```'),
+        score: originalQuestion.score
+      },
+      linkedQuestions: linkedQuestions.items.map(q => ({
+        id: q.id,
+        title: q.title,
+        tags: q.tags?.map(t => t.name) || [],
+        score: q.score,
+        answerCount: q.answerCount,
+        isAnswered: q.isAnswered
+      })),
+      relationships: {
+        sharedTags: findSharedTags(originalQuestion, linkedQuestions.items),
+        titleSimilarity: analyzeTitleSimilarity(originalQuestion, linkedQuestions.items),
+        topicClusters: identifyTopicClusters(linkedQuestions.items),
+        qualityCorrelation: analyzeQualityCorrelation(originalQuestion, linkedQuestions.items)
+      }
+    };
+    
+    console.log('\nContent Analysis Results:');
+    console.log(`- Original question score: ${contentAnalysis.originalQuestion.score}`);
+    console.log(`- Linked questions: ${linkedQuestions.totalCount}`);
+    
+    console.log('\nShared tags with linked questions:');
+    contentAnalysis.relationships.sharedTags.forEach(([tag, count, percentage]) => {
+      console.log(`- ${tag}: ${count} questions (${percentage.toFixed(1)}%)`);
+    });
+    
+    console.log('\nTitle similarity patterns:');
+    contentAnalysis.relationships.titleSimilarity.highSimilarity.forEach(similarity => {
+      console.log(`- "${similarity.title}" (${similarity.score}% similar)`);
+    });
+    
+    console.log('\nTopic clusters:');
+    Object.entries(contentAnalysis.relationships.topicClusters).forEach(([cluster, questions]: [string, any]) => {
+      console.log(`- ${cluster}: ${questions.length} questions`);
+    });
+    
+    return contentAnalysis;
+  } catch (error) {
+    console.error('Content analysis failed:', error.message);
+    throw error;
+  }
+}
+
+function findSharedTags(original: any, linked: any[]): [string, number, number][] {
+  const originalTagNames = original.tags?.map(t => t.name) || [];
+  const tagCounts = new Map<string, number>();
+  
+  originalTagNames.forEach(tag => {
+    const count = linked.filter(q => 
+      q.tags?.some(t => t.name === tag)
+    ).length;
+    
+    if (count > 0) {
+      tagCounts.set(tag, count);
+    }
+  });
+  
+  return Array.from(tagCounts.entries())
+    .map(([tag, count]) => [tag, count, (count / linked.length) * 100])
+    .sort(([,a], [,b]) => b - a);
+}
+
+function analyzeTitleSimilarity(original: any, linked: any[]): { highSimilarity: any[], averageSimilarity: number } {
+  const similarities = linked.map(q => {
+    const similarity = calculateStringSimilarity(original.title, q.title);
+    return {
+      id: q.id,
+      title: q.title,
+      score: Math.round(similarity * 100)
+    };
+  });
+  
+  const averageSimilarity = similarities.reduce((sum, s) => sum + s.score, 0) / similarities.length;
+  const highSimilarity = similarities.filter(s => s.score > 30).sort((a, b) => b.score - a.score);
+  
+  return { highSimilarity, averageSimilarity };
+}
+
+function calculateStringSimilarity(str1: string, str2: string): number {
+  // Simple Jaccard similarity based on words
+  const words1 = new Set(str1.toLowerCase().split(/\s+/));
+  const words2 = new Set(str2.toLowerCase().split(/\s+/));
+  
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+  
+  return intersection.size / union.size;
+}
+
+function identifyTopicClusters(questions: any[]): Record<string, any[]> {
+  const clusters: Record<string, any[]> = {};
+  
+  questions.forEach(question => {
+    const tags = question.tags?.map(t => t.name) || [];
+    
+    // Create cluster key from primary tags
+    const clusterKey = tags.slice(0, 2).sort().join('-') || 'untagged';
+    
+    if (!clusters[clusterKey]) {
+      clusters[clusterKey] = [];
+    }
+    
+    clusters[clusterKey].push(question);
+  });
+  
+  // Filter out clusters with only one question
+  Object.keys(clusters).forEach(key => {
+    if (clusters[key].length === 1) {
+      delete clusters[key];
+    }
+  });
+  
+  return clusters;
+}
+
+function analyzeQualityCorrelation(original: any, linked: any[]): { correlation: string, insights: string[] } {
+  const originalScore = original.score || 0;
+  const linkedScores = linked.map(q => q.score || 0);
+  const avgLinkedScore = linkedScores.reduce((sum, score) => sum + score, 0) / linkedScores.length;
+  
+  const insights = [];
+  let correlation = 'neutral';
+  
+  if (avgLinkedScore > originalScore * 1.2) {
+    correlation = 'positive';
+    insights.push('Linked questions tend to have higher scores than the original');
+  } else if (avgLinkedScore < originalScore * 0.8) {
+    correlation = 'negative';
+    insights.push('Linked questions tend to have lower scores than the original');
+  } else {
+    insights.push('Linked questions have similar score distribution to the original');
+  }
+  
+  const highQualityLinked = linked.filter(q => (q.score || 0) > 5).length;
+  if (highQualityLinked > linked.length * 0.3) {
+    insights.push('Strong cluster of high-quality linked questions');
+  }
+  
+  return { correlation, insights };
+}
+
+const contentAnalysis = await analyzeLinkedQuestionsContent(12345);
+```
+
+### Team Context Linked Questions
+
+```typescript
+// Team context linked questions
+const teamSDK = sdk.forTeam('team-123');
+
+async function exploreTeamLinkedQuestions(questionId: number) {
+  try {
+    console.log(`Exploring team-linked questions for question ${questionId}...`);
+    
+    const [teamQuestion, teamLinkedQuestions] = await Promise.all([
+      teamSDK.questions.get(questionId),
+      teamSDK.questions.getLinked(questionId, { pageSize: 50 })
+    ]);
+    
+    console.log(`Team Question: ${teamQuestion.title}`);
+    console.log(`Team-linked questions found: ${teamLinkedQuestions.totalCount}`);
+    
+    if (teamLinkedQuestions.totalCount === 0) {
+      console.log('No team-linked questions found');
+      return null;
+    }
+    
+    // Analyze team-specific patterns
+    const teamAnalysis = {
+      internalReferences: teamLinkedQuestions.items.filter(q => 
+        q.tags?.some(tag => ['internal', 'team', 'process'].includes(tag.name.toLowerCase()))
+      ),
+      documentationLinks: teamLinkedQuestions.items.filter(q =>
+        q.tags?.some(tag => ['documentation', 'guide', 'howto'].includes(tag.name.toLowerCase()))
+      ),
+      troubleshootingLinks: teamLinkedQuestions.items.filter(q =>
+        q.tags?.some(tag => ['troubleshooting', 'bug', 'issue'].includes(tag.name.toLowerCase()))
+      ),
+      bestPracticesLinks: teamLinkedQuestions.items.filter(q =>
+        q.tags?.some(tag => ['best-practices', 'standards', 'guidelines'].includes(tag.name.toLowerCase()))
+      )
+    };
+    
+    console.log('\nTeam Linked Questions Analysis:');
+    console.log(`- Internal references: ${teamAnalysis.internalReferences.length}`);
+    console.log(`- Documentation links: ${teamAnalysis.documentationLinks.length}`);
+    console.log(`- Troubleshooting links: ${teamAnalysis.troubleshootingLinks.length}`);
+    console.log(`- Best practices links: ${teamAnalysis.bestPracticesLinks.length}`);
+    
+    // Show categorized results
+    if (teamAnalysis.documentationLinks.length > 0) {
+      console.log('\nDocumentation Links:');
+      teamAnalysis.documentationLinks.forEach(q => {
+        console.log(`- ${q.title} (Score: ${q.score})`);
+      });
+    }
+    
+    if (teamAnalysis.troubleshootingLinks.length > 0) {
+      console.log('\nTroubleshooting Links:');
+      teamAnalysis.troubleshootingLinks.forEach(q => {
+        console.log(`- ${q.title} (Answers: ${q.answerCount})`);
+      });
+    }
+    
+    return {
+      teamQuestion,
+      linkedQuestions: teamLinkedQuestions.items,
+      analysis: teamAnalysis
+    };
+  } catch (error) {
+    console.error('Team linked questions exploration failed:', error.message);
+    throw error;
+  }
+}
+
+const teamLinkedAnalysis = await exploreTeamLinkedQuestions(12345);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access linked questions |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const linkedQuestions = await sdk.questions.getLinked(12345, {
+    sort: 'score',
+    order: 'desc',
+    pageSize: 25
+  });
+  
+  console.log(`Found ${linkedQuestions.totalCount} linked questions`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Question not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to linked questions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required');
+  } else {
+    console.error('Failed to retrieve linked questions:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Explicit Links**: Linked questions are explicitly associated through platform mechanisms (not algorithmic)
+- **Relationship Types**: May include duplicates, cross-references, follow-up questions, or manual associations
+- **Bidirectional**: Link relationships may be bidirectional (A links to B, B links to A)
+- **Sort Options**: `"hot"` considers recent activity and score; `"creation"` sorts by link creation; `"activity"` by last question activity; `"score"` by question score
+- **Team vs Public Context**: Linked questions work in both contexts with potentially different link types
+- **Navigation Aid**: Useful for building question navigation systems and discovering related content
+- **Content Discovery**: Helps users find explicitly related questions that complement the current question
+- **Quality Indicator**: Well-linked questions often indicate important or foundational content
+- **Moderation Tool**: Moderators may use links to organize duplicate or related content
+- **Empty Results**: Returns empty array when no linked questions exist rather than throwing an error

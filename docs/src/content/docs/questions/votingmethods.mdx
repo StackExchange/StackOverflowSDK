@@ -1,0 +1,800 @@
+---
+title: Voting Methods
+description: Upvote, downvote, and remove votes on questions to express approval or disapproval and help surface quality content.
+---
+
+# Voting Methods
+
+Upvote, downvote, and remove votes on questions to express approval or disapproval and help surface quality content.
+
+## upvote()
+
+Casts an upvote for a question, indicating the question is useful, clear, or well-researched.
+
+### Syntax
+```typescript
+async upvote(questionId: number): Promise<QuestionResponseModel>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to upvote |
+
+---
+
+## downvote()
+
+Casts a downvote for a question, indicating the question lacks research effort, is unclear, or is not useful.
+
+### Syntax
+```typescript
+async downvote(questionId: number): Promise<QuestionResponseModel>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to downvote |
+
+---
+
+## removeUpvote()
+
+Removes a previously cast upvote from a question.
+
+### Syntax
+```typescript
+async removeUpvote(questionId: number): Promise<QuestionResponseModel>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to remove upvote from |
+
+---
+
+## removeDownvote()
+
+Removes a previously cast downvote from a question.
+
+### Syntax
+```typescript
+async removeDownvote(questionId: number): Promise<QuestionResponseModel>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to remove downvote from |
+
+## Return Value
+
+All voting methods return a `Promise<QuestionResponseModel>` containing the updated question with:
+- Updated `score` reflecting the vote change
+- Updated `userHasUpvoted` and `userHasDownvoted` properties
+- Current question state after the voting action
+
+## Examples
+
+### Basic Voting Operations
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Upvote a question
+const upvotedQuestion = await sdk.questions.upvote(12345);
+console.log(`Upvoted question: ${upvotedQuestion.title}`);
+console.log(`New score: ${upvotedQuestion.score}`);
+console.log(`You have upvoted: ${upvotedQuestion.userHasUpvoted}`);
+
+// Downvote a question
+const downvotedQuestion = await sdk.questions.downvote(12346);
+console.log(`Downvoted question: ${downvotedQuestion.title}`);
+console.log(`New score: ${downvotedQuestion.score}`);
+console.log(`You have downvoted: ${downvotedQuestion.userHasDownvoted}`);
+
+// Remove an upvote
+const removedUpvoteQuestion = await sdk.questions.removeUpvote(12345);
+console.log(`Removed upvote from: ${removedUpvoteQuestion.title}`);
+console.log(`New score: ${removedUpvoteQuestion.score}`);
+console.log(`You have upvoted: ${removedUpvoteQuestion.userHasUpvoted}`);
+
+// Remove a downvote
+const removedDownvoteQuestion = await sdk.questions.removeDownvote(12346);
+console.log(`Removed downvote from: ${removedDownvoteQuestion.title}`);
+console.log(`New score: ${removedDownvoteQuestion.score}`);
+console.log(`You have downvoted: ${removedDownvoteQuestion.userHasDownvoted}`);
+```
+
+### Smart Voting with State Management
+
+```typescript
+async function manageQuestionVote(questionId: number, action: 'upvote' | 'downvote' | 'neutral') {
+  try {
+    // Get current question state
+    const currentQuestion = await sdk.questions.get(questionId);
+    
+    console.log(`Managing vote for: ${currentQuestion.title}`);
+    console.log(`Current score: ${currentQuestion.score}`);
+    console.log(`Current user votes - Up: ${currentQuestion.userHasUpvoted}, Down: ${currentQuestion.userHasDownvoted}`);
+    
+    let updatedQuestion: QuestionResponseModel;
+    
+    switch (action) {
+      case 'upvote':
+        if (currentQuestion.userHasUpvoted) {
+          console.log('Already upvoted, removing upvote');
+          updatedQuestion = await sdk.questions.removeUpvote(questionId);
+        } else if (currentQuestion.userHasDownvoted) {
+          console.log('Switching from downvote to upvote');
+          await sdk.questions.removeDownvote(questionId);
+          updatedQuestion = await sdk.questions.upvote(questionId);
+        } else {
+          console.log('Adding upvote');
+          updatedQuestion = await sdk.questions.upvote(questionId);
+        }
+        break;
+        
+      case 'downvote':
+        if (currentQuestion.userHasDownvoted) {
+          console.log('Already downvoted, removing downvote');
+          updatedQuestion = await sdk.questions.removeDownvote(questionId);
+        } else if (currentQuestion.userHasUpvoted) {
+          console.log('Switching from upvote to downvote');
+          await sdk.questions.removeUpvote(questionId);
+          updatedQuestion = await sdk.questions.downvote(questionId);
+        } else {
+          console.log('Adding downvote');
+          updatedQuestion = await sdk.questions.downvote(questionId);
+        }
+        break;
+        
+      case 'neutral':
+        if (currentQuestion.userHasUpvoted) {
+          console.log('Removing upvote to go neutral');
+          updatedQuestion = await sdk.questions.removeUpvote(questionId);
+        } else if (currentQuestion.userHasDownvoted) {
+          console.log('Removing downvote to go neutral');
+          updatedQuestion = await sdk.questions.removeDownvote(questionId);
+        } else {
+          console.log('Already neutral');
+          updatedQuestion = currentQuestion;
+        }
+        break;
+        
+      default:
+        throw new Error(`Invalid action: ${action}`);
+    }
+    
+    const scoreChange = updatedQuestion.score - currentQuestion.score;
+    
+    console.log(`Vote management completed:`);
+    console.log(`- Score change: ${scoreChange > 0 ? '+' : ''}${scoreChange}`);
+    console.log(`- New score: ${updatedQuestion.score}`);
+    console.log(`- Final state - Up: ${updatedQuestion.userHasUpvoted}, Down: ${updatedQuestion.userHasDownvoted}`);
+    
+    return {
+      success: true,
+      question: updatedQuestion,
+      scoreChange,
+      action,
+      previousState: {
+        upvoted: currentQuestion.userHasUpvoted,
+        downvoted: currentQuestion.userHasDownvoted,
+        score: currentQuestion.score
+      }
+    };
+  } catch (error) {
+    console.error('Vote management failed:', error.message);
+    throw error;
+  }
+}
+
+// Usage examples
+await manageQuestionVote(12345, 'upvote');
+await manageQuestionVote(12346, 'downvote');
+await manageQuestionVote(12347, 'neutral');
+```
+
+### Bulk Voting Operations
+
+```typescript
+async function performBulkVoting(operations: Array<{
+  questionId: number,
+  action: 'upvote' | 'downvote' | 'remove_upvote' | 'remove_downvote',
+  reason?: string
+}>) {
+  console.log(`Performing ${operations.length} voting operations...`);
+  
+  const results = [];
+  
+  for (let i = 0; i < operations.length; i++) {
+    const { questionId, action, reason } = operations[i];
+    
+    try {
+      console.log(`\n${i + 1}/${operations.length}: ${action} on question ${questionId}`);
+      
+      let result: QuestionResponseModel;
+      
+      switch (action) {
+        case 'upvote':
+          result = await sdk.questions.upvote(questionId);
+          break;
+        case 'downvote':
+          result = await sdk.questions.downvote(questionId);
+          break;
+        case 'remove_upvote':
+          result = await sdk.questions.removeUpvote(questionId);
+          break;
+        case 'remove_downvote':
+          result = await sdk.questions.removeDownvote(questionId);
+          break;
+        default:
+          throw new Error(`Invalid action: ${action}`);
+      }
+      
+      results.push({
+        questionId,
+        action,
+        success: true,
+        newScore: result.score,
+        title: result.title,
+        reason: reason || 'Bulk operation',
+        userVoteState: {
+          upvoted: result.userHasUpvoted,
+          downvoted: result.userHasDownvoted
+        }
+      });
+      
+      console.log(`✓ ${action} successful - Score: ${result.score}`);
+      
+      // Rate limiting delay
+      if (i < operations.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+    } catch (error) {
+      console.error(`✗ ${action} failed:`, error.message);
+      
+      results.push({
+        questionId,
+        action,
+        success: false,
+        error: error.message,
+        reason: reason || 'Bulk operation'
+      });
+    }
+  }
+  
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`\nBulk voting summary:`);
+  console.log(`- Total operations: ${operations.length}`);
+  console.log(`- Successful: ${successful.length}`);
+  console.log(`- Failed: ${failed.length}`);
+  
+  return { successful, failed, total: operations.length };
+}
+
+const votingOperations = [
+  { questionId: 12345, action: 'upvote', reason: 'Well-researched question' },
+  { questionId: 12346, action: 'downvote', reason: 'Lacks research effort' },
+  { questionId: 12347, action: 'remove_upvote', reason: 'Changed assessment' }
+];
+
+const bulkVotingResults = await performBulkVoting(votingOperations);
+```
+
+### Vote Analysis and Recommendations
+
+```typescript
+async function analyzeVotingPattern(questionIds: number[]) {
+  console.log(`Analyzing voting patterns for ${questionIds.length} questions...`);
+  
+  const analysis = {
+    questions: [],
+    summary: {
+      averageScore: 0,
+      userUpvoted: 0,
+      userDownvoted: 0,
+      userNeutral: 0,
+      recommendations: []
+    }
+  };
+  
+  for (const questionId of questionIds) {
+    try {
+      const question = await sdk.questions.get(questionId);
+      
+      analysis.questions.push({
+        id: question.id,
+        title: question.title,
+        score: question.score,
+        userHasUpvoted: question.userHasUpvoted,
+        userHasDownvoted: question.userHasDownvoted,
+        answerCount: question.answerCount,
+        viewCount: question.viewCount,
+        isAnswered: question.isAnswered
+      });
+      
+      // Update summary counts
+      if (question.userHasUpvoted) analysis.summary.userUpvoted++;
+      else if (question.userHasDownvoted) analysis.summary.userDownvoted++;
+      else analysis.summary.userNeutral++;
+      
+    } catch (error) {
+      console.error(`Failed to analyze question ${questionId}:`, error.message);
+    }
+  }
+  
+  // Calculate average score
+  analysis.summary.averageScore = analysis.questions.length > 0 
+    ? analysis.questions.reduce((sum, q) => sum + q.score, 0) / analysis.questions.length 
+    : 0;
+  
+  // Generate recommendations
+  analysis.summary.recommendations = generateVotingRecommendations(analysis.questions);
+  
+  console.log('Voting Pattern Analysis:');
+  console.log(`- Questions analyzed: ${analysis.questions.length}`);
+  console.log(`- Average score: ${analysis.summary.averageScore.toFixed(1)}`);
+  console.log(`- Your votes - Up: ${analysis.summary.userUpvoted}, Down: ${analysis.summary.userDownvoted}, Neutral: ${analysis.summary.userNeutral}`);
+  
+  console.log('\nRecommendations:');
+  analysis.summary.recommendations.forEach(rec => {
+    console.log(`- ${rec}`);
+  });
+  
+  return analysis;
+}
+
+function generateVotingRecommendations(questions: any[]): string[] {
+  const recommendations = [];
+  
+  // Find high-quality questions without upvotes
+  const highQualityUnvoted = questions.filter(q => 
+    q.score >= 3 && q.isAnswered && !q.userHasUpvoted && !q.userHasDownvoted
+  );
+  
+  if (highQualityUnvoted.length > 0) {
+    recommendations.push(`Consider upvoting ${highQualityUnvoted.length} high-quality questions you haven't voted on`);
+  }
+  
+  // Find low-quality questions that might need downvotes
+  const lowQualityQuestions = questions.filter(q => 
+    q.score <= -1 && !q.isAnswered && !q.userHasDownvoted && !q.userHasUpvoted
+  );
+  
+  if (lowQualityQuestions.length > 0) {
+    recommendations.push(`Review ${lowQualityQuestions.length} low-scoring questions for potential downvotes`);
+  }
+  
+  // Find questions that improved (might want to change vote)
+  const improvedQuestions = questions.filter(q => 
+    q.userHasDownvoted && q.score > 0 && q.isAnswered
+  );
+  
+  if (improvedQuestions.length > 0) {
+    recommendations.push(`${improvedQuestions.length} previously downvoted questions have improved`);
+  }
+  
+  return recommendations;
+}
+
+const votingAnalysis = await analyzeVotingPattern([12345, 12346, 12347, 12348]);
+```
+
+### Quality-Based Voting Workflow
+
+```typescript
+async function qualityBasedVoting(questionId: number, autoVote: boolean = false) {
+  try {
+    const question = await sdk.questions.get(questionId);
+    
+    // Analyze question quality
+    const qualityScore = assessQuestionQuality(question);
+    
+    console.log(`Quality Assessment for: ${question.title}`);
+    console.log(`Quality Score: ${qualityScore.total}/100`);
+    console.log(`Current Score: ${question.score}`);
+    console.log(`Current Vote: ${question.userHasUpvoted ? 'Upvoted' : question.userHasDownvoted ? 'Downvoted' : 'None'}`);
+    
+    // Quality breakdown
+    console.log(`\nQuality Breakdown:`);
+    Object.entries(qualityScore.factors).forEach(([factor, score]) => {
+      console.log(`- ${factor}: ${score}/20`);
+    });
+    
+    // Determine voting recommendation
+    const recommendation = determineVotingRecommendation(qualityScore.total, question);
+    
+    console.log(`\nRecommendation: ${recommendation.action}`);
+    console.log(`Reason: ${recommendation.reason}`);
+    
+    if (autoVote && recommendation.action !== 'no_change') {
+      console.log(`\nExecuting auto-vote: ${recommendation.action}`);
+      
+      let result;
+      switch (recommendation.action) {
+        case 'upvote':
+          result = await sdk.questions.upvote(questionId);
+          break;
+        case 'downvote':
+          result = await sdk.questions.downvote(questionId);
+          break;
+        case 'remove_upvote':
+          result = await sdk.questions.removeUpvote(questionId);
+          break;
+        case 'remove_downvote':
+          result = await sdk.questions.removeDownvote(questionId);
+          break;
+      }
+      
+      if (result) {
+        console.log(`Vote executed - New score: ${result.score}`);
+      }
+    }
+    
+    return {
+      question,
+      qualityScore: qualityScore.total,
+      qualityFactors: qualityScore.factors,
+      recommendation,
+      executed: autoVote && recommendation.action !== 'no_change'
+    };
+  } catch (error) {
+    console.error('Quality-based voting failed:', error.message);
+    throw error;
+  }
+}
+
+function assessQuestionQuality(question: any): { total: number, factors: Record<string, number> } {
+  const factors = {
+    'Title Quality': 0,
+    'Content Depth': 0, 
+    'Code Examples': 0,
+    'Community Response': 0,
+    'Author Effort': 0
+  };
+  
+  // Title quality (0-20)
+  const title = question.title || '';
+  if (title.length >= 20 && title.length <= 100) factors['Title Quality'] += 10;
+  if (title.includes('?') || title.toLowerCase().includes('how')) factors['Title Quality'] += 5;
+  if (!title.toLowerCase().includes('help') && !title.toLowerCase().includes('please')) factors['Title Quality'] += 5;
+  
+  // Content depth (0-20)
+  const bodyLength = question.bodyMarkdown?.length || 0;
+  if (bodyLength > 100) factors['Content Depth'] += 8;
+  if (bodyLength > 300) factors['Content Depth'] += 7;
+  if ((question.bodyMarkdown || '').includes('##')) factors['Content Depth'] += 5;
+  
+  // Code examples (0-20)
+  const hasCode = (question.bodyMarkdown || '').includes('```');
+  if (hasCode) factors['Code Examples'] += 20;
+  else if ((question.bodyMarkdown || '').includes('`')) factors['Code Examples'] += 10;
+  
+  // Community response (0-20)
+  if (question.answerCount > 0) factors['Community Response'] += 10;
+  if (question.isAnswered) factors['Community Response'] += 5;
+  if (question.viewCount > 50) factors['Community Response'] += 5;
+  
+  // Author effort (0-20)
+  if (question.tags && question.tags.length >= 2) factors['Author Effort'] += 10;
+  if (question.tags && question.tags.length >= 4) factors['Author Effort'] += 5;
+  if ((question.bodyMarkdown || '').toLowerCase().includes('tried')) factors['Author Effort'] += 5;
+  
+  const total = Object.values(factors).reduce((sum, score) => sum + score, 0);
+  
+  return { total, factors };
+}
+
+function determineVotingRecommendation(qualityScore: number, question: any): { action: string, reason: string } {
+  const currentlyUpvoted = question.userHasUpvoted;
+  const currentlyDownvoted = question.userHasDownvoted;
+  
+  if (qualityScore >= 70) {
+    if (!currentlyUpvoted) {
+      return { action: 'upvote', reason: 'High quality question deserves recognition' };
+    }
+    return { action: 'no_change', reason: 'Already appropriately upvoted' };
+  }
+  
+  if (qualityScore >= 40) {
+    if (currentlyDownvoted) {
+      return { action: 'remove_downvote', reason: 'Question quality is acceptable' };
+    }
+    return { action: 'no_change', reason: 'Neutral quality, no vote change needed' };
+  }
+  
+  if (qualityScore < 30) {
+    if (!currentlyDownvoted && !currentlyUpvoted) {
+      return { action: 'downvote', reason: 'Low quality question needs improvement' };
+    }
+    if (currentlyUpvoted) {
+      return { action: 'remove_upvote', reason: 'Question quality does not warrant upvote' };
+    }
+    return { action: 'no_change', reason: 'Already appropriately downvoted' };
+  }
+  
+  return { action: 'no_change', reason: 'Quality assessment inconclusive' };
+}
+
+// Analyze and potentially vote on questions
+const qualityResults = await qualityBasedVoting(12345, true); // Auto-vote enabled
+const manualResults = await qualityBasedVoting(12346, false); // Manual review only
+```
+
+### Team Context Voting
+
+```typescript
+// Voting in team context
+const teamSDK = sdk.forTeam('team-123');
+
+async function teamVotingWorkflow(questionId: number) {
+  try {
+    console.log(`Team voting workflow for question ${questionId}`);
+    
+    const question = await teamSDK.questions.get(questionId);
+    
+    console.log(`Team Question: ${question.title}`);
+    console.log(`Score: ${question.score}`);
+    console.log(`Author: ${question.owner?.displayName}`);
+    console.log(`Your vote status: Up=${question.userHasUpvoted}, Down=${question.userHasDownvoted}`);
+    
+    // Different voting criteria for team context
+    const teamVotingCriteria = {
+      helpfulForTeam: question.tags?.some(tag => 
+        ['internal', 'team-process', 'guidelines'].includes(tag.name.toLowerCase())
+      ),
+      wellDocumented: (question.bodyMarkdown?.length || 0) > 200,
+      hasWorkingExamples: (question.bodyMarkdown || '').includes('```'),
+      relevantToProjects: question.viewCount > 10 // Lower threshold for team
+    };
+    
+    console.log('\nTeam Relevance Assessment:');
+    Object.entries(teamVotingCriteria).forEach(([criteria, meets]) => {
+      console.log(`- ${criteria}: ${meets ? 'Yes' : 'No'}`);
+    });
+    
+    // Recommend team-specific voting
+    const teamRelevantCount = Object.values(teamVotingCriteria).filter(Boolean).length;
+    
+    let recommendation;
+    if (teamRelevantCount >= 3 && !question.userHasUpvoted) {
+      recommendation = 'upvote';
+      console.log('\nRecommendation: Upvote (high team relevance)');
+    } else if (teamRelevantCount <= 1 && !question.userHasDownvoted) {
+      recommendation = 'consider_downvote';
+      console.log('\nRecommendation: Consider downvote (low team relevance)');
+    } else {
+      recommendation = 'no_change';
+      console.log('\nRecommendation: No change needed');
+    }
+    
+    return {
+      question,
+      teamCriteria: teamVotingCriteria,
+      relevanceScore: teamRelevantCount,
+      recommendation
+    };
+  } catch (error) {
+    console.error('Team voting workflow failed:', error.message);
+    throw error;
+  }
+}
+
+const teamVotingResult = await teamVotingWorkflow(12345);
+```
+
+### Vote Change Tracking
+
+```typescript
+async function trackVoteChanges(questionId: number, duration: number = 60000) {
+  console.log(`Tracking vote changes for question ${questionId} for ${duration / 1000} seconds...`);
+  
+  let previousState = await sdk.questions.get(questionId);
+  console.log(`Initial state: Score ${previousState.score}, Your votes: Up=${previousState.userHasUpvoted}, Down=${previousState.userHasDownvoted}`);
+  
+  const changes = [];
+  
+  const tracker = setInterval(async () => {
+    try {
+      const currentState = await sdk.questions.get(questionId);
+      
+      // Check for score changes
+      if (currentState.score !== previousState.score) {
+        const scoreChange = currentState.score - previousState.score;
+        changes.push({
+          timestamp: new Date().toISOString(),
+          type: 'score_change',
+          change: scoreChange,
+          newScore: currentState.score,
+          previousScore: previousState.score
+        });
+        
+        console.log(`[${new Date().toLocaleTimeString()}] Score changed: ${previousState.score} → ${currentState.score} (${scoreChange > 0 ? '+' : ''}${scoreChange})`);
+      }
+      
+      // Check for user vote changes
+      if (currentState.userHasUpvoted !== previousState.userHasUpvoted) {
+        changes.push({
+          timestamp: new Date().toISOString(),
+          type: 'user_upvote_change',
+          change: currentState.userHasUpvoted ? 'added' : 'removed',
+          newState: currentState.userHasUpvoted
+        });
+        
+        console.log(`[${new Date().toLocaleTimeString()}] Your upvote: ${currentState.userHasUpvoted ? 'Added' : 'Removed'}`);
+      }
+      
+      if (currentState.userHasDownvoted !== previousState.userHasDownvoted) {
+        changes.push({
+          timestamp: new Date().toISOString(),
+          type: 'user_downvote_change',
+          change: currentState.userHasDownvoted ? 'added' : 'removed',
+          newState: currentState.userHasDownvoted
+        });
+        
+        console.log(`[${new Date().toLocaleTimeString()}] Your downvote: ${currentState.userHasDownvoted ? 'Added' : 'Removed'}`);
+      }
+      
+      previousState = currentState;
+    } catch (error) {
+      console.error('Vote tracking error:', error.message);
+    }
+  }, 5000); // Check every 5 seconds
+  
+  // Stop tracking after specified duration
+  setTimeout(() => {
+    clearInterval(tracker);
+    console.log(`\nVote tracking completed. Total changes: ${changes.length}`);
+    
+    if (changes.length > 0) {
+      console.log('Change summary:');
+      changes.forEach(change => {
+        console.log(`- ${change.timestamp}: ${change.type} - ${JSON.stringify(change.change)}`);
+      });
+    }
+  }, duration);
+  
+  return changes;
+}
+
+// Track votes for 2 minutes
+const voteChanges = await trackVoteChanges(12345, 120000);
+```
+
+## Error Handling
+
+All voting methods can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot vote on own question or insufficient permissions |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `ConflictError` | 409 | Vote already exists (for upvote/downvote) or doesn't exist (for remove operations) |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ForbiddenError, ConflictError, NotFoundError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const question = await sdk.questions.upvote(12345);
+  console.log('Upvote successful:', question.score);
+} catch (error) {
+  if (error instanceof ForbiddenError) {
+    console.error('Cannot vote on your own question');
+  } else if (error instanceof ConflictError) {
+    console.error('You have already voted on this question');
+  } else if (error instanceof NotFoundError) {
+    console.error('Question not found');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required for voting');
+  } else {
+    console.error('Voting failed:', error.message);
+  }
+}
+```
+
+### Safe Voting Operations
+
+```typescript
+async function safeVote(questionId: number, action: 'upvote' | 'downvote' | 'remove_upvote' | 'remove_downvote') {
+  try {
+    let result: QuestionResponseModel;
+    
+    switch (action) {
+      case 'upvote':
+        result = await sdk.questions.upvote(questionId);
+        break;
+      case 'downvote':
+        result = await sdk.questions.downvote(questionId);
+        break;
+      case 'remove_upvote':
+        result = await sdk.questions.removeUpvote(questionId);
+        break;
+      case 'remove_downvote':
+        result = await sdk.questions.removeDownvote(questionId);
+        break;
+      default:
+        throw new Error(`Invalid voting action: ${action}`);
+    }
+    
+    return {
+      success: true,
+      question: result,
+      action,
+      newScore: result.score,
+      message: `${action} successful`
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'forbidden',
+        message: 'Cannot vote on your own questions'
+      };
+    } else if (error instanceof ConflictError) {
+      return {
+        success: false,
+        reason: 'conflict',
+        message: 'Vote state conflict - you may have already performed this action'
+      };
+    } else if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Question not found'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const voteResult = await safeVote(12345, 'upvote');
+if (voteResult.success) {
+  console.log(`Vote cast successfully. New score: ${voteResult.newScore}`);
+} else {
+  console.log(`Vote failed: ${voteResult.message}`);
+}
+```
+
+## Notes
+
+- **Own Questions**: Users cannot vote on their own questions
+- **Single Vote Rule**: Users can only have one active vote (upvote OR downvote) per question
+- **Vote Changes**: Changing vote types (upvote to downvote) requires removing the existing vote first
+- **Score Calculation**: Question score = total upvotes - total downvotes
+- **Vote Status**: `userHasUpvoted` and `userHasDownvoted` properties reflect current user's vote state
+- **Team vs Public Context**: Voting works in both contexts but may have different community standards
+- **Rate Limiting**: Consider delays between bulk voting operations
+- **Vote History**: Some platforms maintain vote history for moderation purposes
+- **Quality Signal**: Votes serve as quality signals and affect question visibility in search/sorting
+- **Reputation Impact**: Voting may affect both voter and question author reputation (platform dependent)
+- **Moderation**: Voting patterns may be monitored for abuse prevention
+- **Community Standards**: Different communities may have varying expectations for voting behavior
+- **Vote Reversal**: Platforms may reverse votes detected as fraudulent or abusive
+- **Anonymous Voting**: Individual vote details are typically not public, only aggregate scores

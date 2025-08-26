@@ -1,0 +1,753 @@
+---
+title: update()
+description: Updates an existing question's title, body content, and tags. Requires ownership of the question or appropriate permissions.
+---
+
+# update()
+
+Updates an existing question's title, body content, and tags. Requires ownership of the question or appropriate permissions.
+
+## Syntax
+
+```typescript
+async update(questionId: number, options: UpdateQuestionOptions): Promise<QuestionResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to update |
+| `options` | `UpdateQuestionOptions` | Yes | Updated question content and metadata |
+
+### UpdateQuestionOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `title` | `string` | Yes | Updated question title - the actual question stated briefly in one sentence |
+| `body` | `string` | Yes | Updated question body - main content in Markdown format |
+| `tags` | `string[]` | Yes | Updated array of tag names associated with the question |
+
+## Return Value
+
+Returns a `Promise<QuestionResponseModel>` containing the updated question information with new content and updated metadata (including `lastEditor` and `lastActivityDate`).
+
+## Examples
+
+### Basic Question Update
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Update a question with improved content
+const updatedQuestion = await sdk.questions.update(12345, {
+  title: "How to properly implement async/await error handling in TypeScript?",
+  body: `I'm working with async/await in TypeScript and need guidance on proper error handling patterns.
+
+## Current Implementation
+
+\`\`\`typescript
+async function fetchUserData(userId: string): Promise<User | null> {
+  try {
+    const response = await fetch(\`/api/users/\${userId}\`);
+    const userData = await response.json();
+    return userData;
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
+  }
+}
+\`\`\`
+
+## Questions
+
+1. Is this error handling approach sufficient?
+2. Should I be catching specific error types?
+3. How do I handle network timeouts vs API errors differently?
+4. What's the best way to propagate errors to the UI layer?
+
+## Additional Context
+
+- Using React 18 with TypeScript 4.9
+- RESTful API with standard HTTP status codes
+- Need to handle both network failures and API validation errors
+
+**UPDATE**: Added more specific examples and clarified the error scenarios I'm dealing with.`,
+  tags: ["typescript", "async-await", "error-handling", "react", "api"]
+});
+
+console.log('Question updated successfully');
+console.log(`Title: ${updatedQuestion.title}`);
+console.log(`Last edited by: ${updatedQuestion.lastEditor?.displayName}`);
+console.log(`Last activity: ${updatedQuestion.lastActivityDate}`);
+```
+
+### Incremental Content Improvement
+
+```typescript
+async function improveQuestionContent(questionId: number) {
+  try {
+    // First, get the current question
+    const currentQuestion = await sdk.questions.get(questionId);
+    
+    console.log('Original question:');
+    console.log(`Title: ${currentQuestion.title}`);
+    console.log(`Body length: ${currentQuestion.bodyMarkdown?.length} characters`);
+    console.log(`Tags: ${currentQuestion.tags?.map(t => t.name).join(', ')}`);
+    
+    // Improve the content
+    const improvedContent = {
+      title: enhanceTitle(currentQuestion.title),
+      body: enhanceBody(currentQuestion.bodyMarkdown || ''),
+      tags: enhanceTags(currentQuestion.tags?.map(t => t.name) || [])
+    };
+    
+    // Apply the update
+    const updatedQuestion = await sdk.questions.update(questionId, improvedContent);
+    
+    console.log('\nUpdated question:');
+    console.log(`Title: ${updatedQuestion.title}`);
+    console.log(`Body length: ${updatedQuestion.bodyMarkdown?.length} characters`);
+    console.log(`Tags: ${updatedQuestion.tags?.map(t => t.name).join(', ')}`);
+    console.log(`Updated by: ${updatedQuestion.lastEditor?.displayName}`);
+    
+    return {
+      success: true,
+      before: currentQuestion,
+      after: updatedQuestion,
+      improvements: {
+        titleChanged: currentQuestion.title !== updatedQuestion.title,
+        bodyChanged: currentQuestion.bodyMarkdown !== updatedQuestion.bodyMarkdown,
+        tagsChanged: !arraysEqual(
+          currentQuestion.tags?.map(t => t.name) || [],
+          updatedQuestion.tags?.map(t => t.name) || []
+        )
+      }
+    };
+  } catch (error) {
+    console.error('Failed to improve question content:', error.message);
+    throw error;
+  }
+}
+
+function enhanceTitle(originalTitle: string): string {
+  // Add question mark if missing
+  if (!originalTitle.endsWith('?')) {
+    return originalTitle + '?';
+  }
+  return originalTitle;
+}
+
+function enhanceBody(originalBody: string): string {
+  // Add structure if missing
+  if (!originalBody.includes('##') && originalBody.length > 200) {
+    const sections = originalBody.split('\n\n');
+    if (sections.length >= 2) {
+      return `## Problem\n\n${sections[0]}\n\n## Additional Details\n\n${sections.slice(1).join('\n\n')}`;
+    }
+  }
+  return originalBody;
+}
+
+function enhanceTags(originalTags: string[]): string[] {
+  // Ensure we have at least one tag and no more than 5
+  const uniqueTags = [...new Set(originalTags.map(tag => tag.toLowerCase()))];
+  return uniqueTags.slice(0, 5);
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((val, index) => val === b[index]);
+}
+
+const improvement = await improveQuestionContent(12345);
+```
+
+### Update with Version Tracking
+
+```typescript
+async function updateQuestionWithHistory(questionId: number, updates: UpdateQuestionOptions, reason?: string) {
+  try {
+    // Get current version for history
+    const beforeUpdate = await sdk.questions.get(questionId);
+    
+    // Create update history record
+    const updateHistory = {
+      timestamp: new Date().toISOString(),
+      reason: reason || 'Content improvement',
+      before: {
+        title: beforeUpdate.title,
+        bodyLength: beforeUpdate.bodyMarkdown?.length || 0,
+        tags: beforeUpdate.tags?.map(t => t.name) || [],
+        lastEditor: beforeUpdate.lastEditor?.displayName
+      }
+    };
+    
+    console.log(`Updating question ${questionId}: ${reason}`);
+    console.log(`Current version by: ${beforeUpdate.lastEditor?.displayName || beforeUpdate.owner?.displayName}`);
+    
+    // Apply the update
+    const afterUpdate = await sdk.questions.update(questionId, updates);
+    
+    // Complete history record
+    updateHistory['after'] = {
+      title: afterUpdate.title,
+      bodyLength: afterUpdate.bodyMarkdown?.length || 0,
+      tags: afterUpdate.tags?.map(t => t.name) || [],
+      lastEditor: afterUpdate.lastEditor?.displayName
+    };
+    
+    // Calculate changes
+    const changes = {
+      titleChanged: beforeUpdate.title !== afterUpdate.title,
+      bodyLengthDelta: (afterUpdate.bodyMarkdown?.length || 0) - (beforeUpdate.bodyMarkdown?.length || 0),
+      tagsAdded: (afterUpdate.tags?.map(t => t.name) || []).filter(
+        tag => !(beforeUpdate.tags?.map(t => t.name) || []).includes(tag)
+      ),
+      tagsRemoved: (beforeUpdate.tags?.map(t => t.name) || []).filter(
+        tag => !(afterUpdate.tags?.map(t => t.name) || []).includes(tag)
+      )
+    };
+    
+    console.log('Update completed:');
+    if (changes.titleChanged) {
+      console.log('- Title updated');
+    }
+    if (changes.bodyLengthDelta !== 0) {
+      console.log(`- Body length changed by ${changes.bodyLengthDelta} characters`);
+    }
+    if (changes.tagsAdded.length > 0) {
+      console.log(`- Added tags: ${changes.tagsAdded.join(', ')}`);
+    }
+    if (changes.tagsRemoved.length > 0) {
+      console.log(`- Removed tags: ${changes.tagsRemoved.join(', ')}`);
+    }
+    
+    return {
+      question: afterUpdate,
+      updateHistory,
+      changes
+    };
+  } catch (error) {
+    console.error('Update with history failed:', error.message);
+    throw error;
+  }
+}
+
+const updateResult = await updateQuestionWithHistory(12345, {
+  title: "TypeScript async/await best practices and error handling patterns",
+  body: "Enhanced content with better examples and structure...",
+  tags: ["typescript", "async-await", "error-handling", "best-practices"]
+}, "Added more specific examples and improved formatting");
+```
+
+### Bulk Question Updates
+
+```typescript
+async function updateMultipleQuestions(updates: Array<{
+  questionId: number,
+  changes: UpdateQuestionOptions,
+  reason?: string
+}>) {
+  console.log(`Updating ${updates.length} questions...`);
+  
+  const results = [];
+  
+  for (let i = 0; i < updates.length; i++) {
+    const { questionId, changes, reason } = updates[i];
+    
+    try {
+      console.log(`\nUpdating question ${i + 1}/${updates.length}: ${questionId}`);
+      
+      const updatedQuestion = await sdk.questions.update(questionId, changes);
+      
+      results.push({
+        questionId,
+        success: true,
+        question: updatedQuestion,
+        reason: reason || 'Bulk update',
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log(`✓ Updated: ${updatedQuestion.title}`);
+      
+      // Add delay to avoid rate limiting
+      if (i < updates.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+    } catch (error) {
+      console.error(`✗ Failed to update question ${questionId}:`, error.message);
+      
+      results.push({
+        questionId,
+        success: false,
+        error: error.message,
+        reason: reason || 'Bulk update',
+        attemptedAt: new Date().toISOString()
+      });
+    }
+  }
+  
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`\nBulk update summary:`);
+  console.log(`- Total questions: ${updates.length}`);
+  console.log(`- Successfully updated: ${successful.length}`);
+  console.log(`- Failed: ${failed.length}`);
+  
+  if (failed.length > 0) {
+    console.log(`Failed updates:`);
+    failed.forEach(f => {
+      console.log(`  - Question ${f.questionId}: ${f.error}`);
+    });
+  }
+  
+  return { successful, failed, summary: { total: updates.length, updated: successful.length, failed: failed.length } };
+}
+
+const bulkUpdates = [
+  {
+    questionId: 12345,
+    changes: {
+      title: "Updated title 1",
+      body: "Updated content 1",
+      tags: ["tag1", "tag2"]
+    },
+    reason: "Improved clarity"
+  },
+  {
+    questionId: 12346,
+    changes: {
+      title: "Updated title 2", 
+      body: "Updated content 2",
+      tags: ["tag2", "tag3"]
+    },
+    reason: "Fixed formatting"
+  }
+];
+
+const bulkResults = await updateMultipleQuestions(bulkUpdates);
+```
+
+### Template-Based Updates
+
+```typescript
+interface UpdateTemplate {
+  name: string;
+  titleTransform?: (original: string) => string;
+  bodyTransform?: (original: string) => string;
+  tagTransform?: (original: string[]) => string[];
+}
+
+const updateTemplates: UpdateTemplate[] = [
+  {
+    name: 'add-structure',
+    bodyTransform: (original) => {
+      if (original.includes('##')) return original;
+      
+      const sections = original.split('\n\n');
+      if (sections.length < 2) return original;
+      
+      return `## Problem Description\n\n${sections[0]}\n\n## Additional Details\n\n${sections.slice(1).join('\n\n')}`;
+    }
+  },
+  {
+    name: 'improve-title',
+    titleTransform: (original) => {
+      // Make title more specific and add question mark if missing
+      let improved = original.trim();
+      if (!improved.endsWith('?')) {
+        improved += '?';
+      }
+      if (!improved.toLowerCase().includes('how') && !improved.toLowerCase().includes('what') && !improved.toLowerCase().includes('why')) {
+        improved = `How to ${improved.toLowerCase()}`;
+      }
+      return improved;
+    }
+  },
+  {
+    name: 'normalize-tags',
+    tagTransform: (original) => {
+      // Remove duplicates, normalize case, limit to 5 tags
+      const normalized = original
+        .map(tag => tag.toLowerCase().trim())
+        .filter((tag, index, arr) => arr.indexOf(tag) === index)
+        .slice(0, 5);
+      return normalized;
+    }
+  }
+];
+
+async function applyTemplate(questionId: number, templateName: string) {
+  try {
+    const template = updateTemplates.find(t => t.name === templateName);
+    if (!template) {
+      throw new Error(`Template "${templateName}" not found`);
+    }
+    
+    // Get current question
+    const currentQuestion = await sdk.questions.get(questionId);
+    
+    // Apply transformations
+    const updates: UpdateQuestionOptions = {
+      title: template.titleTransform ? 
+        template.titleTransform(currentQuestion.title || '') : 
+        currentQuestion.title || '',
+      body: template.bodyTransform ? 
+        template.bodyTransform(currentQuestion.bodyMarkdown || '') : 
+        currentQuestion.bodyMarkdown || '',
+      tags: template.tagTransform ? 
+        template.tagTransform(currentQuestion.tags?.map(t => t.name) || []) : 
+        currentQuestion.tags?.map(t => t.name) || []
+    };
+    
+    console.log(`Applying template "${templateName}" to question ${questionId}`);
+    console.log(`Original title: ${currentQuestion.title}`);
+    console.log(`Updated title: ${updates.title}`);
+    
+    const updatedQuestion = await sdk.questions.update(questionId, updates);
+    
+    console.log('Template applied successfully');
+    return {
+      success: true,
+      templateName,
+      question: updatedQuestion,
+      changes: {
+        title: currentQuestion.title !== updates.title,
+        body: currentQuestion.bodyMarkdown !== updates.body,
+        tags: JSON.stringify(currentQuestion.tags?.map(t => t.name).sort()) !== JSON.stringify(updates.tags.sort())
+      }
+    };
+  } catch (error) {
+    console.error(`Template application failed:`, error.message);
+    return {
+      success: false,
+      templateName,
+      error: error.message
+    };
+  }
+}
+
+// Apply different templates
+const structureResult = await applyTemplate(12345, 'add-structure');
+const titleResult = await applyTemplate(12346, 'improve-title'); 
+const tagResult = await applyTemplate(12347, 'normalize-tags');
+```
+
+### Content Validation and Update
+
+```typescript
+async function updateWithValidation(questionId: number, updates: UpdateQuestionOptions) {
+  try {
+    // Validate content before updating
+    const validation = validateQuestionContent(updates);
+    
+    if (!validation.isValid) {
+      console.error('Validation failed:');
+      validation.errors.forEach(error => console.error(`- ${error}`));
+      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+    }
+    
+    if (validation.warnings.length > 0) {
+      console.warn('Content warnings:');
+      validation.warnings.forEach(warning => console.warn(`- ${warning}`));
+    }
+    
+    console.log('Content validation passed');
+    console.log(`Quality score: ${validation.qualityScore}/100`);
+    
+    // Apply the update
+    const updatedQuestion = await sdk.questions.update(questionId, updates);
+    
+    return {
+      success: true,
+      question: updatedQuestion,
+      validation: validation,
+      message: 'Question updated successfully with validation'
+    };
+  } catch (error) {
+    console.error('Validated update failed:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      validation: validateQuestionContent(updates)
+    };
+  }
+}
+
+function validateQuestionContent(content: UpdateQuestionOptions): {
+  isValid: boolean,
+  qualityScore: number,
+  errors: string[],
+  warnings: string[]
+} {
+  const errors = [];
+  const warnings = [];
+  let qualityScore = 0;
+  
+  // Title validation
+  if (!content.title || content.title.trim().length === 0) {
+    errors.push('Title cannot be empty');
+  } else {
+    qualityScore += 20;
+    
+    if (content.title.length < 15) {
+      warnings.push('Title is quite short - consider being more descriptive');
+    } else if (content.title.length > 150) {
+      warnings.push('Title is very long - consider shortening');
+    } else {
+      qualityScore += 10;
+    }
+    
+    if (!content.title.includes('?') && !content.title.toLowerCase().includes('how') && !content.title.toLowerCase().includes('what')) {
+      warnings.push('Title might benefit from being phrased as a question');
+    } else {
+      qualityScore += 10;
+    }
+  }
+  
+  // Body validation
+  if (!content.body || content.body.trim().length === 0) {
+    errors.push('Body cannot be empty');
+  } else {
+    qualityScore += 30;
+    
+    if (content.body.length < 50) {
+      warnings.push('Body is quite short - consider adding more details');
+    } else {
+      qualityScore += 10;
+    }
+    
+    if (content.body.includes('```')) {
+      qualityScore += 10; // Bonus for code examples
+    }
+    
+    if (content.body.includes('##') || content.body.includes('**')) {
+      qualityScore += 5; // Bonus for formatting
+    }
+  }
+  
+  // Tags validation
+  if (!content.tags || content.tags.length === 0) {
+    errors.push('At least one tag is required');
+  } else {
+    qualityScore += 20;
+    
+    if (content.tags.length > 5) {
+      warnings.push('Too many tags - consider limiting to 5 most relevant tags');
+    }
+    
+    if (content.tags.length >= 3) {
+      qualityScore += 10; // Bonus for good tag count
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    qualityScore: Math.min(qualityScore, 100),
+    errors,
+    warnings
+  };
+}
+
+const validatedUpdate = await updateWithValidation(12345, {
+  title: "How to implement proper error handling in async TypeScript functions?",
+  body: `## Problem Description
+
+I'm working with async functions in TypeScript and struggling with proper error handling patterns.
+
+## Current Code
+
+\`\`\`typescript
+async function fetchData() {
+  try {
+    const response = await fetch('/api/data');
+    return response.json();
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+}
+\`\`\`
+
+## Questions
+
+1. Is returning null the best approach for errors?
+2. How should I handle different error types?
+3. What's the best way to propagate errors to the caller?`,
+  tags: ["typescript", "async-await", "error-handling"]
+});
+```
+
+### Team Context Updates
+
+```typescript
+// Update question in team context
+const teamSDK = sdk.forTeam('team-123');
+
+async function updateTeamQuestion(questionId: number, updates: UpdateQuestionOptions) {
+  try {
+    console.log(`Updating team question ${questionId}...`);
+    
+    const updatedQuestion = await teamSDK.questions.update(questionId, updates);
+    
+    console.log('Team question updated:');
+    console.log(`- Title: ${updatedQuestion.title}`);
+    console.log(`- Last edited by: ${updatedQuestion.lastEditor?.displayName}`);
+    console.log(`- Tags: ${updatedQuestion.tags?.map(t => t.name).join(', ')}`);
+    
+    return updatedQuestion;
+  } catch (error) {
+    console.error('Team question update failed:', error.message);
+    throw error;
+  }
+}
+
+const teamUpdate = await updateTeamQuestion(12345, {
+  title: "Internal API usage patterns - updated guidelines",
+  body: `## Updated Internal API Guidelines
+
+Based on recent team feedback and new requirements, here are the updated patterns for using our internal APIs.
+
+### Authentication
+- Use team service tokens for server-to-server calls
+- Use user tokens for UI-initiated requests
+
+### Error Handling
+- Standard HTTP status codes
+- Consistent error response format
+- Proper logging and monitoring
+
+### Rate Limiting
+- 1000 requests per minute per service
+- Burst allowance of 100 requests per second
+
+**Last Updated:** ${new Date().toISOString().split('T')[0]} by Platform Team`,
+  tags: ["internal-api", "team-guidelines", "authentication", "best-practices"]
+});
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ValidationError` | 400 | Invalid question data (empty title, body, or tags) |
+| `ForbiddenError` | 403 | Insufficient permissions (not question owner or moderator) |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ValidationError, ForbiddenError, NotFoundError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const updatedQuestion = await sdk.questions.update(12345, {
+    title: "How to handle TypeScript async errors properly?",
+    body: "Updated content with better examples and explanations...",
+    tags: ["typescript", "async-await", "error-handling"]
+  });
+  
+  console.log('Question updated successfully:', updatedQuestion.title);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Invalid question data:', error.message);
+    console.error('Please check that title, body, and tags are properly filled');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot update question - you must be the owner or have moderator permissions');
+  } else if (error instanceof NotFoundError) {
+    console.error('Question not found - it may have been deleted');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to update questions');
+  } else {
+    console.error('Failed to update question:', error.message);
+  }
+}
+```
+
+### Safe Update with Permission Check
+
+```typescript
+async function safeUpdateQuestion(questionId: number, updates: UpdateQuestionOptions) {
+  try {
+    // First check if we can access the question
+    const currentQuestion = await sdk.questions.get(questionId);
+    
+    // Perform the update
+    const updatedQuestion = await sdk.questions.update(questionId, updates);
+    
+    return {
+      success: true,
+      question: updatedQuestion,
+      message: 'Question updated successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'insufficient_permissions',
+        message: 'You can only update questions you own or have moderator permissions for'
+      };
+    } else if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Question does not exist or has been deleted'
+      };
+    } else if (error instanceof ValidationError) {
+      return {
+        success: false,
+        reason: 'validation_error',
+        message: 'Question content is invalid - check title, body, and tags'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const updateResult = await safeUpdateQuestion(12345, {
+  title: "Updated question title",
+  body: "Updated question content...",
+  tags: ["tag1", "tag2"]
+});
+
+if (updateResult.success) {
+  console.log(`Question updated: ${updateResult.question.title}`);
+} else {
+  console.log(`Update failed: ${updateResult.message}`);
+}
+```
+
+## Notes
+
+- **Permission Requirements**: Only question owners or users with moderator permissions can update questions
+- **Content Validation**: All fields (title, body, tags) are required and must be non-empty
+- **Markdown Support**: The `body` field accepts Markdown content which gets converted to HTML
+- **Edit Tracking**: Updates automatically set `lastEditor` to the current user and update `lastActivityDate`
+- **Tag Management**: Tags are provided as string array and must reference valid tag names
+- **Team vs Public Context**: Updates work in both team and public contexts based on client initialization
+- **Version History**: The API may maintain edit history (implementation dependent)
+- **Rate Limiting**: Consider delays between multiple updates to avoid rate limiting
+- **Content Length**: Be mindful of maximum content lengths for titles and body text
+- **Atomic Updates**: All fields are updated together - partial updates require providing all current values
+- **Activity Impact**: Updates count as question activity and may affect question visibility/ranking

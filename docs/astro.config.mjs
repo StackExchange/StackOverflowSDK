@@ -77,7 +77,7 @@ export default defineConfig({
 				label: 'Communities',
 				items: [
 					{ label: 'get', slug: 'communities/get'},
-					{ label: 'getall', slug: 'communities/getall'},
+					{ label: 'getAll', slug: 'communities/getall'},
 					{ label: 'join', slug: 'communities/join'},
 					{ label: 'joinbulk', slug: 'communities/joinbulk'},
 					{ label: 'leave', slug: 'communities/leave'},
@@ -89,19 +89,41 @@ export default defineConfig({
 			},
    			{
    				label: 'Questions',
-   				collapsed: true,
    				items: [
-
-   					{ label: 'create', slug: 'questions/create' },
+   					{ label: 'ask', slug: 'questions/ask' },
+					{ label: 'get', slug: 'questions/get' },
+					{ label: 'getAll', slug: 'questions/getall' },
+					{ label: 'getLinked', slug: 'questions/getlinked' },
+					{ label: 'getRelated', slug: 'questions/getrelated' },
+					{ label: 'update', slug: 'questions/update' },
+					{ label: 'Voting', slug: 'questions/votingmethods' },
+					{ label: 'Bookmarks', slug: 'questions/bookmarkmethods' },
    				]
    			},
+			{
+				label: 'Search',
+				items: [
+					{ label: '', slug: '' },
+				]
+			},
    			{
    				label: 'Tags',
-   				collapsed: true,
    				items: [
    					{ label: 'search', slug: 'tags/search' },
    				]
    			},
+			{
+				label: 'Users',
+				items: [
+					{ label: '', slug: '' }
+				]
+			},
+			{
+				label: 'UserGroups',
+				items: [
+					{ label: '', slug: '' }
+				]
+			}
    		],
    	}),
    ],

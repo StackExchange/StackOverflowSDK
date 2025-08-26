@@ -1,0 +1,625 @@
+---
+title: getAll()
+description: Retrieves a paginated list of questions with comprehensive filtering, sorting, and search options. Works in both public and team contexts.
+---
+
+# getAll()
+
+Retrieves a paginated list of questions with comprehensive filtering, sorting, and search options. Works in both public and team contexts.
+
+## Syntax
+
+```typescript
+async getAll(options?: GetQuestionsOptions): Promise<PaginatedQuestions>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `GetQuestionsOptions` | No | Configuration options for pagination, filtering, and sorting |
+
+### GetQuestionsOptions
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of questions to return per page |
+| `sort` | `QuestionSortParameter` | No | | Sort questions by: `"activity"`, `"creation"`, or `"score"` |
+| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| `isAnswered` | `boolean` | No | | Filter by answered status (true = has answers, false = no answers) |
+| `hasAcceptedAnswer` | `boolean` | No | | Filter by accepted answer status (true = has accepted answer) |
+| `questionId` | `number[]` | No | | Filter by specific question IDs |
+| `tagId` | `number[]` | No | | Filter by specific tag IDs |
+| `authorId` | `number` | No | | Filter by question author's user ID |
+| `from` | `Date` | No | | Filter questions created from this date |
+| `to` | `Date` | No | | Filter questions created up to this date |
+
+## Return Value
+
+Returns a `Promise<PaginatedQuestions>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of questions matching the criteria |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `QuestionSortParameter` | Sort parameter used |
+| `order` | `SortOrder` | Sort order used |
+| `items` | `QuestionSummaryResponseModel[]` | Array of question summary objects |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all questions with default settings
+const questions = await sdk.questions.getAll();
+console.log(`Found ${questions.totalCount} questions`);
+
+// Display questions
+questions.items.forEach(question => {
+  console.log(`- ${question.title} (Score: ${question.score})`);
+  console.log(`  Tags: ${question.tags?.map(t => t.name).join(', ')}`);
+  console.log(`  Answers: ${question.answerCount}, Views: ${question.viewCount}`);
+  console.log('');
+});
+```
+
+### Filtering by Answer Status
+
+```typescript
+// Get unanswered questions
+const unansweredQuestions = await sdk.questions.getAll({
+  isAnswered: false,
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 50
+});
+
+console.log(`Found ${unansweredQuestions.totalCount} unanswered questions`);
+
+// Get questions without accepted answers
+const unacceptedQuestions = await sdk.questions.getAll({
+  hasAcceptedAnswer: false,
+  isAnswered: true, // Has answers but no accepted answer
+  sort: 'score',
+  order: 'desc'
+});
+
+console.log(`Questions needing accepted answers: ${unacceptedQuestions.totalCount}`);
+```
+
+### Sorting by Different Criteria
+
+```typescript
+// Get most recent questions
+const recentQuestions = await sdk.questions.getAll({
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 25
+});
+
+console.log('Most recent questions:');
+recentQuestions.items.forEach((q, index) => {
+  console.log(`${index + 1}. ${q.title}`);
+  console.log(`   Created: ${q.creationDate}`);
+  console.log(`   Score: ${q.score}, Answers: ${q.answerCount}`);
+});
+
+// Get highest scoring questions
+const topQuestions = await sdk.questions.getAll({
+  sort: 'score',
+  order: 'desc',
+  pageSize: 20
+});
+
+console.log('\nTop scoring questions:');
+topQuestions.items.forEach((q, index) => {
+  console.log(`${index + 1}. ${q.title} (Score: ${q.score})`);
+});
+
+// Get most active questions (recent activity)
+const activeQuestions = await sdk.questions.getAll({
+  sort: 'activity',
+  order: 'desc',
+  pageSize: 30
+});
+
+console.log('\nMost active questions:');
+activeQuestions.items.forEach(q => {
+  console.log(`- ${q.title}`);
+  console.log(`  Last activity: ${q.lastActivityDate}`);
+});
+```
+
+### Author and Tag Filtering
+
+```typescript
+// Get questions by specific author
+const authorQuestions = await sdk.questions.getAll({
+  authorId: 123,
+  sort: 'creation',
+  order: 'desc'
+});
+
+console.log(`Questions by author ${authorQuestions.items[0]?.owner?.displayName}: ${authorQuestions.totalCount}`);
+
+// Get questions by specific tags (assuming you have tag IDs)
+const taggedQuestions = await sdk.questions.getAll({
+  tagId: [456, 789], // Multiple tag IDs
+  sort: 'score',
+  order: 'desc',
+  pageSize: 40
+});
+
+console.log(`Questions with specified tags: ${taggedQuestions.totalCount}`);
+
+// Get questions by specific question IDs
+const specificQuestions = await sdk.questions.getAll({
+  questionId: [101, 102, 103],
+  sort: 'creation',
+  order: 'asc'
+});
+
+console.log(`Retrieved ${specificQuestions.items.length} specific questions`);
+```
+
+### Date Range Filtering
+
+```typescript
+// Get questions from the last week
+const lastWeek = new Date();
+lastWeek.setDate(lastWeek.getDate() - 7);
+
+const recentQuestions = await sdk.questions.getAll({
+  from: lastWeek,
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 50
+});
+
+console.log(`Questions from last week: ${recentQuestions.totalCount}`);
+
+// Get questions from a specific month
+const monthStart = new Date('2024-01-01');
+const monthEnd = new Date('2024-01-31');
+
+const januaryQuestions = await sdk.questions.getAll({
+  from: monthStart,
+  to: monthEnd,
+  sort: 'activity',
+  order: 'desc'
+});
+
+console.log(`Questions from January 2024: ${januaryQuestions.totalCount}`);
+
+// Get questions from the last 24 hours
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+
+const dailyQuestions = await sdk.questions.getAll({
+  from: yesterday,
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 100
+});
+
+console.log(`Questions from last 24 hours: ${dailyQuestions.totalCount}`);
+```
+
+### Complex Filtering Combinations
+
+```typescript
+async function findQuestionsNeedingAttention() {
+  try {
+    // Find high-scoring unanswered questions from the last month
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    
+    const urgentQuestions = await sdk.questions.getAll({
+      isAnswered: false,
+      from: lastMonth,
+      sort: 'score',
+      order: 'desc',
+      pageSize: 50
+    });
+    
+    // Find questions with answers but no accepted answers
+    const needAcceptanceQuestions = await sdk.questions.getAll({
+      hasAcceptedAnswer: false,
+      isAnswered: true,
+      sort: 'activity',
+      order: 'desc',
+      pageSize: 30
+    });
+    
+    // Analyze the results
+    const urgentAnalysis = {
+      urgentUnanswered: {
+        count: urgentQuestions.totalCount,
+        highestScore: urgentQuestions.items[0]?.score || 0,
+        questions: urgentQuestions.items.slice(0, 5).map(q => ({
+          title: q.title,
+          score: q.score,
+          views: q.viewCount,
+          age: Math.floor((Date.now() - new Date(q.creationDate).getTime()) / (1000 * 60 * 60 * 24))
+        }))
+      },
+      needingAcceptance: {
+        count: needAcceptanceQuestions.totalCount,
+        questions: needAcceptanceQuestions.items.slice(0, 5).map(q => ({
+          title: q.title,
+          answerCount: q.answerCount,
+          score: q.score,
+          lastActivity: q.lastActivityDate
+        }))
+      }
+    };
+    
+    console.log('Questions Needing Attention Analysis:');
+    console.log(`- Urgent unanswered (last month): ${urgentAnalysis.urgentUnanswered.count}`);
+    console.log(`- Highest scoring unanswered: ${urgentAnalysis.urgentUnanswered.highestScore} points`);
+    console.log(`- Need accepted answers: ${urgentAnalysis.needingAcceptance.count}`);
+    
+    return urgentAnalysis;
+  } catch (error) {
+    console.error('Failed to analyze questions needing attention:', error.message);
+    throw error;
+  }
+}
+
+const attentionAnalysis = await findQuestionsNeedingAttention();
+```
+
+### Team Context Usage
+
+```typescript
+// Using team-specific client
+const teamSDK = sdk.forTeam('team-123');
+
+const teamQuestions = await teamSDK.questions.getAll({
+  sort: 'activity',
+  order: 'desc',
+  pageSize: 50
+});
+
+console.log(`Team questions: ${teamQuestions.totalCount}`);
+
+// Compare team vs public activity
+const [teamRecent, publicRecent] = await Promise.all([
+  teamSDK.questions.getAll({ 
+    sort: 'creation', 
+    order: 'desc', 
+    pageSize: 20 
+  }),
+  sdk.questions.getAll({ 
+    sort: 'creation', 
+    order: 'desc', 
+    pageSize: 20 
+  })
+]);
+
+console.log('Activity Comparison:');
+console.log(`- Team recent questions: ${teamRecent.totalCount}`);
+console.log(`- Public recent questions: ${publicRecent.totalCount}`);
+```
+
+### Analytics and Reporting
+
+```typescript
+async function generateQuestionAnalytics(timeframe: 'week' | 'month' | 'quarter') {
+  try {
+    const now = new Date();
+    const fromDate = new Date();
+    
+    switch (timeframe) {
+      case 'week':
+        fromDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        fromDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        fromDate.setMonth(now.getMonth() - 3);
+        break;
+    }
+    
+    // Get all questions in timeframe
+    const [allQuestions, answeredQuestions, unansweredQuestions] = await Promise.all([
+      sdk.questions.getAll({
+        from: fromDate,
+        sort: 'creation',
+        order: 'desc',
+        pageSize: 100
+      }),
+      sdk.questions.getAll({
+        from: fromDate,
+        isAnswered: true,
+        sort: 'score',
+        order: 'desc',
+        pageSize: 100
+      }),
+      sdk.questions.getAll({
+        from: fromDate,
+        isAnswered: false,
+        sort: 'creation',
+        order: 'desc',
+        pageSize: 100
+      })
+    ]);
+    
+    // Calculate metrics
+    const totalViews = allQuestions.items.reduce((sum, q) => sum + (q.viewCount || 0), 0);
+    const totalScore = allQuestions.items.reduce((sum, q) => sum + (q.score || 0), 0);
+    const averageScore = totalScore / allQuestions.items.length || 0;
+    const averageViews = totalViews / allQuestions.items.length || 0;
+    
+    // Analyze answer rates
+    const answerRate = allQuestions.totalCount > 0 
+      ? (answeredQuestions.totalCount / allQuestions.totalCount * 100) 
+      : 0;
+    
+    // Find top performers
+    const topQuestions = allQuestions.items
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 5);
+    
+    const analytics = {
+      timeframe,
+      period: `${fromDate.toISOString().split('T')[0]} to ${now.toISOString().split('T')[0]}`,
+      metrics: {
+        totalQuestions: allQuestions.totalCount,
+        answeredQuestions: answeredQuestions.totalCount,
+        unansweredQuestions: unansweredQuestions.totalCount,
+        answerRate: parseFloat(answerRate.toFixed(1)),
+        averageScore: parseFloat(averageScore.toFixed(1)),
+        averageViews: parseFloat(averageViews.toFixed(1)),
+        totalViews,
+        totalScore
+      },
+      topQuestions: topQuestions.map(q => ({
+        title: q.title,
+        score: q.score,
+        views: q.viewCount,
+        answerCount: q.answerCount,
+        author: q.owner?.displayName
+      })),
+      insights: generateQuestionInsights(allQuestions.items, answerRate)
+    };
+    
+    console.log(`Question Analytics (${timeframe}):`);
+    console.log(`- Total questions: ${analytics.metrics.totalQuestions}`);
+    console.log(`- Answer rate: ${analytics.metrics.answerRate}%`);
+    console.log(`- Average score: ${analytics.metrics.averageScore}`);
+    console.log(`- Average views: ${analytics.metrics.averageViews}`);
+    
+    return analytics;
+  } catch (error) {
+    console.error('Failed to generate question analytics:', error.message);
+    throw error;
+  }
+}
+
+function generateQuestionInsights(questions: any[], answerRate: number): string[] {
+  const insights = [];
+  
+  if (answerRate < 50) {
+    insights.push('Low answer rate - consider improving question quality or incentives');
+  } else if (answerRate > 80) {
+    insights.push('Excellent answer rate - community engagement is strong');
+  }
+  
+  const highViewQuestions = questions.filter(q => (q.viewCount || 0) > 100);
+  if (highViewQuestions.length > questions.length * 0.3) {
+    insights.push('High visibility - questions are getting good exposure');
+  }
+  
+  const recentQuestions = questions.filter(q => {
+    const daysSince = (Date.now() - new Date(q.creationDate).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince <= 7;
+  });
+  
+  if (recentQuestions.length > questions.length * 0.5) {
+    insights.push('High activity period - many recent questions');
+  }
+  
+  return insights;
+}
+
+const weeklyAnalytics = await generateQuestionAnalytics('week');
+```
+
+### Pagination Loop for Complete Data
+
+```typescript
+async function getAllQuestionsComplete(filters: Partial<GetQuestionsOptions> = {}): Promise<any[]> {
+  const allQuestions: any[] = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  console.log('Loading all questions matching criteria...');
+
+  while (hasMorePages) {
+    const result = await sdk.questions.getAll({
+      ...filters,
+      page: currentPage,
+      pageSize: 100 // Maximum page size for efficiency
+    });
+
+    allQuestions.push(...result.items);
+    
+    hasMorePages = currentPage < result.totalPages;
+    currentPage++;
+    
+    console.log(`Loaded page ${currentPage - 1} of ${result.totalPages} (${result.items.length} questions)`);
+    
+    // Add small delay to avoid rate limiting
+    if (hasMorePages) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  console.log(`\nCompleted: ${allQuestions.length} questions loaded`);
+  return allQuestions;
+}
+
+// Load all unanswered questions
+const allUnanswered = await getAllQuestionsComplete({
+  isAnswered: false,
+  sort: 'creation',
+  order: 'desc'
+});
+
+console.log(`Total unanswered questions: ${allUnanswered.length}`);
+```
+
+### Advanced Search Patterns
+
+```typescript
+async function performAdvancedQuestionSearch() {
+  try {
+    // Search for popular questions that still need answers
+    const popularUnanswered = await sdk.questions.getAll({
+      isAnswered: false,
+      sort: 'score',
+      order: 'desc',
+      pageSize: 50
+    });
+    
+    // Find questions with lots of activity but no accepted answer
+    const activeUnaccepted = await sdk.questions.getAll({
+      hasAcceptedAnswer: false,
+      isAnswered: true,
+      sort: 'activity',
+      order: 'desc',
+      pageSize: 30
+    });
+    
+    // Recent questions from specific author
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    
+    const recentAuthorQuestions = await sdk.questions.getAll({
+      authorId: 123,
+      from: lastMonth,
+      sort: 'creation',
+      order: 'desc'
+    });
+    
+    const searchResults = {
+      popularUnanswered: {
+        count: popularUnanswered.totalCount,
+        topScoring: popularUnanswered.items.slice(0, 5).map(q => ({
+          title: q.title,
+          score: q.score,
+          views: q.viewCount,
+          age: Math.floor((Date.now() - new Date(q.creationDate).getTime()) / (1000 * 60 * 60 * 24))
+        }))
+      },
+      activeUnaccepted: {
+        count: activeUnaccepted.totalCount,
+        mostActive: activeUnaccepted.items.slice(0, 5).map(q => ({
+          title: q.title,
+          answerCount: q.answerCount,
+          lastActivity: q.lastActivityDate,
+          score: q.score
+        }))
+      },
+      recentByAuthor: {
+        count: recentAuthorQuestions.totalCount,
+        authorName: recentAuthorQuestions.items[0]?.owner?.displayName,
+        questions: recentAuthorQuestions.items.slice(0, 3).map(q => ({
+          title: q.title,
+          score: q.score,
+          creationDate: q.creationDate
+        }))
+      }
+    };
+    
+    console.log('Advanced Search Results:');
+    console.log(`- Popular unanswered: ${searchResults.popularUnanswered.count}`);
+    console.log(`- Active without acceptance: ${searchResults.activeUnaccepted.count}`);
+    console.log(`- Recent by author: ${searchResults.recentByAuthor.count}`);
+    
+    return searchResults;
+  } catch (error) {
+    console.error('Advanced search failed:', error.message);
+    throw error;
+  }
+}
+
+const advancedResults = await performAdvancedQuestionSearch();
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access questions |
+| `ValidationError` | 400 | Invalid filter parameters (e.g., invalid date range) |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { AuthenticationError, ValidationError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const questions = await sdk.questions.getAll({
+    sort: 'score',
+    order: 'desc',
+    isAnswered: false,
+    from: new Date('2024-01-01'),
+    pageSize: 50
+  });
+  
+  console.log(`Successfully retrieved ${questions.items.length} questions`);
+  questions.items.forEach(question => {
+    console.log(`- ${question.title}: ${question.score} points`);
+  });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access questions');
+  } else if (error instanceof ValidationError) {
+    console.error('Invalid parameters:', error.message);
+    console.error('Check date ranges, sort parameters, and filter values');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to questions');
+  } else {
+    console.error('Failed to retrieve questions:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Team vs Public Context**: Questions are retrieved from team context when using `sdk.forTeam()`, otherwise from public context
+- **Date Filtering**: The `from` and `to` parameters filter by question creation date, not last activity date
+- **Answer Status Logic**: `isAnswered: true` means the question has at least one upvoted answer; `hasAcceptedAnswer` is specifically about moderator/author-accepted answers
+- **Sort Parameters**: 
+  - `"activity"` sorts by last activity date (includes edits, new answers, etc.)
+  - `"creation"` sorts by question creation date
+  - `"score"` sorts by vote score (upvotes minus downvotes)
+- **Tag and Author Filtering**: Requires numeric IDs, not names or usernames
+- **Pagination**: Pages are 1-based; use `totalPages` to determine when to stop pagination loops
+- **Performance**: Use appropriate `pageSize` values - larger sizes reduce API calls but increase response time
+- **Rate Limiting**: Consider adding delays between requests when loading large datasets
+- **Empty Results**: Returns empty array in `items` rather than throwing an error when no questions match criteria
