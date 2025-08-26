@@ -1,0 +1,537 @@
+---
+title: Convenience Methods
+description: Simplified aliases for common community membership operations with clearer naming and streamlined interfaces.
+---
+
+# Convenience Methods
+
+Simplified aliases for common community membership operations with clearer naming and streamlined interfaces.
+
+## User Management Methods
+
+### addUsers()
+
+Adds multiple users to a community. Alias for `joinBulk()`.
+
+#### Syntax
+```typescript
+async addUsers(communityId: number, userIds: number[]): Promise<CommunityResponseModel>
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community |
+| `userIds` | `number[]` | Yes | Array of user IDs to add to the community |
+
+---
+
+### removeUsers()
+
+Removes multiple users from a community. Alias for `leaveBulk()`.
+
+#### Syntax
+```typescript
+async removeUsers(communityId: number, userIds: number[]): Promise<CommunityResponseModel>
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community |
+| `userIds` | `number[]` | Yes | Array of user IDs to remove from the community |
+
+---
+
+### addUser()
+
+Adds a single user to a community. Convenience wrapper for `addUsers()`.
+
+#### Syntax
+```typescript
+async addUser(communityId: number, userId: number): Promise<CommunityResponseModel>
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community |
+| `userId` | `number` | Yes | The user ID to add to the community |
+
+---
+
+### removeUser()
+
+Removes a single user from a community. Convenience wrapper for `removeUsers()`.
+
+#### Syntax
+```typescript
+async removeUser(communityId: number, userId: number): Promise<CommunityResponseModel>
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community |
+| `userId` | `number` | Yes | The user ID to remove from the community |
+
+## Current User Methods
+
+### joinAsMember()
+
+Joins the current user to a community. Alias for `join()` with clearer naming.
+
+#### Syntax
+```typescript
+async joinAsMember(communityId: number): Promise<CommunityResponseModel>
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to join |
+
+---
+
+### leaveAsMember()
+
+Removes the current user from a community. Alias for `leave()` with clearer naming.
+
+#### Syntax
+```typescript
+async leaveAsMember(communityId: number): Promise<CommunityResponseModel>
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to leave |
+
+## Examples
+
+### User Management Operations
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Add multiple users to a community
+const community = await sdk.communities.addUsers(123, [456, 789, 101]);
+console.log(`Added users to ${community.name}. New member count: ${community.memberCount}`);
+
+// Add a single user
+const updatedCommunity = await sdk.communities.addUser(123, 202);
+console.log(`Added user 202. Member count: ${updatedCommunity.memberCount}`);
+
+// Remove multiple users
+const afterRemoval = await sdk.communities.removeUsers(123, [456, 789]);
+console.log(`Removed users. New member count: ${afterRemoval.memberCount}`);
+
+// Remove a single user  
+const finalCommunity = await sdk.communities.removeUser(123, 101);
+console.log(`Removed user 101. Final count: ${finalCommunity.memberCount}`);
+```
+
+### Current User Operations
+
+```typescript
+// Join a community as the current user
+const joinedCommunity = await sdk.communities.joinAsMember(123);
+console.log(`Joined ${joinedCommunity.name} as member`);
+
+// Leave a community
+const leftCommunity = await sdk.communities.leaveAsMember(123);
+console.log(`Left ${leftCommunity.name}`);
+```
+
+### Admin User Management Workflow
+
+```typescript
+async function manageTeamMembership(communityId: number, teamData: {
+  newMembers: number[],
+  removingMembers: number[],
+  transferringIn: number[],
+  transferringOut: number[]
+}) {
+  try {
+    console.log(`Managing membership for community ${communityId}`);
+    
+    const operations = [];
+    
+    // Add new team members
+    if (teamData.newMembers.length > 0) {
+      console.log(`Adding ${teamData.newMembers.length} new members`);
+      const addResult = await sdk.communities.addUsers(communityId, teamData.newMembers);
+      operations.push({
+        operation: 'add',
+        users: teamData.newMembers,
+        newCount: addResult.memberCount
+      });
+    }
+    
+    // Remove departing members
+    if (teamData.removingMembers.length > 0) {
+      console.log(`Removing ${teamData.removingMembers.length} departing members`);
+      const removeResult = await sdk.communities.removeUsers(communityId, teamData.removingMembers);
+      operations.push({
+        operation: 'remove', 
+        users: teamData.removingMembers,
+        newCount: removeResult.memberCount
+      });
+    }
+    
+    return {
+      success: true,
+      communityId,
+      operations,
+      summary: {
+        added: teamData.newMembers.length,
+        removed: teamData.removingMembers.length,
+        finalMemberCount: operations[operations.length - 1]?.newCount
+      }
+    };
+  } catch (error) {
+    console.error('Team membership management failed:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+const teamChanges = {
+  newMembers: [301, 302, 303],
+  removingMembers: [201, 202],
+  transferringIn: [401, 402],
+  transferringOut: [501, 502]
+};
+
+const managementResult = await manageTeamMembership(123, teamChanges);
+if (managementResult.success) {
+  console.log('Team membership updated:', managementResult.summary);
+}
+```
+
+### Single User Management Helper
+
+```typescript
+async function manageSingleUserMembership(userId: number, actions: {
+  joinCommunities?: number[],
+  leaveCommunities?: number[]
+}) {
+  const results = {
+    joined: [],
+    left: [],
+    errors: []
+  };
+  
+  // Join communities
+  if (actions.joinCommunities) {
+    for (const communityId of actions.joinCommunities) {
+      try {
+        const result = await sdk.communities.addUser(communityId, userId);
+        results.joined.push({
+          communityId,
+          communityName: result.name,
+          newMemberCount: result.memberCount
+        });
+      } catch (error) {
+        results.errors.push({
+          operation: 'join',
+          communityId,
+          error: error.message
+        });
+      }
+    }
+  }
+  
+  // Leave communities
+  if (actions.leaveCommunities) {
+    for (const communityId of actions.leaveCommunities) {
+      try {
+        const result = await sdk.communities.removeUser(communityId, userId);
+        results.left.push({
+          communityId,
+          communityName: result.name,
+          newMemberCount: result.memberCount
+        });
+      } catch (error) {
+        results.errors.push({
+          operation: 'leave',
+          communityId,
+          error: error.message
+        });
+      }
+    }
+  }
+  
+  console.log(`User ${userId} membership changes:`);
+  console.log(`- Joined ${results.joined.length} communities`);
+  console.log(`- Left ${results.left.length} communities`);
+  console.log(`- Errors: ${results.errors.length}`);
+  
+  return results;
+}
+
+const userMembershipChanges = await manageSingleUserMembership(456, {
+  joinCommunities: [123, 456, 789],
+  leaveCommunities: [101, 202]
+});
+```
+
+### Current User Community Management
+
+```typescript
+async function manageMyMemberships(actions: {
+  join?: number[],
+  leave?: number[]
+}) {
+  const results = {
+    joined: [],
+    left: [],
+    errors: []
+  };
+  
+  // Join communities as current user
+  if (actions.join) {
+    for (const communityId of actions.join) {
+      try {
+        const result = await sdk.communities.joinAsMember(communityId);
+        results.joined.push({
+          id: result.id,
+          name: result.name,
+          memberCount: result.memberCount
+        });
+        console.log(`Successfully joined "${result.name}"`);
+      } catch (error) {
+        results.errors.push({
+          operation: 'join',
+          communityId,
+          error: error.message
+        });
+        console.error(`Failed to join community ${communityId}:`, error.message);
+      }
+    }
+  }
+  
+  // Leave communities as current user
+  if (actions.leave) {
+    for (const communityId of actions.leave) {
+      try {
+        const result = await sdk.communities.leaveAsMember(communityId);
+        results.left.push({
+          id: result.id,
+          name: result.name,
+          memberCount: result.memberCount
+        });
+        console.log(`Successfully left "${result.name}"`);
+      } catch (error) {
+        results.errors.push({
+          operation: 'leave', 
+          communityId,
+          error: error.message
+        });
+        console.error(`Failed to leave community ${communityId}:`, error.message);
+      }
+    }
+  }
+  
+  return {
+    summary: {
+      joined: results.joined.length,
+      left: results.left.length,
+      errors: results.errors.length
+    },
+    details: results
+  };
+}
+
+const myMembershipChanges = await manageMyMemberships({
+  join: [123, 456],
+  leave: [789, 101]
+});
+
+console.log('My membership changes:', myMembershipChanges.summary);
+```
+
+### Batch User Operations
+
+```typescript
+async function batchUserOperations(operations: Array<{
+  type: 'add' | 'remove',
+  communityId: number,
+  userId: number,
+  reason?: string
+}>) {
+  console.log(`Processing ${operations.length} user operations`);
+  
+  const results = [];
+  
+  for (const op of operations) {
+    try {
+      let result;
+      
+      if (op.type === 'add') {
+        result = await sdk.communities.addUser(op.communityId, op.userId);
+        console.log(`✓ Added user ${op.userId} to community ${op.communityId}${op.reason ? ` (${op.reason})` : ''}`);
+      } else {
+        result = await sdk.communities.removeUser(op.communityId, op.userId);
+        console.log(`✓ Removed user ${op.userId} from community ${op.communityId}${op.reason ? ` (${op.reason})` : ''}`);
+      }
+      
+      results.push({
+        ...op,
+        success: true,
+        newMemberCount: result.memberCount,
+        communityName: result.name
+      });
+      
+    } catch (error) {
+      console.error(`✗ Failed to ${op.type} user ${op.userId} ${op.type === 'add' ? 'to' : 'from'} community ${op.communityId}:`, error.message);
+      
+      results.push({
+        ...op,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+  
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`\nBatch operations completed:`);
+  console.log(`- Successful: ${successful.length}/${operations.length}`);
+  console.log(`- Failed: ${failed.length}/${operations.length}`);
+  
+  return { successful, failed, results };
+}
+
+const batchOps = [
+  { type: 'add', communityId: 123, userId: 456, reason: 'New team member' },
+  { type: 'add', communityId: 123, userId: 789, reason: 'New team member' },  
+  { type: 'remove', communityId: 456, userId: 101, reason: 'Role change' },
+  { type: 'remove', communityId: 456, userId: 202, reason: 'Departure' }
+];
+
+const batchResults = await batchUserOperations(batchOps);
+```
+
+### Community Membership Audit
+
+```typescript
+async function auditCommunityMembership(communityId: number, expectedMembers: number[], currentMembers: number[]) {
+  const toAdd = expectedMembers.filter(id => !currentMembers.includes(id));
+  const toRemove = currentMembers.filter(id => !expectedMembers.includes(id));
+  
+  console.log(`Community ${communityId} membership audit:`);
+  console.log(`- Expected members: ${expectedMembers.length}`);
+  console.log(`- Current members: ${currentMembers.length}`);
+  console.log(`- Need to add: ${toAdd.length}`);
+  console.log(`- Need to remove: ${toRemove.length}`);
+  
+  const results = {
+    added: [],
+    removed: [],
+    errors: []
+  };
+  
+  // Add missing members
+  for (const userId of toAdd) {
+    try {
+      const result = await sdk.communities.addUser(communityId, userId);
+      results.added.push(userId);
+      console.log(`✓ Added user ${userId}`);
+    } catch (error) {
+      results.errors.push({ operation: 'add', userId, error: error.message });
+      console.error(`✗ Failed to add user ${userId}:`, error.message);
+    }
+  }
+  
+  // Remove extra members
+  for (const userId of toRemove) {
+    try {
+      const result = await sdk.communities.removeUser(communityId, userId);
+      results.removed.push(userId);
+      console.log(`✓ Removed user ${userId}`);
+    } catch (error) {
+      results.errors.push({ operation: 'remove', userId, error: error.message });
+      console.error(`✗ Failed to remove user ${userId}:`, error.message);
+    }
+  }
+  
+  return {
+    audit: {
+      expectedMembers: expectedMembers.length,
+      initialMembers: currentMembers.length,
+      membersAdded: results.added.length,
+      membersRemoved: results.removed.length,
+      errors: results.errors.length
+    },
+    details: results
+  };
+}
+
+const auditResults = await auditCommunityMembership(
+  123,
+  [456, 789, 101, 202], // expected members
+  [456, 301, 302, 303]  // current members
+);
+
+console.log('Audit completed:', auditResults.audit);
+```
+
+## Error Handling
+
+All convenience methods inherit the same error handling behavior as their underlying methods:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions for the operation |
+| `NotFoundError` | 404 | Community or user not found |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token', 
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  // Using convenience methods with error handling
+  await sdk.communities.addUser(123, 456);
+  console.log('User added successfully');
+  
+  await sdk.communities.joinAsMember(789);
+  console.log('Joined community successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Community or user not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Insufficient permissions');
+  } else {
+    console.error('Operation failed:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Aliases**: These methods are convenient aliases that provide clearer naming and simplified interfaces
+- **No Additional Behavior**: These methods have identical functionality to their underlying methods
+- **User Management**: `addUser`/`addUsers` and `removeUser`/`removeUsers` are aliases for bulk operations
+- **Current User**: `joinAsMember` and `leaveAsMember` provide clearer intent for current user operations
+- **Performance**: Single user methods (`addUser`, `removeUser`) internally use bulk operations, so they're just as efficient
+- **Error Handling**: All convenience methods throw the same errors as their underlying implementations
+- **Permissions**: Same permission requirements apply as the underlying methods
+- **Return Values**: All methods return the same `CommunityResponseModel` as their underlying implementations

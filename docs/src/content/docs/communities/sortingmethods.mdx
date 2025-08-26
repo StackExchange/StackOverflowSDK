@@ -1,0 +1,600 @@
+---
+title: Sorting Methods
+description: Convenience methods for retrieving communities with predefined sorting options for common use cases.
+---
+
+# Sorting Methods
+
+Convenience methods for retrieving communities with predefined sorting options for common use cases.
+
+## getAllByName()
+
+Retrieves communities sorted alphabetically by name in ascending order.
+
+### Syntax
+```typescript
+async getAllByName(options?: Omit<GetCommunitiesOptions, 'sort' | 'order'>): Promise<PaginatedCommunities>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `Omit<GetCommunitiesOptions, 'sort' \| 'order'>` | No | Pagination options (excludes sort and order) |
+
+#### Available Options
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of communities to return per page |
+
+---
+
+## getAllByMemberCount()
+
+Retrieves communities sorted by member count in descending order (largest communities first).
+
+### Syntax
+```typescript
+async getAllByMemberCount(options?: Omit<GetCommunitiesOptions, 'sort' | 'order'>): Promise<PaginatedCommunities>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `Omit<GetCommunitiesOptions, 'sort' \| 'order'>` | No | Pagination options (excludes sort and order) |
+
+#### Available Options
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of communities to return per page |
+
+## Return Value
+
+Both methods return a `Promise<PaginatedCommunities>` with the same structure as `getAll()`:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of communities available |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `CommunitySortParameter` | Sort parameter used (`"name"` or `"size"`) |
+| `order` | `SortOrder` | Sort order used (`"asc"` or `"desc"`) |
+| `items` | `CommunitySummaryResponseModel[]` | Array of community summary objects |
+
+## Examples
+
+### Basic Alphabetical Listing
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get communities in alphabetical order
+const alphabeticalCommunities = await sdk.communities.getAllByName();
+
+console.log('Communities in alphabetical order:');
+alphabeticalCommunities.items.forEach((community, index) => {
+  console.log(`${index + 1}. ${community.name} (${community.memberCount} members)`);
+});
+```
+
+### Top Communities by Size
+
+```typescript
+// Get largest communities first
+const topCommunities = await sdk.communities.getAllByMemberCount({
+  pageSize: 20
+});
+
+console.log('Top 20 largest communities:');
+topCommunities.items.forEach((community, index) => {
+  console.log(`${index + 1}. ${community.name}`);
+  console.log(`   Members: ${community.memberCount}`);
+  console.log(`   Description: ${community.description || 'No description'}`);
+  console.log('');
+});
+```
+
+### Community Directory Generation
+
+```typescript
+async function generateCommunityDirectory() {
+  try {
+    // Get all communities alphabetically for directory
+    const allByName = await sdk.communities.getAllByName({
+      pageSize: 100
+    });
+    
+    // Get top communities by size for highlights
+    const topBySize = await sdk.communities.getAllByMemberCount({
+      pageSize: 10
+    });
+    
+    const directory = {
+      metadata: {
+        totalCommunities: allByName.totalCount,
+        generatedAt: new Date().toISOString(),
+        sortedAlphabetically: allByName.items.length,
+        topCommunitiesHighlighted: topBySize.items.length
+      },
+      alphabeticalIndex: allByName.items.map(community => ({
+        name: community.name,
+        id: community.id,
+        memberCount: community.memberCount,
+        description: community.description,
+        tags: community.tags?.map(t => t.name) || []
+      })),
+      topCommunities: topBySize.items.map((community, index) => ({
+        rank: index + 1,
+        name: community.name,
+        id: community.id,
+        memberCount: community.memberCount,
+        description: community.description,
+        growthIndicator: community.memberCount > 500 ? 'Large' : 
+                        community.memberCount > 100 ? 'Medium' : 'Small'
+      })),
+      categories: generateCommunityCategories(allByName.items)
+    };
+    
+    return directory;
+  } catch (error) {
+    console.error('Failed to generate community directory:', error.message);
+    throw error;
+  }
+}
+
+function generateCommunityCategories(communities: any[]) {
+  const categories = {
+    byFirstLetter: {},
+    bySize: {
+      large: communities.filter(c => (c.memberCount || 0) > 500),
+      medium: communities.filter(c => (c.memberCount || 0) > 100 && (c.memberCount || 0) <= 500),
+      small: communities.filter(c => (c.memberCount || 0) <= 100)
+    }
+  };
+  
+  // Group by first letter
+  communities.forEach(community => {
+    const firstLetter = community.name.charAt(0).toUpperCase();
+    if (!categories.byFirstLetter[firstLetter]) {
+      categories.byFirstLetter[firstLetter] = [];
+    }
+    categories.byFirstLetter[firstLetter].push(community);
+  });
+  
+  return categories;
+}
+
+const communityDirectory = await generateCommunityDirectory();
+console.log('Community Directory Generated:', communityDirectory.metadata);
+```
+
+### Community Comparison Analysis
+
+```typescript
+async function compareCommunityRankings() {
+  try {
+    // Get communities sorted alphabetically and by size
+    const [byName, bySize] = await Promise.all([
+      sdk.communities.getAllByName({ pageSize: 50 }),
+      sdk.communities.getAllByMemberCount({ pageSize: 50 })
+    ]);
+    
+    // Create ranking comparison
+    const comparison = byName.items.map(community => {
+      const sizeRank = bySize.items.findIndex(c => c.id === community.id) + 1;
+      const alphabeticalRank = byName.items.findIndex(c => c.id === community.id) + 1;
+      
+      return {
+        name: community.name,
+        id: community.id,
+        memberCount: community.memberCount,
+        rankings: {
+          alphabetical: alphabeticalRank,
+          bySize: sizeRank > 0 ? sizeRank : 'Not in top 50',
+          sizeDifference: sizeRank > 0 ? Math.abs(alphabeticalRank - sizeRank) : null
+        },
+        category: community.memberCount > 1000 ? 'Giant' :
+                 community.memberCount > 500 ? 'Large' :
+                 community.memberCount > 100 ? 'Medium' : 'Small'
+      };
+    });
+    
+    // Find interesting patterns
+    const analysis = {
+      totalAnalyzed: comparison.length,
+      giantCommunities: comparison.filter(c => c.category === 'Giant'),
+      mostActiveSmallCommunities: comparison
+        .filter(c => c.category === 'Small' && c.rankings.bySize !== 'Not in top 50')
+        .sort((a, b) => (typeof a.rankings.bySize === 'number' ? a.rankings.bySize : 999) - 
+                       (typeof b.rankings.bySize === 'number' ? b.rankings.bySize : 999)),
+      biggestRankingGaps: comparison
+        .filter(c => c.rankings.sizeDifference !== null)
+        .sort((a, b) => (b.rankings.sizeDifference || 0) - (a.rankings.sizeDifference || 0))
+        .slice(0, 5),
+      alphabeticalDistribution: analyzeAlphabeticalDistribution(comparison)
+    };
+    
+    console.log('Community Ranking Analysis:');
+    console.log(`- Giant communities: ${analysis.giantCommunities.length}`);
+    console.log(`- Most active small communities: ${analysis.mostActiveSmallCommunities.length}`);
+    console.log('- Biggest ranking gaps:');
+    
+    analysis.biggestRankingGaps.forEach(community => {
+      console.log(`  ${community.name}: Alphabetical #${community.rankings.alphabetical}, Size #${community.rankings.bySize} (gap: ${community.rankings.sizeDifference})`);
+    });
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to compare community rankings:', error.message);
+    throw error;
+  }
+}
+
+function analyzeAlphabeticalDistribution(communities: any[]) {
+  const distribution = {};
+  
+  communities.forEach(community => {
+    const firstLetter = community.name.charAt(0).toUpperCase();
+    if (!distribution[firstLetter]) {
+      distribution[firstLetter] = { count: 0, totalMembers: 0, communities: [] };
+    }
+    distribution[firstLetter].count++;
+    distribution[firstLetter].totalMembers += community.memberCount || 0;
+    distribution[firstLetter].communities.push(community.name);
+  });
+  
+  // Convert to sorted array
+  return Object.entries(distribution)
+    .map(([letter, data]: [string, any]) => ({
+      letter,
+      communityCount: data.count,
+      totalMembers: data.totalMembers,
+      averageSize: Math.round(data.totalMembers / data.count),
+      examples: data.communities.slice(0, 3)
+    }))
+    .sort((a, b) => b.communityCount - a.communityCount);
+}
+
+const rankingAnalysis = await compareCommunityRankings();
+```
+
+### Community Discovery Workflows
+
+```typescript
+async function discoverCommunitiesByInterest() {
+  try {
+    // Get communities by different sorting methods
+    const alphabetical = await sdk.communities.getAllByName({ pageSize: 30 });
+    const byPopularity = await sdk.communities.getAllByMemberCount({ pageSize: 30 });
+    
+    const discovery = {
+      browseAlphabetically: {
+        title: "Browse Communities A-Z",
+        description: "Find communities by exploring alphabetical listings",
+        communities: alphabetical.items.map(c => ({
+          name: c.name,
+          members: c.memberCount,
+          description: c.description?.substring(0, 100) + (c.description?.length > 100 ? '...' : ''),
+          category: getCommunityCategory(c)
+        }))
+      },
+      popularCommunities: {
+        title: "Most Popular Communities", 
+        description: "Join thriving communities with active membership",
+        communities: byPopularity.items.slice(0, 15).map((c, index) => ({
+          rank: index + 1,
+          name: c.name,
+          members: c.memberCount,
+          description: c.description?.substring(0, 100) + (c.description?.length > 100 ? '...' : ''),
+          popularityTier: index < 5 ? 'Top Tier' : index < 10 ? 'High Activity' : 'Active'
+        }))
+      },
+      recommendations: generateDiscoveryRecommendations(alphabetical.items, byPopularity.items)
+    };
+    
+    return discovery;
+  } catch (error) {
+    console.error('Community discovery failed:', error.message);
+    throw error;
+  }
+}
+
+function getCommunityCategory(community: any): string {
+  const memberCount = community.memberCount || 0;
+  if (memberCount > 1000) return 'Mega Community';
+  if (memberCount > 500) return 'Large Community';
+  if (memberCount > 100) return 'Medium Community';
+  if (memberCount > 20) return 'Small Community';
+  return 'Emerging Community';
+}
+
+function generateDiscoveryRecommendations(alphabetical: any[], popular: any[]): string[] {
+  const recommendations = [];
+  
+  // Find communities that appear in both lists (balanced popularity and good naming)
+  const balanced = alphabetical.filter(a => 
+    popular.some(p => p.id === a.id) && (a.memberCount || 0) > 200 && (a.memberCount || 0) < 800
+  );
+  
+  if (balanced.length > 0) {
+    recommendations.push(`Consider joining ${balanced[0].name} - well-established community with active membership`);
+  }
+  
+  // Find emerging communities
+  const emerging = alphabetical.filter(c => (c.memberCount || 0) < 50 && (c.memberCount || 0) > 10);
+  if (emerging.length > 0) {
+    recommendations.push(`${emerging.length} emerging communities could benefit from your participation`);
+  }
+  
+  // Find niche communities
+  const niche = alphabetical.filter(c => 
+    (c.memberCount || 0) > 50 && (c.memberCount || 0) < 200 && !popular.slice(0, 20).some(p => p.id === c.id)
+  );
+  
+  if (niche.length > 0) {
+    recommendations.push(`${niche.length} specialized communities offer focused discussions`);
+  }
+  
+  return recommendations;
+}
+
+const discoveryGuide = await discoverCommunitiesByInterest();
+console.log('Community Discovery Guide:');
+console.log('Popular Communities:', discoveryGuide.popularCommunities.communities.slice(0, 5));
+console.log('Recommendations:', discoveryGuide.recommendations);
+```
+
+### Community Growth Analysis
+
+```typescript
+async function analyzeCommunityGrowthPatterns() {
+  try {
+    // Get communities sorted by size to analyze growth patterns
+    const communitiesBySize = await sdk.communities.getAllByMemberCount({
+      pageSize: 100
+    });
+    
+    // Calculate growth distribution
+    const memberCounts = communitiesBySize.items.map(c => c.memberCount || 0);
+    const totalMembers = memberCounts.reduce((sum, count) => sum + count, 0);
+    const averageSize = totalMembers / memberCounts.length;
+    const median = calculateMedian(memberCounts);
+    
+    // Categorize communities by growth stages
+    const growthStages = {
+      emerging: communitiesBySize.items.filter(c => (c.memberCount || 0) <= 25),
+      growing: communitiesBySize.items.filter(c => (c.memberCount || 0) > 25 && (c.memberCount || 0) <= 100),
+      established: communitiesBySize.items.filter(c => (c.memberCount || 0) > 100 && (c.memberCount || 0) <= 500),
+      mature: communitiesBySize.items.filter(c => (c.memberCount || 0) > 500 && (c.memberCount || 0) <= 1000),
+      giant: communitiesBySize.items.filter(c => (c.memberCount || 0) > 1000)
+    };
+    
+    // Analyze growth distribution
+    const stageAnalysis = Object.entries(growthStages).map(([stage, communities]) => {
+      const counts = communities.map(c => c.memberCount || 0);
+      return {
+        stage,
+        communityCount: communities.length,
+        percentage: parseFloat((communities.length / communitiesBySize.items.length * 100).toFixed(1)),
+        totalMembers: counts.reduce((sum, count) => sum + count, 0),
+        averageSize: counts.length > 0 ? Math.round(counts.reduce((sum, count) => sum + count, 0) / counts.length) : 0,
+        examples: communities.slice(0, 3).map(c => ({ name: c.name, members: c.memberCount }))
+      };
+    });
+    
+    const analysis = {
+      overview: {
+        totalCommunities: communitiesBySize.totalCount,
+        totalMembers,
+        averageSize: Math.round(averageSize),
+        median,
+        largestCommunity: communitiesBySize.items[0],
+        smallestCommunity: communitiesBySize.items[communitiesBySize.items.length - 1]
+      },
+      growthStages: stageAnalysis,
+      insights: generateGrowthInsights(stageAnalysis, averageSize),
+      recommendations: generateGrowthRecommendations(stageAnalysis)
+    };
+    
+    console.log('Community Growth Analysis:');
+    console.log(`Total Communities: ${analysis.overview.totalCommunities}`);
+    console.log(`Average Size: ${analysis.overview.averageSize} members`);
+    console.log(`Median Size: ${analysis.overview.median} members`);
+    console.log('\nGrowth Stage Distribution:');
+    
+    stageAnalysis.forEach(stage => {
+      console.log(`${stage.stage.toUpperCase()}: ${stage.communityCount} communities (${stage.percentage}%)`);
+      console.log(`  Average size: ${stage.averageSize} members`);
+      console.log(`  Total members: ${stage.totalMembers}`);
+    });
+    
+    return analysis;
+  } catch (error) {
+    console.error('Growth analysis failed:', error.message);
+    throw error;
+  }
+}
+
+function calculateMedian(numbers: number[]): number {
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
+}
+
+function generateGrowthInsights(stageAnalysis: any[], averageSize: number): string[] {
+  const insights = [];
+  
+  const emergingPercent = stageAnalysis.find(s => s.stage === 'emerging')?.percentage || 0;
+  const giantPercent = stageAnalysis.find(s => s.stage === 'giant')?.percentage || 0;
+  const establishedPercent = stageAnalysis.find(s => s.stage === 'established')?.percentage || 0;
+  
+  if (emergingPercent > 30) {
+    insights.push('High number of emerging communities indicates active community creation');
+  }
+  
+  if (giantPercent > 10) {
+    insights.push('Strong presence of giant communities suggests successful community growth');
+  }
+  
+  if (establishedPercent > 40) {
+    insights.push('Healthy ecosystem with many established, stable communities');
+  }
+  
+  return insights;
+}
+
+function generateGrowthRecommendations(stageAnalysis: any[]): string[] {
+  const recommendations = [];
+  
+  const emerging = stageAnalysis.find(s => s.stage === 'emerging');
+  const growing = stageAnalysis.find(s => s.stage === 'growing');
+  
+  if (emerging && emerging.communityCount > 20) {
+    recommendations.push(`${emerging.communityCount} emerging communities need support to reach critical mass`);
+  }
+  
+  if (growing && growing.communityCount > 15) {
+    recommendations.push(`${growing.communityCount} growing communities are in the expansion phase - good engagement opportunities`);
+  }
+  
+  recommendations.push('Consider joining a mix of community sizes for diverse engagement experiences');
+  
+  return recommendations;
+}
+
+const growthAnalysis = await analyzeCommunityGrowthPatterns();
+```
+
+### Pagination with Sorting
+
+```typescript
+async function getAllCommunitiesAlphabetically(): Promise<any[]> {
+  const allCommunities: any[] = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  console.log('Fetching all communities in alphabetical order...');
+
+  while (hasMorePages) {
+    const result = await sdk.communities.getAllByName({
+      page: currentPage,
+      pageSize: 100 // Maximum for efficiency
+    });
+
+    allCommunities.push(...result.items);
+    
+    hasMorePages = currentPage < result.totalPages;
+    currentPage++;
+    
+    console.log(`Loaded page ${currentPage - 1} of ${result.totalPages} (${result.items.length} communities)`);
+  }
+
+  console.log(`\nCompleted: ${allCommunities.length} communities loaded alphabetically`);
+  return allCommunities;
+}
+
+async function getAllCommunitiesByPopularity(): Promise<any[]> {
+  const allCommunities: any[] = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  console.log('Fetching all communities by popularity...');
+
+  while (hasMorePages) {
+    const result = await sdk.communities.getAllByMemberCount({
+      page: currentPage,
+      pageSize: 100 // Maximum for efficiency  
+    });
+
+    allCommunities.push(...result.items);
+    
+    hasMorePages = currentPage < result.totalPages;
+    currentPage++;
+    
+    console.log(`Loaded page ${currentPage - 1} of ${result.totalPages} (${result.items.length} communities)`);
+  }
+
+  console.log(`\nCompleted: ${allCommunities.length} communities loaded by popularity`);
+  return allCommunities;
+}
+
+// Usage
+const [alphabeticalList, popularityList] = await Promise.all([
+  getAllCommunitiesAlphabetically(),
+  getAllCommunitiesByPopularity()
+]);
+
+console.log('Complete datasets loaded:');
+console.log(`- Alphabetical: ${alphabeticalList.length} communities`);
+console.log(`- By popularity: ${popularityList.length} communities`);
+```
+
+## Error Handling
+
+These sorting methods inherit the same error handling behavior as `getAll()`:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access communities |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const alphabeticalCommunities = await sdk.communities.getAllByName({
+    pageSize: 25
+  });
+  
+  console.log('Alphabetical communities loaded successfully');
+  alphabeticalCommunities.items.forEach(community => {
+    console.log(`- ${community.name}: ${community.memberCount} members`);
+  });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access communities');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to communities');
+  } else {
+    console.error('Failed to retrieve communities:', error.message);
+  }
+}
+
+// Error handling for member count sorting
+try {
+  const popularCommunities = await sdk.communities.getAllByMemberCount();
+  console.log(`Top communities: ${popularCommunities.items.slice(0, 5).map(c => c.name).join(', ')}`);
+} catch (error) {
+  console.error('Failed to get communities by popularity:', error.message);
+}
+```
+
+## Notes
+
+- **Predefined Sorting**: These methods provide commonly used sorting combinations without manual configuration
+- **getAllByName**: Always sorts communities alphabetically in ascending order (`sort: 'name', order: 'asc'`)
+- **getAllByMemberCount**: Always sorts communities by size in descending order (`sort: 'size', order: 'desc'`) - largest first
+- **Simplified Interface**: Both methods exclude `sort` and `order` parameters since they're predefined
+- **Same Return Structure**: Return the same `PaginatedCommunities` structure as `getAll()` with the applied sorting
+- **Performance**: No performance difference compared to `getAll()` with manual sorting parameters
+- **Community Discovery**: Useful for community discovery workflows and directory generation
+- **Pagination Support**: Both methods support pagination options for handling large result sets
+- **Analysis-Friendly**: Ideal for analytics, reporting, and community ecosystem analysis

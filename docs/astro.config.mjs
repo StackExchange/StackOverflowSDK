@@ -73,6 +73,20 @@ export default defineConfig({
 					{ label: 'getQuestionComments', slug: 'comments/getquestioncomments' },
 				]
 			},
+			{
+				label: 'Communities',
+				items: [
+					{ label: 'get', slug: 'communities/get'},
+					{ label: 'getall', slug: 'communities/getall'},
+					{ label: 'join', slug: 'communities/join'},
+					{ label: 'joinbulk', slug: 'communities/joinbulk'},
+					{ label: 'leave', slug: 'communities/leave'},
+					{ label: 'joinbulk', slug: 'communities/joinbulk'},
+					{ label: 'Aliases', slug: 'communities/conveniencemethods'},
+					{ label: 'Sorting', slug: 'communities/sortingmethods'},
+					{ label: 'Transfers', slug: 'communities/transfermethods'},
+				]
+			},
    			{
    				label: 'Questions',
    				collapsed: true,

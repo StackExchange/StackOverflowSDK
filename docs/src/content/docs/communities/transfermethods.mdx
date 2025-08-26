@@ -1,0 +1,716 @@
+---
+title: Transfer Methods
+description: Transfer users between communities by removing them from one community and adding them to another in a single operation.
+---
+
+# Transfer Methods
+
+Transfer users between communities by removing them from one community and adding them to another in a single operation.
+
+## transferUsers()
+
+Transfers multiple users from one community to another community.
+
+### Syntax
+```typescript
+async transferUsers(fromCommunityId: number, toCommunityId: number, userIds: number[]): Promise<{
+  leftFrom: CommunityResponseModel,
+  joinedTo: CommunityResponseModel
+}>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fromCommunityId` | `number` | Yes | The unique identifier of the source community to remove users from |
+| `toCommunityId` | `number` | Yes | The unique identifier of the destination community to add users to |
+| `userIds` | `number[]` | Yes | Array of user IDs to transfer between communities |
+
+---
+
+## transferUser()
+
+Transfers a single user from one community to another community. Convenience wrapper for `transferUsers()`.
+
+### Syntax
+```typescript
+async transferUser(fromCommunityId: number, toCommunityId: number, userId: number): Promise<{
+  leftFrom: CommunityResponseModel,
+  joinedTo: CommunityResponseModel
+}>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fromCommunityId` | `number` | Yes | The unique identifier of the source community to remove user from |
+| `toCommunityId` | `number` | Yes | The unique identifier of the destination community to add user to |
+| `userId` | `number` | Yes | The user ID to transfer between communities |
+
+## Return Value
+
+Both methods return a `Promise` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `leftFrom` | `CommunityResponseModel` | Updated source community information after user removal |
+| `joinedTo` | `CommunityResponseModel` | Updated destination community information after user addition |
+
+## Examples
+
+### Basic User Transfer
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Transfer multiple users between communities
+const result = await sdk.communities.transferUsers(123, 456, [789, 101, 202]);
+
+console.log(`Users transferred:`);
+console.log(`- Left "${result.leftFrom.name}" (now ${result.leftFrom.memberCount} members)`);
+console.log(`- Joined "${result.joinedTo.name}" (now ${result.joinedTo.memberCount} members)`);
+
+// Transfer a single user
+const singleTransfer = await sdk.communities.transferUser(123, 456, 303);
+console.log(`User 303 transferred from ${singleTransfer.leftFrom.name} to ${singleTransfer.joinedTo.name}`);
+```
+
+### Team Reorganization
+
+```typescript
+async function reorganizeTeams(reorganization: {
+  fromCommunity: number,
+  toCommunity: number,
+  userIds: number[],
+  reason: string
+}[]) {
+  console.log(`Processing ${reorganization.length} team reorganization operations...`);
+  
+  const results = [];
+  
+  for (const operation of reorganization) {
+    try {
+      console.log(`\nTransferring ${operation.userIds.length} users: ${operation.reason}`);
+      
+      const result = await sdk.communities.transferUsers(
+        operation.fromCommunity,
+        operation.toCommunity,
+        operation.userIds
+      );
+      
+      results.push({
+        success: true,
+        operation,
+        result: {
+          fromCommunity: {
+            id: result.leftFrom.id,
+            name: result.leftFrom.name,
+            newMemberCount: result.leftFrom.memberCount
+          },
+          toCommunity: {
+            id: result.joinedTo.id,
+            name: result.joinedTo.name,
+            newMemberCount: result.joinedTo.memberCount
+          },
+          usersTransferred: operation.userIds.length
+        }
+      });
+      
+      console.log(`✓ Transferred ${operation.userIds.length} users`);
+      console.log(`  From: ${result.leftFrom.name} (${result.leftFrom.memberCount} members)`);
+      console.log(`  To: ${result.joinedTo.name} (${result.joinedTo.memberCount} members)`);
+      
+    } catch (error) {
+      console.error(`✗ Transfer failed: ${error.message}`);
+      results.push({
+        success: false,
+        operation,
+        error: error.message
+      });
+    }
+  }
+  
+  // Summary
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  const totalUsersTransferred = successful.reduce((sum, r) => sum + r.result.usersTransferred, 0);
+  
+  console.log(`\nTeam Reorganization Summary:`);
+  console.log(`- Successful transfers: ${successful.length}/${reorganization.length}`);
+  console.log(`- Total users transferred: ${totalUsersTransferred}`);
+  console.log(`- Failed operations: ${failed.length}`);
+  
+  if (failed.length > 0) {
+    console.log(`Failed operations:`);
+    failed.forEach(f => {
+      console.log(`  - ${f.operation.reason}: ${f.error}`);
+    });
+  }
+  
+  return { successful, failed, summary: { totalTransferred: totalUsersTransferred } };
+}
+
+const teamReorganization = [
+  {
+    fromCommunity: 123,
+    toCommunity: 456,
+    userIds: [789, 101, 202],
+    reason: 'Moving frontend developers to specialized UI community'
+  },
+  {
+    fromCommunity: 456,
+    toCommunity: 789,
+    userIds: [303, 404],
+    reason: 'Transferring backend specialists to architecture team'
+  },
+  {
+    fromCommunity: 789,
+    toCommunity: 123,
+    userIds: [505],
+    reason: 'Moving project manager to general development team'
+  }
+];
+
+const reorganizationResults = await reorganizeTeams(teamReorganization);
+```
+
+### Community Consolidation
+
+```typescript
+async function consolidateCommunities(consolidation: {
+  sourceCommunities: number[],
+  targetCommunity: number,
+  transferAllMembers?: boolean
+}) {
+  console.log(`Consolidating ${consolidation.sourceCommunities.length} communities into community ${consolidation.targetCommunity}`);
+  
+  const consolidationResults = [];
+  
+  for (const sourceCommunityId of consolidation.sourceCommunities) {
+    try {
+      // Get source community details
+      const sourceCommunity = await sdk.communities.get(sourceCommunityId);
+      console.log(`\nProcessing: ${sourceCommunity.name} (${sourceCommunity.memberCount} members)`);
+      
+      if (consolidation.transferAllMembers) {
+        // For this example, we'll assume we have a way to get all member IDs
+        // In practice, you'd need to call a members endpoint
+        console.log('Note: Transfer all members would require fetching member list from community members API');
+        
+        // Placeholder for demonstration - normally you'd get actual member IDs
+        const mockMemberIds = Array.from({ length: Math.min(sourceCommunity.memberCount || 0, 10) }, (_, i) => 1000 + i);
+        
+        if (mockMemberIds.length > 0) {
+          const result = await sdk.communities.transferUsers(
+            sourceCommunityId,
+            consolidation.targetCommunity,
+            mockMemberIds
+          );
+          
+          consolidationResults.push({
+            success: true,
+            sourceCommunity: {
+              id: sourceCommunityId,
+              name: sourceCommunity.name,
+              originalMemberCount: sourceCommunity.memberCount,
+              finalMemberCount: result.leftFrom.memberCount
+            },
+            targetCommunity: {
+              name: result.joinedTo.name,
+              newMemberCount: result.joinedTo.memberCount
+            },
+            transferredCount: mockMemberIds.length
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error(`Failed to consolidate community ${sourceCommunityId}:`, error.message);
+      consolidationResults.push({
+        success: false,
+        sourceCommunityId,
+        error: error.message
+      });
+    }
+  }
+  
+  const successful = consolidationResults.filter(r => r.success);
+  const totalTransferred = successful.reduce((sum, r) => sum + (r.transferredCount || 0), 0);
+  
+  console.log(`\nConsolidation Summary:`);
+  console.log(`- Communities processed: ${consolidation.sourceCommunities.length}`);
+  console.log(`- Successful consolidations: ${successful.length}`);
+  console.log(`- Total members transferred: ${totalTransferred}`);
+  
+  return consolidationResults;
+}
+
+const consolidationPlan = {
+  sourceCommunities: [123, 456, 789],
+  targetCommunity: 999,
+  transferAllMembers: true
+};
+
+const consolidationResults = await consolidateCommunities(consolidationPlan);
+```
+
+### Project-Based User Movement
+
+```typescript
+async function moveProjectTeam(projectTransfer: {
+  projectName: string,
+  teamMembers: number[],
+  fromCommunity: number,
+  toCommunity: number,
+  includeProjectLead?: boolean,
+  projectLeadId?: number
+}) {
+  try {
+    console.log(`Moving project team for: ${projectTransfer.projectName}`);
+    
+    // Get community information
+    const [fromCommunity, toCommunity] = await Promise.all([
+      sdk.communities.get(projectTransfer.fromCommunity),
+      sdk.communities.get(projectTransfer.toCommunity)
+    ]);
+    
+    console.log(`From: ${fromCommunity.name} (${fromCommunity.memberCount} members)`);
+    console.log(`To: ${toCommunity.name} (${toCommunity.memberCount} members)`);
+    
+    // Prepare user list
+    let usersToTransfer = [...projectTransfer.teamMembers];
+    
+    if (projectTransfer.includeProjectLead && projectTransfer.projectLeadId) {
+      usersToTransfer.push(projectTransfer.projectLeadId);
+      console.log(`Including project lead (${projectTransfer.projectLeadId}) in transfer`);
+    }
+    
+    console.log(`Transferring ${usersToTransfer.length} team members...`);
+    
+    // Perform the transfer
+    const result = await sdk.communities.transferUsers(
+      projectTransfer.fromCommunity,
+      projectTransfer.toCommunity,
+      usersToTransfer
+    );
+    
+    const membershipChange = {
+      fromCommunity: {
+        name: result.leftFrom.name,
+        memberCountChange: fromCommunity.memberCount - result.leftFrom.memberCount,
+        newMemberCount: result.leftFrom.memberCount
+      },
+      toCommunity: {
+        name: result.joinedTo.name,
+        memberCountChange: result.joinedTo.memberCount - toCommunity.memberCount,
+        newMemberCount: result.joinedTo.memberCount
+      }
+    };
+    
+    console.log(`\nProject team transfer completed:`);
+    console.log(`- Project: ${projectTransfer.projectName}`);
+    console.log(`- Team members transferred: ${usersToTransfer.length}`);
+    console.log(`- ${membershipChange.fromCommunity.name}: ${membershipChange.fromCommunity.newMemberCount} members (-${membershipChange.fromCommunity.memberCountChange})`);
+    console.log(`- ${membershipChange.toCommunity.name}: ${membershipChange.toCommunity.newMemberCount} members (+${membershipChange.toCommunity.memberCountChange})`);
+    
+    return {
+      success: true,
+      projectName: projectTransfer.projectName,
+      transferredUsers: usersToTransfer.length,
+      membershipChange,
+      communities: {
+        from: result.leftFrom,
+        to: result.joinedTo
+      }
+    };
+    
+  } catch (error) {
+    console.error(`Failed to move project team "${projectTransfer.projectName}":`, error.message);
+    return {
+      success: false,
+      projectName: projectTransfer.projectName,
+      error: error.message
+    };
+  }
+}
+
+const projectMove = await moveProjectTeam({
+  projectName: "Mobile App Redesign",
+  teamMembers: [456, 789, 101, 202],
+  fromCommunity: 123, // General Development
+  toCommunity: 456,   // Mobile Development
+  includeProjectLead: true,
+  projectLeadId: 303
+});
+```
+
+### Gradual Migration Strategy
+
+```typescript
+async function executeGradualMigration(migration: {
+  fromCommunity: number,
+  toCommunity: number,
+  userBatches: number[][],
+  batchDelayMs?: number,
+  migrationName: string
+}) {
+  console.log(`Starting gradual migration: ${migration.migrationName}`);
+  console.log(`Migrating ${migration.userBatches.length} batches from community ${migration.fromCommunity} to ${migration.toCommunity}`);
+  
+  const batchResults = [];
+  let totalTransferred = 0;
+  
+  for (let i = 0; i < migration.userBatches.length; i++) {
+    const batch = migration.userBatches[i];
+    const batchNumber = i + 1;
+    
+    try {
+      console.log(`\nProcessing batch ${batchNumber}/${migration.userBatches.length} (${batch.length} users)`);
+      
+      const result = await sdk.communities.transferUsers(
+        migration.fromCommunity,
+        migration.toCommunity,
+        batch
+      );
+      
+      totalTransferred += batch.length;
+      
+      batchResults.push({
+        batchNumber,
+        success: true,
+        usersTransferred: batch.length,
+        fromCommunityMembers: result.leftFrom.memberCount,
+        toCommunityMembers: result.joinedTo.memberCount
+      });
+      
+      const progress = (batchNumber / migration.userBatches.length * 100).toFixed(1);
+      console.log(`✓ Batch ${batchNumber} completed. Progress: ${progress}% (${totalTransferred} total users transferred)`);
+      console.log(`  Source community: ${result.leftFrom.memberCount} members remaining`);
+      console.log(`  Target community: ${result.joinedTo.memberCount} members total`);
+      
+      // Wait between batches if specified
+      if (migration.batchDelayMs && i < migration.userBatches.length - 1) {
+        console.log(`Waiting ${migration.batchDelayMs}ms before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, migration.batchDelayMs));
+      }
+      
+    } catch (error) {
+      console.error(`✗ Batch ${batchNumber} failed:`, error.message);
+      batchResults.push({
+        batchNumber,
+        success: false,
+        error: error.message,
+        usersAttempted: batch.length
+      });
+    }
+  }
+  
+  const successful = batchResults.filter(r => r.success);
+  const failed = batchResults.filter(r => !r.success);
+  
+  console.log(`\nGradual Migration "${migration.migrationName}" Summary:`);
+  console.log(`- Total batches: ${migration.userBatches.length}`);
+  console.log(`- Successful batches: ${successful.length}`);
+  console.log(`- Failed batches: ${failed.length}`);
+  console.log(`- Users successfully transferred: ${totalTransferred}`);
+  
+  if (successful.length > 0) {
+    const finalState = successful[successful.length - 1];
+    console.log(`- Final source community members: ${finalState.fromCommunityMembers}`);
+    console.log(`- Final target community members: ${finalState.toCommunityMembers}`);
+  }
+  
+  return {
+    migrationName: migration.migrationName,
+    totalBatches: migration.userBatches.length,
+    successfulBatches: successful.length,
+    failedBatches: failed.length,
+    totalUsersTransferred: totalTransferred,
+    batchResults
+  };
+}
+
+const migrationPlan = {
+  fromCommunity: 123,
+  toCommunity: 456,
+  userBatches: [
+    [789, 101], // Batch 1
+    [202, 303], // Batch 2
+    [404, 505], // Batch 3
+    [606, 707, 808] // Batch 4
+  ],
+  batchDelayMs: 2000, // 2 second delay between batches
+  migrationName: "Q1 Team Restructure"
+};
+
+const migrationResults = await executeGradualMigration(migrationPlan);
+```
+
+### Community Merge Operations
+
+```typescript
+async function mergeCommunities(merge: {
+  primaryCommunity: number,
+  communityToMerge: number,
+  selectiveTransfer?: {
+    userIds: number[],
+    reason: string
+  }
+}) {
+  try {
+    // Get information about both communities
+    const [primaryCommunity, mergingCommunity] = await Promise.all([
+      sdk.communities.get(merge.primaryCommunity),
+      sdk.communities.get(merge.communityToMerge)
+    ]);
+    
+    console.log(`Merging Communities:`);
+    console.log(`- Primary: ${primaryCommunity.name} (${primaryCommunity.memberCount} members)`);
+    console.log(`- Merging: ${mergingCommunity.name} (${mergingCommunity.memberCount} members)`);
+    
+    let usersToTransfer: number[];
+    let transferReason: string;
+    
+    if (merge.selectiveTransfer) {
+      usersToTransfer = merge.selectiveTransfer.userIds;
+      transferReason = merge.selectiveTransfer.reason;
+      console.log(`Selective transfer: ${usersToTransfer.length} users (${transferReason})`);
+    } else {
+      // For demonstration - normally you'd get actual member IDs from a members API
+      console.log('Note: Full merge would require fetching complete member list');
+      usersToTransfer = Array.from({ length: Math.min(mergingCommunity.memberCount || 0, 5) }, (_, i) => 2000 + i);
+      transferReason = 'Complete community merge';
+    }
+    
+    if (usersToTransfer.length === 0) {
+      console.log('No users to transfer');
+      return { success: true, message: 'No users to transfer' };
+    }
+    
+    const result = await sdk.communities.transferUsers(
+      merge.communityToMerge,
+      merge.primaryCommunity,
+      usersToTransfer
+    );
+    
+    const mergeResults = {
+      primaryCommunity: {
+        id: result.joinedTo.id,
+        name: result.joinedTo.name,
+        previousMemberCount: primaryCommunity.memberCount,
+        newMemberCount: result.joinedTo.memberCount,
+        membersGained: result.joinedTo.memberCount - primaryCommunity.memberCount
+      },
+      mergedCommunity: {
+        id: result.leftFrom.id,
+        name: result.leftFrom.name,
+        previousMemberCount: mergingCommunity.memberCount,
+        newMemberCount: result.leftFrom.memberCount,
+        membersTransferred: mergingCommunity.memberCount - result.leftFrom.memberCount
+      },
+      operation: {
+        usersTransferred: usersToTransfer.length,
+        transferReason,
+        completed: true
+      }
+    };
+    
+    console.log(`\nCommunity merge completed:`);
+    console.log(`- "${mergeResults.primaryCommunity.name}": ${mergeResults.primaryCommunity.newMemberCount} members (+${mergeResults.primaryCommunity.membersGained})`);
+    console.log(`- "${mergeResults.mergedCommunity.name}": ${mergeResults.mergedCommunity.newMemberCount} members (-${mergeResults.mergedCommunity.membersTransferred})`);
+    console.log(`- Transfer reason: ${transferReason}`);
+    
+    return {
+      success: true,
+      mergeResults
+    };
+    
+  } catch (error) {
+    console.error('Community merge failed:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Selective merge example
+const selectiveMerge = await mergeCommunities({
+  primaryCommunity: 123,
+  communityToMerge: 456,
+  selectiveTransfer: {
+    userIds: [789, 101, 202],
+    reason: 'Transferring active contributors to main community'
+  }
+});
+
+console.log('Selective merge result:', selectiveMerge);
+```
+
+### Transfer with Validation
+
+```typescript
+async function safeTransferUsers(fromCommunity: number, toCommunity: number, userIds: number[]) {
+  try {
+    // Validate both communities exist
+    const [sourceCommunity, targetCommunity] = await Promise.all([
+      sdk.communities.get(fromCommunity),
+      sdk.communities.get(toCommunity)
+    ]);
+    
+    console.log(`Validating transfer:`);
+    console.log(`- From: ${sourceCommunity.name} (${sourceCommunity.memberCount} members)`);
+    console.log(`- To: ${targetCommunity.name} (${targetCommunity.memberCount} members)`);
+    console.log(`- Users to transfer: ${userIds.length}`);
+    
+    // Perform the transfer
+    const result = await sdk.communities.transferUsers(fromCommunity, toCommunity, userIds);
+    
+    return {
+      success: true,
+      transfer: {
+        usersTransferred: userIds.length,
+        from: {
+          name: result.leftFrom.name,
+          memberCount: result.leftFrom.memberCount
+        },
+        to: {
+          name: result.joinedTo.name,
+          memberCount: result.joinedTo.memberCount
+        }
+      }
+    };
+    
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'community_not_found',
+        message: 'One or both communities do not exist'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'insufficient_permissions',
+        message: 'Insufficient permissions to transfer users between these communities'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'transfer_failed',
+      message: error.message
+    };
+  }
+}
+
+const safeTransfer = await safeTransferUsers(123, 456, [789, 101]);
+if (safeTransfer.success) {
+  console.log(`Transfer completed: ${safeTransfer.transfer.usersTransferred} users moved`);
+} else {
+  console.log(`Transfer failed: ${safeTransfer.message}`);
+}
+```
+
+## Error Handling
+
+These transfer methods can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to transfer users between communities |
+| `NotFoundError` | 404 | One or both communities do not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.communities.transferUsers(123, 456, [789, 101]);
+  console.log('Users transferred successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('One or both communities not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Insufficient permissions to transfer users');
+    console.error('You may need permissions in both source and destination communities');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required for transfer operations');
+  } else {
+    console.error('Transfer failed:', error.message);
+  }
+}
+```
+
+### Transfer Error Recovery
+
+```typescript
+async function transferWithRecovery(fromCommunity: number, toCommunity: number, userIds: number[]) {
+  console.log(`Attempting to transfer ${userIds.length} users from community ${fromCommunity} to ${toCommunity}`);
+  
+  try {
+    const result = await sdk.communities.transferUsers(fromCommunity, toCommunity, userIds);
+    
+    return {
+      success: true,
+      result,
+      message: `Successfully transferred ${userIds.length} users`
+    };
+    
+  } catch (error) {
+    console.error('Transfer failed:', error.message);
+    
+    // Note: The transfer operation's atomicity depends on the API implementation
+    // You may want to verify the actual state of both communities after a failure
+    
+    let recoveryInfo = 'Transfer failed. ';
+    
+    if (error instanceof ForbiddenError) {
+      recoveryInfo += 'Check permissions for both communities.';
+    } else if (error instanceof NotFoundError) {
+      recoveryInfo += 'Verify both community IDs exist.';
+    } else {
+      recoveryInfo += 'Check network connectivity and try again.';
+    }
+    
+    return {
+      success: false,
+      error: error.message,
+      recovery: recoveryInfo,
+      affectedUsers: userIds
+    };
+  }
+}
+
+const transferResult = await transferWithRecovery(123, 456, [789, 101, 202]);
+if (!transferResult.success) {
+  console.log('Recovery guidance:', transferResult.recovery);
+}
+```
+
+## Notes
+
+- **Sequential Operations**: Transfer methods perform two sequential operations: remove from source, then add to destination
+- **Atomicity**: The atomicity behavior (whether partial failures are rolled back) depends on the API implementation and should be tested
+- **Permission Requirements**: Users need appropriate permissions for both source and destination communities
+- **Single vs Bulk**: `transferUser()` is a convenience wrapper around `transferUsers()` for single user operations
+- **Return Data**: Both methods return information about both communities after the transfer operations
+- **Error Scenarios**: Failures can occur during either the removal or addition phase of the transfer
+- **Validation**: Consider validating both communities exist before attempting transfers
+- **Large Transfers**: For transferring many users, consider batching operations to avoid potential timeouts
+- **State Verification**: After transfer operations, verify the expected community states if critical to your workflow
+- **Network Considerations**: Transfer operations involve multiple API calls, so network reliability should be considered for mission-critical transfers
