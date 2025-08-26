@@ -1,0 +1,462 @@
+---
+title: getAnswerComments()
+description: Retrieves all comments associated with a specific answer to a question.
+---
+
+# getAnswerComments()
+
+Retrieves all comments associated with a specific answer to a question.
+
+## Syntax
+
+```typescript
+async getAnswerComments(questionId: number, answerId: number): Promise<Array<CommentResponseModel>>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to retrieve comments for |
+
+## Return Value
+
+Returns a `Promise<Array<CommentResponseModel>>` containing an array of comment objects. Each comment has the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The comment's unique identifier |
+| `score` | `number` | Comment score (upvotes minus downvotes) |
+| `body` | `string` | The text of the comment in Markdown format |
+| `ownerUserId` | `number` \| `null` | ID of the user that posted the comment |
+| `ownerDisplayName` | `string` | Name of the user that posted the comment |
+| `creationDate` | `Date` | When the comment was created |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all comments for a specific answer
+const comments = await sdk.comments.getAnswerComments(123, 456);
+console.log(`Found ${comments.length} comments on this answer`);
+
+// Display comments with context
+comments.forEach((comment, index) => {
+  console.log(`${index + 1}. ${comment.ownerDisplayName}: ${comment.body}`);
+  console.log(`   Score: ${comment.score}, Posted: ${new Date(comment.creationDate).toDateString()}`);
+});
+```
+
+### Answer Feedback Analysis
+
+```typescript
+async function analyzeAnswerFeedback(questionId: number, answerId: number) {
+  try {
+    const comments = await sdk.comments.getAnswerComments(questionId, answerId);
+    
+    if (comments.length === 0) {
+      return {
+        questionId,
+        answerId,
+        hasFeedback: false,
+        message: 'No comments found for this answer'
+      };
+    }
+    
+    // Categorize feedback types
+    const feedbackTypes = {
+      appreciation: comments.filter(c => 
+        c.body?.toLowerCase().includes('thank') ||
+        c.body?.toLowerCase().includes('great') ||
+        c.body?.toLowerCase().includes('helpful') ||
+        c.body?.toLowerCase().includes('perfect')
+      ),
+      questions: comments.filter(c => 
+        c.body?.includes('?') &&
+        !c.body?.toLowerCase().includes('thank')
+      ),
+      suggestions: comments.filter(c =>
+        c.body?.toLowerCase().includes('consider') ||
+        c.body?.toLowerCase().includes('might want') ||
+        c.body?.toLowerCase().includes('suggestion') ||
+        c.body?.toLowerCase().includes('improve')
+      ),
+      corrections: comments.filter(c =>
+        c.body?.toLowerCase().includes('incorrect') ||
+        c.body?.toLowerCase().includes('wrong') ||
+        c.body?.toLowerCase().includes('error') ||
+        c.body?.toLowerCase().includes('mistake')
+      )
+    };
+    
+    // Calculate feedback sentiment
+    const positiveComments = comments.filter(c => (c.score || 0) > 0).length;
+    const negativeComments = comments.filter(c => (c.score || 0) < 0).length;
+    const neutralComments = comments.length - positiveComments - negativeComments;
+    
+    // Calculate feedback timeline
+    const sortedComments = comments.sort((a, b) => 
+      new Date(a.creationDate).getTime() - new Date(b.creationDate).getTime()
+    );
+    
+    const firstFeedback = sortedComments[0];
+    const latestFeedback = sortedComments[sortedComments.length - 1];
+    
+    const analysis = {
+      questionId,
+      answerId,
+      summary: {
+        totalComments: comments.length,
+        averageScore: comments.reduce((sum, c) => sum + (c.score || 0), 0) / comments.length,
+        uniqueCommenters: new Set(comments.map(c => c.ownerUserId).filter(Boolean)).size
+      },
+      sentiment: {
+        positive: positiveComments,
+        negative: negativeComments,
+        neutral: neutralComments,
+        ratio: positiveComments / Math.max(negativeComments, 1)
+      },
+      feedbackTypes: {
+        appreciation: feedbackTypes.appreciation.length,
+        questions: feedbackTypes.questions.length,
+        suggestions: feedbackTypes.suggestions.length,
+        corrections: feedbackTypes.corrections.length
+      },
+      timeline: {
+        firstFeedback: {
+          author: firstFeedback.ownerDisplayName,
+          date: firstFeedback.creationDate,
+          type: categorizeFeedback(firstFeedback, feedbackTypes)
+        },
+        latestFeedback: {
+          author: latestFeedback.ownerDisplayName,
+          date: latestFeedback.creationDate,
+          type: categorizeFeedback(latestFeedback, feedbackTypes)
+        }
+      }
+    };
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to analyze answer feedback:', error.message);
+    throw error;
+  }
+}
+
+function categorizeFeedback(comment: any, types: any): string {
+  if (types.appreciation.includes(comment)) return 'appreciation';
+  if (types.corrections.includes(comment)) return 'correction';
+  if (types.suggestions.includes(comment)) return 'suggestion';
+  if (types.questions.includes(comment)) return 'question';
+  return 'general';
+}
+
+const feedbackAnalysis = await analyzeAnswerFeedback(123, 456);
+console.log('Answer Feedback Analysis:', feedbackAnalysis);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamComments = await teamSDK.comments.getAnswerComments(123, 456);
+
+// Or with direct client initialization
+import { CommentClient } from 'stack-overflow-sdk';
+const teamCommentClient = new CommentClient(config, 'team-123');
+const comments = await teamCommentClient.getAnswerComments(123, 456);
+```
+
+### Answer Quality Improvement Insights
+
+```typescript
+async function generateAnswerImprovementInsights(questionId: number, answerId: number) {
+  try {
+    const comments = await sdk.comments.getAnswerComments(questionId, answerId);
+    
+    if (comments.length === 0) {
+      return {
+        questionId,
+        answerId,
+        insights: ['No feedback available - consider asking for community input'],
+        needsImprovement: false
+      };
+    }
+    
+    const insights = [];
+    const warnings = [];
+    
+    // Analyze common patterns in comments
+    const hasQuestions = comments.some(c => c.body?.includes('?'));
+    const hasCorrections = comments.some(c => 
+      c.body?.toLowerCase().includes('incorrect') ||
+      c.body?.toLowerCase().includes('wrong') ||
+      c.body?.toLowerCase().includes('error')
+    );
+    const hasAppreciation = comments.some(c =>
+      c.body?.toLowerCase().includes('thank') ||
+      c.body?.toLowerCase().includes('helpful')
+    );
+    const hasSuggestions = comments.some(c =>
+      c.body?.toLowerCase().includes('consider') ||
+      c.body?.toLowerCase().includes('improve')
+    );
+    
+    // Generate insights
+    if (hasAppreciation) {
+      insights.push('Answer is appreciated by the community');
+    }
+    
+    if (hasQuestions) {
+      insights.push('Some aspects may need clarification - consider adding more detail');
+    }
+    
+    if (hasSuggestions) {
+      insights.push('Community has provided improvement suggestions');
+    }
+    
+    if (hasCorrections) {
+      warnings.push('⚠️ Potential accuracy issues mentioned in comments');
+    }
+    
+    // Check comment scores
+    const negativeComments = comments.filter(c => (c.score || 0) < 0);
+    if (negativeComments.length > comments.length * 0.3) {
+      warnings.push('⚠️ High proportion of negative feedback');
+    }
+    
+    const averageScore = comments.reduce((sum, c) => sum + (c.score || 0), 0) / comments.length;
+    if (averageScore < 0) {
+      warnings.push('⚠️ Overall comment sentiment is negative');
+    }
+    
+    // Determine if improvement is needed
+    const needsImprovement = warnings.length > 0 || hasCorrections || (hasQuestions && !hasAppreciation);
+    
+    return {
+      questionId,
+      answerId,
+      insights: insights.length > 0 ? insights : ['Answer has received community feedback'],
+      warnings,
+      needsImprovement,
+      recommendations: generateRecommendations(hasQuestions, hasCorrections, hasSuggestions, hasAppreciation)
+    };
+  } catch (error) {
+    console.error('Failed to generate improvement insights:', error.message);
+    throw error;
+  }
+}
+
+function generateRecommendations(hasQuestions: boolean, hasCorrections: boolean, hasSuggestions: boolean, hasAppreciation: boolean): string[] {
+  const recommendations = [];
+  
+  if (hasCorrections) {
+    recommendations.push('Review answer for accuracy and address any errors mentioned');
+  }
+  
+  if (hasQuestions && !hasAppreciation) {
+    recommendations.push('Add more detailed explanation to address questions');
+  }
+  
+  if (hasSuggestions) {
+    recommendations.push('Consider implementing suggested improvements');
+  }
+  
+  if (!hasAppreciation && !hasQuestions) {
+    recommendations.push('Consider asking for feedback to improve answer quality');
+  }
+  
+  return recommendations;
+}
+
+const improvementInsights = await generateAnswerImprovementInsights(123, 456);
+console.log('Improvement needed:', improvementInsights.needsImprovement);
+console.log('Insights:', improvementInsights.insights);
+if (improvementInsights.warnings.length > 0) {
+  console.log('Warnings:', improvementInsights.warnings);
+}
+```
+
+### Bulk Answer Comment Analysis
+
+```typescript
+async function analyzeMultipleAnswerComments(questionId: number, answerIds: number[]) {
+  const results = [];
+  
+  for (const answerId of answerIds) {
+    try {
+      const comments = await sdk.comments.getAnswerComments(questionId, answerId);
+      
+      const analysis = {
+        answerId,
+        commentCount: comments.length,
+        averageScore: comments.length > 0 
+          ? comments.reduce((sum, c) => sum + (c.score || 0), 0) / comments.length 
+          : 0,
+        hasPositiveFeedback: comments.some(c => (c.score || 0) > 0),
+        hasQuestions: comments.some(c => c.body?.includes('?')),
+        hasAppreciation: comments.some(c => 
+          c.body?.toLowerCase().includes('thank') ||
+          c.body?.toLowerCase().includes('helpful')
+        ),
+        lastCommentDate: comments.length > 0 
+          ? Math.max(...comments.map(c => new Date(c.creationDate).getTime()))
+          : null
+      };
+      
+      results.push({ status: 'success', ...analysis });
+      console.log(`✓ Answer ${answerId}: ${analysis.commentCount} comments`);
+    } catch (error) {
+      results.push({
+        status: 'failed',
+        answerId,
+        error: error.message
+      });
+      console.error(`✗ Failed to analyze answer ${answerId}:`, error.message);
+    }
+  }
+  
+  // Find the most discussed answer
+  const successfulResults = results.filter(r => r.status === 'success');
+  const mostDiscussed = successfulResults.reduce((max, current) => 
+    current.commentCount > max.commentCount ? current : max, 
+    successfulResults[0]
+  );
+  
+  console.log(`Most discussed answer: ${mostDiscussed?.answerId} with ${mostDiscussed?.commentCount} comments`);
+  
+  return results;
+}
+
+const bulkAnalysis = await analyzeMultipleAnswerComments(123, [456, 789, 101]);
+```
+
+### Comment-Based Answer Ranking
+
+```typescript
+async function rankAnswersByCommentFeedback(questionId: number, answerIds: number[]) {
+  const rankings = [];
+  
+  for (const answerId of answerIds) {
+    try {
+      const comments = await sdk.comments.getAnswerComments(questionId, answerId);
+      
+      // Calculate engagement score based on comments
+      const commentCount = comments.length;
+      const averageScore = commentCount > 0 
+        ? comments.reduce((sum, c) => sum + (c.score || 0), 0) / commentCount 
+        : 0;
+      const positiveComments = comments.filter(c => (c.score || 0) > 0).length;
+      const appreciationComments = comments.filter(c =>
+        c.body?.toLowerCase().includes('thank') ||
+        c.body?.toLowerCase().includes('helpful') ||
+        c.body?.toLowerCase().includes('great')
+      ).length;
+      
+      // Calculate engagement score (weighted)
+      const engagementScore = (
+        commentCount * 1 +           // Base engagement
+        averageScore * 2 +           // Comment quality
+        positiveComments * 1.5 +     // Positive reception
+        appreciationComments * 3     // Direct appreciation
+      );
+      
+      rankings.push({
+        answerId,
+        engagementScore: parseFloat(engagementScore.toFixed(2)),
+        metrics: {
+          commentCount,
+          averageScore: parseFloat(averageScore.toFixed(2)),
+          positiveComments,
+          appreciationComments
+        }
+      });
+      
+    } catch (error) {
+      console.error(`Failed to analyze answer ${answerId}:`, error.message);
+    }
+  }
+  
+  // Sort by engagement score
+  rankings.sort((a, b) => b.engagementScore - a.engagementScore);
+  
+  console.log('Answer Ranking by Comment Feedback:');
+  rankings.forEach((answer, index) => {
+    console.log(`${index + 1}. Answer ${answer.answerId}: Score ${answer.engagementScore} (${answer.metrics.commentCount} comments)`);
+  });
+  
+  return rankings;
+}
+
+const answerRankings = await rankAnswersByCommentFeedback(123, [456, 789, 101, 234]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the answer or its comments |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const comments = await sdk.comments.getAnswerComments(123, 456);
+  console.log(`Retrieved ${comments.length} comments for this answer`);
+  
+  if (comments.length > 0) {
+    console.log('Community feedback:');
+    comments.forEach(comment => {
+      const sentiment = (comment.score || 0) > 0 ? '👍' : (comment.score || 0) < 0 ? '👎' : '➖';
+      console.log(`  ${sentiment} ${comment.ownerDisplayName}: ${comment.body}`);
+    });
+  } else {
+    console.log('No comments - answer may be clear and complete');
+  }
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Question or answer not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to answer comments');
+  } else {
+    console.error('Failed to retrieve comments:', error.message);
+  }
+}
+```
+
+## Notes
+
+- This method returns all comments for the specified answer in a single array
+- Both `questionId` and `answerId` are required to uniquely identify the answer
+- Comments are returned in the order provided by the API (typically chronological)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Answer comments often contain feedback, questions, and suggestions for improvement
+- Comment bodies are in Markdown format and may contain formatting
+- Returns an empty array if the answer has no comments rather than throwing an error
+- Comment scores reflect community perception of comment helpfulness
+- The `ownerUserId` may be null for deleted or anonymous users
+- Comments are read-only through this client - no creation, editing, or voting methods are available
+- Answer comments are distinct from question comments and other answer comments within the same question

@@ -1,0 +1,353 @@
+---
+title: getArticleComments()
+description: Retrieves all comments associated with a specific article.
+---
+
+# getArticleComments()
+
+Retrieves all comments associated with a specific article.
+
+## Syntax
+
+```typescript
+async getArticleComments(articleId: number): Promise<Array<CommentResponseModel>>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to retrieve comments for |
+
+## Return Value
+
+Returns a `Promise<Array<CommentResponseModel>>` containing an array of comment objects. Each comment has the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The comment's unique identifier |
+| `score` | `number` | Comment score (upvotes minus downvotes) |
+| `body` | `string` | The text of the comment in Markdown format |
+| `ownerUserId` | `number` \| `null` | ID of the user that posted the comment |
+| `ownerDisplayName` | `string` | Name of the user that posted the comment |
+| `creationDate` | `Date` | When the comment was created |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all comments for an article
+const comments = await sdk.comments.getArticleComments(123);
+console.log(`Found ${comments.length} comments on this article`);
+
+// Display comments
+comments.forEach((comment, index) => {
+  console.log(`${index + 1}. ${comment.ownerDisplayName}: ${comment.body}`);
+  console.log(`   Score: ${comment.score}, Posted: ${new Date(comment.creationDate).toDateString()}`);
+});
+```
+
+### Comment Analysis
+
+```typescript
+async function analyzeArticleComments(articleId: number) {
+  try {
+    const comments = await sdk.comments.getArticleComments(articleId);
+    
+    if (comments.length === 0) {
+      return {
+        articleId,
+        hasComments: false,
+        message: 'No comments found for this article'
+      };
+    }
+    
+    // Calculate comment metrics
+    const totalScore = comments.reduce((sum, comment) => sum + (comment.score || 0), 0);
+    const averageScore = totalScore / comments.length;
+    
+    // Find top comments
+    const topComments = comments
+      .filter(comment => comment.score && comment.score > 0)
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 3);
+    
+    // Analyze comment timeline
+    const sortedByDate = comments
+      .filter(comment => comment.creationDate)
+      .sort((a, b) => new Date(a.creationDate).getTime() - new Date(b.creationDate).getTime());
+    
+    const firstComment = sortedByDate[0];
+    const latestComment = sortedByDate[sortedByDate.length - 1];
+    
+    // Count unique commenters
+    const uniqueCommenters = new Set(
+      comments
+        .map(comment => comment.ownerUserId)
+        .filter(id => id !== null)
+    ).size;
+    
+    const analysis = {
+      articleId,
+      summary: {
+        totalComments: comments.length,
+        totalScore,
+        averageScore: parseFloat(averageScore.toFixed(2)),
+        uniqueCommenters
+      },
+      topComments: topComments.map(comment => ({
+        author: comment.ownerDisplayName,
+        score: comment.score,
+        preview: comment.body?.substring(0, 100) + (comment.body?.length > 100 ? '...' : '')
+      })),
+      timeline: {
+        firstComment: firstComment ? {
+          author: firstComment.ownerDisplayName,
+          date: firstComment.creationDate
+        } : null,
+        latestComment: latestComment ? {
+          author: latestComment.ownerDisplayName,
+          date: latestComment.creationDate
+        } : null
+      }
+    };
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to analyze article comments:', error.message);
+    throw error;
+  }
+}
+
+const commentAnalysis = await analyzeArticleComments(123);
+console.log('Comment Analysis:', commentAnalysis);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamComments = await teamSDK.comments.getArticleComments(123);
+
+// Or with direct client initialization
+import { CommentClient } from 'stack-overflow-sdk';
+const teamCommentClient = new CommentClient(config, 'team-123');
+const comments = await teamCommentClient.getArticleComments(123);
+```
+
+### Comment Filtering and Sorting
+
+```typescript
+async function getFilteredArticleComments(articleId: number) {
+  try {
+    const allComments = await sdk.comments.getArticleComments(articleId);
+    
+    // Filter and sort comments
+    const highScoredComments = allComments
+      .filter(comment => (comment.score || 0) >= 5)
+      .sort((a, b) => (b.score || 0) - (a.score || 0));
+    
+    const recentComments = allComments
+      .filter(comment => {
+        const commentDate = new Date(comment.creationDate);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return commentDate > weekAgo;
+      })
+      .sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime());
+    
+    // Group by author
+    const commentsByAuthor = allComments.reduce((groups, comment) => {
+      const author = comment.ownerDisplayName || 'Unknown';
+      if (!groups[author]) {
+        groups[author] = [];
+      }
+      groups[author].push(comment);
+      return groups;
+    }, {} as Record<string, typeof allComments>);
+    
+    return {
+      all: allComments,
+      highScored: highScoredComments,
+      recent: recentComments,
+      byAuthor: commentsByAuthor,
+      stats: {
+        total: allComments.length,
+        highScored: highScoredComments.length,
+        recent: recentComments.length,
+        uniqueAuthors: Object.keys(commentsByAuthor).length
+      }
+    };
+  } catch (error) {
+    console.error('Failed to filter comments:', error.message);
+    throw error;
+  }
+}
+
+const filteredComments = await getFilteredArticleComments(123);
+console.log(`Found ${filteredComments.stats.highScored} high-scored comments`);
+console.log(`Found ${filteredComments.stats.recent} recent comments`);
+```
+
+### Bulk Comment Retrieval
+
+```typescript
+async function getCommentsForMultipleArticles(articleIds: number[]) {
+  const results = [];
+  
+  for (const articleId of articleIds) {
+    try {
+      const comments = await sdk.comments.getArticleComments(articleId);
+      results.push({
+        articleId,
+        status: 'success',
+        commentCount: comments.length,
+        comments
+      });
+      console.log(`✓ Article ${articleId}: ${comments.length} comments`);
+    } catch (error) {
+      results.push({
+        articleId,
+        status: 'failed',
+        error: error.message
+      });
+      console.error(`✗ Failed to get comments for article ${articleId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const bulkResults = await getCommentsForMultipleArticles([123, 456, 789]);
+const successfulResults = bulkResults.filter(r => r.status === 'success');
+console.log(`Successfully retrieved comments for ${successfulResults.length} articles`);
+```
+
+### Comment Engagement Metrics
+
+```typescript
+async function calculateArticleEngagement(articleId: number) {
+  try {
+    const comments = await sdk.comments.getArticleComments(articleId);
+    
+    if (comments.length === 0) {
+      return {
+        articleId,
+        engagement: 'none',
+        metrics: { commentCount: 0 }
+      };
+    }
+    
+    // Calculate engagement metrics
+    const commentCount = comments.length;
+    const totalScore = comments.reduce((sum, c) => sum + (c.score || 0), 0);
+    const averageScore = totalScore / commentCount;
+    
+    // Count positive vs negative comments
+    const positiveComments = comments.filter(c => (c.score || 0) > 0).length;
+    const negativeComments = comments.filter(c => (c.score || 0) < 0).length;
+    const neutralComments = commentCount - positiveComments - negativeComments;
+    
+    // Calculate time span
+    const dates = comments
+      .map(c => new Date(c.creationDate))
+      .filter(date => !isNaN(date.getTime()));
+    
+    const timeSpan = dates.length > 1 
+      ? Math.max(...dates.map(d => d.getTime())) - Math.min(...dates.map(d => d.getTime()))
+      : 0;
+    
+    const timeSpanDays = timeSpan / (1000 * 60 * 60 * 24);
+    
+    // Determine engagement level
+    let engagementLevel = 'low';
+    if (commentCount > 10 && averageScore > 1) {
+      engagementLevel = 'high';
+    } else if (commentCount > 5 || averageScore > 0.5) {
+      engagementLevel = 'medium';
+    }
+    
+    return {
+      articleId,
+      engagement: engagementLevel,
+      metrics: {
+        commentCount,
+        totalScore,
+        averageScore: parseFloat(averageScore.toFixed(2)),
+        positiveComments,
+        negativeComments,
+        neutralComments,
+        timeSpanDays: parseFloat(timeSpanDays.toFixed(1)),
+        uniqueCommenters: new Set(comments.map(c => c.ownerUserId).filter(Boolean)).size
+      }
+    };
+  } catch (error) {
+    console.error('Failed to calculate engagement:', error.message);
+    throw error;
+  }
+}
+
+const engagement = await calculateArticleEngagement(123);
+console.log(`Article engagement: ${engagement.engagement}`);
+console.log('Metrics:', engagement.metrics);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the article or its comments |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const comments = await sdk.comments.getArticleComments(123);
+  console.log(`Retrieved ${comments.length} comments`);
+  
+  comments.forEach(comment => {
+    console.log(`${comment.ownerDisplayName}: ${comment.body}`);
+  });
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found or has been deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to article comments');
+  } else {
+    console.error('Failed to retrieve comments:', error.message);
+  }
+}
+```
+
+## Notes
+
+- This method returns all comments for the specified article in a single array
+- Comments are returned in the order provided by the API (typically chronological)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Comment bodies are in Markdown format and may contain formatting
+- Returns an empty array if the article has no comments rather than throwing an error
+- Comment scores reflect community engagement (upvotes minus downvotes)
+- The `ownerUserId` may be null for deleted or anonymous users
+- Comments are read-only through this client - no creation, editing, or voting methods are available

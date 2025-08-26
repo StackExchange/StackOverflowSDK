@@ -1,0 +1,426 @@
+---
+title: join()
+description: Joins the authenticated user to a specified community.
+---
+
+# join()
+
+Joins the authenticated user to a specified community.
+
+## Syntax
+
+```typescript
+async join(communityId: number): Promise<CommunityResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to join |
+
+## Return Value
+
+Returns a `Promise<CommunityResponseModel>` containing the updated community information including the new member. See the [get() method documentation](./get) for details on the `CommunityResponseModel` structure.
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Join a community
+const community = await sdk.communities.join(123);
+console.log(`Successfully joined "${community.name}"`);
+console.log(`Community now has ${community.memberCount} members`);
+```
+
+### Join with Confirmation
+
+```typescript
+async function joinCommunityWithConfirmation(communityId: number) {
+  try {
+    // Get community details first
+    const communityInfo = await sdk.communities.get(communityId);
+    
+    console.log(`About to join: "${communityInfo.name}"`);
+    console.log(`Description: ${communityInfo.description}`);
+    console.log(`Current members: ${communityInfo.memberCount}`);
+    
+    if (communityInfo.tags && communityInfo.tags.length > 0) {
+      console.log(`Tags: ${communityInfo.tags.map(tag => tag.name).join(', ')}`);
+    }
+    
+    // Confirm joining (in a real app, you'd show a dialog)
+    const confirmed = true; // Replace with actual confirmation logic
+    
+    if (confirmed) {
+      const joinedCommunity = await sdk.communities.join(communityId);
+      console.log(`✅ Successfully joined "${joinedCommunity.name}"`);
+      console.log(`You are now one of ${joinedCommunity.memberCount} members`);
+      return joinedCommunity;
+    } else {
+      console.log('Join cancelled');
+      return null;
+    }
+  } catch (error) {
+    console.error('Failed to join community:', error.message);
+    throw error;
+  }
+}
+
+const joinResult = await joinCommunityWithConfirmation(123);
+```
+
+### Strategic Community Joining
+
+```typescript
+async function joinCommunitiesStrategically(targetCommunityIds: number[]) {
+  const joinResults = [];
+  
+  for (const communityId of targetCommunityIds) {
+    try {
+      // Analyze community before joining
+      const communityInfo = await sdk.communities.get(communityId);
+      
+      // Define joining criteria
+      const shouldJoin = evaluateJoiningCriteria(communityInfo);
+      
+      if (shouldJoin.join) {
+        const joinedCommunity = await sdk.communities.join(communityId);
+        joinResults.push({
+          communityId,
+          name: joinedCommunity.name,
+          status: 'joined',
+          reason: shouldJoin.reason,
+          newMemberCount: joinedCommunity.memberCount
+        });
+        console.log(`✅ Joined: ${joinedCommunity.name} (${shouldJoin.reason})`);
+      } else {
+        joinResults.push({
+          communityId,
+          name: communityInfo.name,
+          status: 'skipped',
+          reason: shouldJoin.reason
+        });
+        console.log(`⏭️  Skipped: ${communityInfo.name} (${shouldJoin.reason})`);
+      }
+    } catch (error) {
+      joinResults.push({
+        communityId,
+        status: 'failed',
+        error: error.message
+      });
+      console.error(`❌ Failed to process community ${communityId}:`, error.message);
+    }
+  }
+  
+  return joinResults;
+}
+
+function evaluateJoiningCriteria(community: any): { join: boolean; reason: string } {
+  // Custom business logic for deciding whether to join
+  const memberCount = community.memberCount || 0;
+  const hasRelevantTags = community.tags?.some((tag: any) => 
+    ['javascript', 'typescript', 'react', 'node', 'development'].includes(tag.name?.toLowerCase())
+  );
+  
+  if (memberCount < 5) {
+    return { join: false, reason: 'too small - less than 5 members' };
+  }
+  
+  if (memberCount > 10000) {
+    return { join: false, reason: 'too large - may be impersonal' };
+  }
+  
+  if (!community.description || community.description.length < 20) {
+    return { join: false, reason: 'insufficient description' };
+  }
+  
+  if (hasRelevantTags) {
+    return { join: true, reason: 'relevant tags match interests' };
+  }
+  
+  if (memberCount > 50 && memberCount < 500) {
+    return { join: true, reason: 'good size for engagement' };
+  }
+  
+  return { join: false, reason: 'does not meet criteria' };
+}
+
+const strategicJoins = await joinCommunitiesStrategically([123, 456, 789, 101]);
+console.log(`Joined ${strategicJoins.filter(r => r.status === 'joined').length} communities`);
+```
+
+### Join Multiple Communities
+
+```typescript
+async function joinMultipleCommunities(communityIds: number[]) {
+  const results = [];
+  
+  for (const communityId of communityIds) {
+    try {
+      const community = await sdk.communities.join(communityId);
+      results.push({
+        communityId,
+        name: community.name,
+        status: 'joined',
+        memberCount: community.memberCount
+      });
+      console.log(`✅ Joined: ${community.name}`);
+      
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      results.push({
+        communityId,
+        status: 'failed',
+        error: error.message
+      });
+      console.error(`❌ Failed to join community ${communityId}:`, error.message);
+    }
+  }
+  
+  const successful = results.filter(r => r.status === 'joined');
+  const failed = results.filter(r => r.status === 'failed');
+  
+  console.log(`\nSummary: Joined ${successful.length} communities, ${failed.length} failed`);
+  
+  return results;
+}
+
+const multiJoinResults = await joinMultipleCommunities([123, 456, 789]);
+```
+
+### Join Based on Recommendations
+
+```typescript
+async function joinRecommendedCommunities() {
+  try {
+    // Get all communities to analyze
+    const allCommunities = await sdk.communities.getAll({
+      pageSize: 100,
+      sort: 'size',
+      order: 'desc'
+    });
+    
+    // Find recommended communities based on criteria
+    const recommendations = allCommunities.items.filter(community => {
+      const memberCount = community.memberCount || 0;
+      const hasDescription = !!community.description && community.description.length > 30;
+      const hasTags = !!community.tags && community.tags.length > 0;
+      
+      // Ideal community size and completeness
+      return memberCount > 20 && memberCount < 1000 && hasDescription && hasTags;
+    });
+    
+    console.log(`Found ${recommendations.length} recommended communities`);
+    
+    // Join top recommendations
+    const topRecommendations = recommendations.slice(0, 5);
+    const joinResults = [];
+    
+    for (const community of topRecommendations) {
+      try {
+        console.log(`Joining recommended community: ${community.name}`);
+        const joinedCommunity = await sdk.communities.join(community.id);
+        joinResults.push({
+          id: joinedCommunity.id,
+          name: joinedCommunity.name,
+          memberCount: joinedCommunity.memberCount,
+          status: 'joined'
+        });
+      } catch (error) {
+        console.error(`Failed to join ${community.name}:`, error.message);
+        joinResults.push({
+          id: community.id,
+          name: community.name,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+    
+    return {
+      totalRecommendations: recommendations.length,
+      attempted: topRecommendations.length,
+      results: joinResults
+    };
+  } catch (error) {
+    console.error('Failed to join recommended communities:', error.message);
+    throw error;
+  }
+}
+
+const recommendationResults = await joinRecommendedCommunities();
+console.log('Recommendation Results:', recommendationResults);
+```
+
+### Join with Follow-up Actions
+
+```typescript
+async function joinCommunityWithFollowup(communityId: number) {
+  try {
+    // Join the community
+    const community = await sdk.communities.join(communityId);
+    console.log(`✅ Joined: ${community.name}`);
+    
+    // Perform follow-up actions
+    const followupActions = [];
+    
+    // Log membership
+    followupActions.push({
+      action: 'logged_membership',
+      timestamp: new Date().toISOString(),
+      community: community.name
+    });
+    
+    // Analyze new community
+    if (community.tags && community.tags.length > 0) {
+      followupActions.push({
+        action: 'analyzed_tags',
+        tags: community.tags.map(tag => tag.name),
+        relevantTags: community.tags.filter(tag => 
+          ['javascript', 'typescript', 'development'].includes(tag.name?.toLowerCase())
+        ).length
+      });
+    }
+    
+    // Check for introduction opportunities
+    if ((community.memberCount || 0) < 50) {
+      followupActions.push({
+        action: 'small_community_noted',
+        suggestion: 'Consider introducing yourself to build connections'
+      });
+    }
+    
+    // Schedule engagement reminder
+    followupActions.push({
+      action: 'engagement_reminder_scheduled',
+      reminderDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      message: 'Check community activity and participate'
+    });
+    
+    console.log('Follow-up actions completed:', followupActions.length);
+    
+    return {
+      community,
+      followupActions,
+      joinDate: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Failed to join community with follow-up:', error.message);
+    throw error;
+  }
+}
+
+const joinWithFollowup = await joinCommunityWithFollowup(123);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot join community (already a member, restricted access, etc.) |
+| `NotFoundError` | 404 | Community with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const community = await sdk.communities.join(123);
+  console.log(`Successfully joined "${community.name}"`);
+  console.log(`Welcome! You are now member #${community.memberCount}`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Community not found - it may have been deleted');
+  } else if (error instanceof ForbiddenError) {
+    if (error.message.includes('already')) {
+      console.error('You are already a member of this community');
+    } else {
+      console.error('Cannot join community - access restricted or invitation required');
+    }
+  } else {
+    console.error('Failed to join community:', error.message);
+  }
+}
+```
+
+### Safe Join with Status Check
+
+```typescript
+async function safeJoinCommunity(communityId: number) {
+  try {
+    const community = await sdk.communities.join(communityId);
+    return {
+      success: true,
+      community,
+      message: `Successfully joined "${community.name}"`
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      if (error.message.includes('already')) {
+        return {
+          success: false,
+          reason: 'already_member',
+          message: 'You are already a member of this community'
+        };
+      } else {
+        return {
+          success: false,
+          reason: 'access_denied',
+          message: 'Access denied - community may be private or require invitation'
+        };
+      }
+    } else if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Community not found'
+      };
+    }
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const joinResult = await safeJoinCommunity(123);
+if (joinResult.success) {
+  console.log('✅', joinResult.message);
+} else {
+  console.log('❌', joinResult.message);
+}
+```
+
+## Notes
+
+- This method adds the authenticated user as a member of the specified community
+- The returned community object includes updated member information
+- Communities may have joining restrictions (private, invitation-only, etc.)
+- Attempting to join a community you're already a member of will result in a `ForbiddenError`
+- The method operates on the main/public level (no team-specific variant)
+- Member count is automatically updated when users join
+- Some communities may require approval before membership is confirmed
+- Consider using `joinAsMember()` for clearer semantic meaning in your code
+- The updated community response includes the new member in the `members` array if detailed member data is available

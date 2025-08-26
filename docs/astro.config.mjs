@@ -35,9 +35,9 @@ export default defineConfig({
 					{ label: 'update', slug: 'answers/update' },
 					{ label: 'delete', slug: 'answers/delete' },
 					{ label: 'upvote', slug: 'answers/upvote' },
-					{ label: 'removeupvote', slug: 'answers/removeupvote' },
+					{ label: 'removeUpvote', slug: 'answers/removeupvote' },
 					{ label: 'downvote', slug: 'answers/downvote' },
-					{ label: 'removedownvote', slug: 'answers/removedownvote' },
+					{ label: 'removeDownvote', slug: 'answers/removedownvote' },
 					{ label: 'accept', slug: 'answers/accept' },
 					{ label: 'unaccept', slug: 'answers/unaccept' },
    				]
@@ -63,6 +63,14 @@ export default defineConfig({
 					{ label: 'create', slug: 'collections/create' },
 					{ label: 'update', slug: 'collections/update' },
 					{ label: 'delete', slug: 'collections/delete' },
+				]
+			},
+			{
+				label: 'Comments',
+				items: [
+					{ label: 'getAnswerComments', slug: 'comments/getanswercomments' },
+					{ label: 'getArticleComments', slug: 'comments/getarticlecomments' },
+					{ label: 'getQuestionComments', slug: 'comments/getquestioncomments' },
 				]
 			},
    			{
