@@ -1,0 +1,188 @@
+---
+title: getTagWatchers()
+description: Retrieve the list of users who are watching a specific tag for activity notifications and updates.
+---
+
+# getTagWatchers()
+
+Retrieve the list of users who are watching a specific tag for activity notifications and updates.
+
+## Syntax
+
+```typescript
+async getTagWatchers(tagId: number): Promise<TagWatchersResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+
+## Return Value
+
+Returns a `Promise<TagWatchersResponseModel>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `users` | `UserSummaryResponseModel[]` | Users watching the specified tag |
+
+### UserSummaryResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `userId` | `number` | User's unique identifier |
+| `displayName` | `string` | User's display name |
+| `reputation` | `number` | User's reputation score |
+| `profileUrl` | `string` | URL to user's profile |
+| `profileImage` | `string` | URL to user's avatar image |
+
+## Examples
+
+### Basic Tag Watchers Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get users watching a specific tag
+const watchers = await sdk.tags.getTagWatchers(12345);
+
+console.log(`Tag Watchers: ${watchers.users?.length || 0} users`);
+
+if (watchers.users && watchers.users.length > 0) {
+  console.log('\nUsers watching this tag:');
+  watchers.users.forEach((user, index) => {
+    console.log(`${index + 1}. ${user.displayName}`);
+    console.log(`   Reputation: ${user.reputation?.toLocaleString()}`);
+    console.log(`   Profile: ${user.profileUrl}`);
+  });
+  
+  // Calculate basic statistics
+  const totalReputation = watchers.users.reduce((sum, user) => sum + (user.reputation || 0), 0);
+  const averageReputation = totalReputation / watchers.users.length;
+  
+  console.log(`\nStatistics:`);
+  console.log(`- Total watchers: ${watchers.users.length}`);
+  console.log(`- Average reputation: ${averageReputation.toFixed(0)}`);
+} else {
+  console.log('No users are currently watching this tag');
+}
+```
+
+### Watcher Analysis
+
+```typescript
+async function analyzeWatcherEngagement(tagId: number) {
+  const tag = await sdk.tags.get(tagId);
+  const watchers = await sdk.tags.getTagWatchers(tagId);
+  
+  console.log(`Analyzing watchers for: ${tag.name}`);
+  
+  if (!watchers.users || watchers.users.length === 0) {
+    return { hasWatchers: false, analysis: null };
+  }
+  
+  const analysis = {
+    totalWatchers: watchers.users.length,
+    watcherToPostRatio: (watchers.users.length / Math.max(tag.postCount || 1, 1)) * 100,
+    reputationStats: {
+      average: 0,
+      highest: 0,
+      expertsCount: 0 // reputation > 10000
+    }
+  };
+  
+  const reputations = watchers.users.map(u => u.reputation || 0);
+  analysis.reputationStats.average = reputations.reduce((sum, rep) => sum + rep, 0) / reputations.length;
+  analysis.reputationStats.highest = Math.max(...reputations);
+  analysis.reputationStats.expertsCount = reputations.filter(rep => rep > 10000).length;
+  
+  console.log(`Watcher Analysis:`);
+  console.log(`- ${analysis.totalWatchers} watchers for ${tag.postCount} posts`);
+  console.log(`- Ratio: ${analysis.watcherToPostRatio.toFixed(1)} watchers per 100 posts`);
+  console.log(`- Average reputation: ${analysis.reputationStats.average.toFixed(0)}`);
+  console.log(`- Expert watchers: ${analysis.reputationStats.expertsCount}`);
+  
+  return { hasWatchers: true, analysis };
+}
+
+const watcherAnalysis = await analyzeWatcherEngagement(12345);
+```
+
+### Export Watcher Data
+
+```typescript
+async function exportWatchers(tagId: number, format: 'json' | 'csv' = 'json') {
+  const tag = await sdk.tags.get(tagId);
+  const watchers = await sdk.tags.getTagWatchers(tagId);
+  
+  const exportData = {
+    tagId,
+    tagName: tag.name,
+    exportedAt: new Date().toISOString(),
+    watcherCount: watchers.users?.length || 0,
+    watchers: watchers.users || []
+  };
+  
+  if (format === 'csv') {
+    let csv = 'UserId,DisplayName,Reputation,ProfileUrl\n';
+    exportData.watchers.forEach(user => {
+      csv += `${user.userId},"${user.displayName}",${user.reputation || 0},"${user.profileUrl}"\n`;
+    });
+    return csv;
+  }
+  
+  return JSON.stringify(exportData, null, 2);
+}
+
+const watcherData = await exportWatchers(12345, 'json');
+console.log(watcherData);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access watcher information |
+| `NotFoundError` | 404 | Tag with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+try {
+  const watchers = await sdk.tags.getTagWatchers(12345);
+  console.log(`Retrieved ${watchers.users?.length || 0} tag watchers`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Insufficient permissions to access watcher information');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required');
+  } else {
+    console.error('Failed to retrieve tag watchers:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Read-Only Operation**: This method only retrieves watcher information and cannot modify watcher assignments.
+- **User Information**: Returns basic user profile information for each watcher.
+- **Empty Results**: If no users watch the tag, the response contains an empty array rather than null.
+- **Permission Requirements**: Accessing watcher information may require specific permissions.
+- **Performance**: Single API call with efficient retrieval of watcher list.
+- **Team Context**: Watcher information is context-specific to the current team or public environment.
+- **Privacy**: User information returned depends on privacy settings and permissions.

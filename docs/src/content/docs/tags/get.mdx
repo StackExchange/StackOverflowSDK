@@ -1,0 +1,173 @@
+---
+title: get()
+description: Retrieve detailed information about a single tag, including complete metadata, Subject Matter Experts, and usage statistics.
+---
+
+# get()
+
+Retrieve detailed information about a single tag, including complete metadata, Subject Matter Experts, and usage statistics.
+
+## Syntax
+
+```typescript
+async get(tagId: number): Promise<TagResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag to retrieve |
+
+## Return Value
+
+Returns a `Promise<TagResponseModel>` containing complete tag information:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The tag's unique identifier |
+| `name` | `string` | The tag's name |
+| `description` | `string` | The tag's description |
+| `postCount` | `number` | Number of posts that have this tag |
+| `subjectMatterExpertCount` | `number \| null` | Total number of SME users (null if SMEs not enabled) |
+| `watcherCount` | `number` | Number of users watching this tag |
+| `creationDate` | `Date` | When the tag was created |
+| `hasSynonyms` | `boolean` | Whether the tag has synonym(s) |
+| `webUrl` | `string` | Direct URL to the tag |
+| `subjectMatterExperts` | `SubjectMatterExpertResponseModel` | Complete SME information |
+
+### SubjectMatterExpertResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `users` | `UserSummaryResponseModel[]` | Individual users assigned as SMEs |
+| `userGroups` | `UserGroupResponseModel[]` | User groups assigned as SMEs |
+
+## Examples
+
+### Basic Tag Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get detailed information about a specific tag
+const tag = await sdk.tags.get(12345);
+
+console.log('Tag Details:');
+console.log(`Name: ${tag.name}`);
+console.log(`Description: ${tag.description}`);
+console.log(`Post Count: ${tag.postCount?.toLocaleString()}`);
+console.log(`Watchers: ${tag.watcherCount}`);
+console.log(`Created: ${new Date(tag.creationDate || '').toLocaleDateString()}`);
+console.log(`Has Synonyms: ${tag.hasSynonyms ? 'Yes' : 'No'}`);
+console.log(`URL: ${tag.webUrl}`);
+
+// SME information
+if (tag.subjectMatterExpertCount !== null) {
+  console.log(`\nSubject Matter Experts: ${tag.subjectMatterExpertCount}`);
+  
+  if (tag.subjectMatterExperts?.users?.length) {
+    console.log('SME Users:');
+    tag.subjectMatterExperts.users.forEach(user => {
+      console.log(`- ${user.displayName} (ID: ${user.userId})`);
+    });
+  }
+  
+  if (tag.subjectMatterExperts?.userGroups?.length) {
+    console.log('SME Groups:');
+    tag.subjectMatterExperts.userGroups.forEach(group => {
+      console.log(`- ${group.name} (ID: ${group.id})`);
+    });
+  }
+} else {
+  console.log('\nSubject Matter Experts: Not enabled for this tag');
+}
+```
+
+### Tag Analysis and Insights
+
+```typescript
+async function analyzeTag(tagId: number) {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    
+    const analysis = {
+      basicInfo: {
+        name: tag.name || 'Unknown',
+        description: tag.description || 'No description',
+        url: tag.webUrl || ''
+      },
+      activity: {
+        postCount: tag.postCount || 0,
+        watcherCount: tag.watcherCount || 0,
+        ageInDays: tag.creationDate ? 
+          Math.floor((Date.now() - new Date(tag.creationDate).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+        postsPerDay: 0
+      },
+      expertise: {
+        smeEnabled: tag.subjectMatterExpertCount !== null,
+        totalSmes: tag.subjectMatterExpertCount || 0,
+        individualSmes: tag.subjectMatterExperts?.users?.length || 0,
+        groupSmes: tag.subjectMatterExperts?.userGroups?.length || 0,
+        smeToPostRatio: 0
+      },
+      features: {
+        hasSynonyms: tag.hasSynonyms || false,
+        hasDescription: !!(tag.description && tag.description.trim().length > 0),
+        hasWatchers: (tag.watcherCount || 0) > 0,
+        isActive: (tag.postCount || 0) > 0
+      }
+    };
+    
+    // Calculate derived metrics
+    if (analysis.activity.ageInDays > 0) {
+      analysis.activity.postsPerDay = analysis.activity.postCount / analysis.activity.ageInDays;
+    }
+    
+    if (analysis.activity.postCount > 0 && analysis.expertise.totalSmes > 0) {
+      analysis.expertise.smeToPostRatio = analysis.expertise.totalSmes / analysis.activity.postCount;
+    }
+    
+    // Generate insights
+    const insights = [];
+    
+    if (analysis.activity.postCount > 100 && analysis.expertise.totalSmes === 0) {
+      insights.push('High-activity tag with no SMEs assigned - consider adding subject matter experts');
+    }
+    
+    if (analysis.activity.postsPerDay > 2) {
+      insights.push('Very active tag - receives multiple posts daily');
+    }
+    
+    if (analysis.features.hasSynonyms) {
+      insights.push('Tag has synonyms - alternative names available');
+    }
+    
+    if (analysis.activity.watcherCount > analysis.expertise.totalSmes * 5) {
+      insights.push('High watcher-to-SME ratio - strong community interest');
+    }
+    
+    if (!analysis.features.hasDescription) {
+      insights.push('Missing description - would benefit from detailed explanation');
+    }
+    
+    if (analysis.activity.ageInDays < 30) {
+      insights.push('Relatively new tag - monitor for growth and SME needs');
+    }
+    
+    console.log(`\n=== Tag Analysis: ${analysis.basicInfo.name} ===`);
+    console.log(`Posts: ${analysis.activity.postCount.toLocaleString()}`);
+    console.log(`Age: ${analysis.activity.ageInDays} days (${analysis.activity.postsPerDay.toFixed(2)} posts/day)`);
+    console.log(`Watchers: ${analysis.activity.watcherCount}`);
+    
+    if (analysis.expertise.smeEnabled) {
+      console.log(`SMEs: ${analysis.expertise.totalSmes} (${analysis.expertise.individualSmes} users, ${analysis.expertise.groupSmes} groups)`);
+      if (analysis.expertise.smeToPostRatio > 0) {
+        console.log(`SME Ratio: ${(analysis.expertise.smeToPostRatio * 1000).toFixed(2)} SMEs per 1000 posts`);
+      }
+    }

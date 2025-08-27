@@ -1,0 +1,594 @@
+---
+title: getWatchedTags()
+description: Retrieve the tags that a specific user is watching for notifications and updates.
+---
+
+# getWatchedTags()
+
+Retrieve the tags that a specific user is watching for notifications and updates.
+
+## Syntax
+
+```typescript
+async getWatchedTags(userId: number): Promise<TagSummaryResponseModel>
+async getCurrentUserWatchedTags(): Promise<TagSummaryResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userId` | `number` | Yes | The unique identifier of the user whose watched tags to retrieve |
+
+## Return Value
+
+Returns a `Promise<TagSummaryResponseModel>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `items` | `TagSummaryResponseModel[]` | Array of watched tag summary objects |
+
+### TagSummaryResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | Tag's unique identifier |
+| `name` | `string` | Tag's name |
+| `description` | `string` | Tag's description |
+| `postCount` | `number` | Number of posts with this tag |
+| `subjectMatterExpertCount` | `number \| null` | Number of SMEs for this tag |
+| `watcherCount` | `number` | Number of users watching this tag |
+| `creationDate` | `Date` | When the tag was created |
+| `hasSynonyms` | `boolean` | Whether the tag has synonyms |
+| `webUrl` | `string` | URL to the tag's page |
+
+## Examples
+
+### Basic Watched Tags Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function getUserWatchedTags(userId: number) {
+  try {
+    const watchedTags = await sdk.users.getWatchedTags(userId);
+    
+    if (!watchedTags.items || watchedTags.items.length === 0) {
+      console.log(`User ${userId} is not watching any tags`);
+      return [];
+    }
+    
+    console.log(`User ${userId} is watching ${watchedTags.items.length} tags:`);
+    
+    watchedTags.items.forEach((tag, index) => {
+      console.log(`${index + 1}. ${tag.name}`);
+      console.log(`   - ${tag.postCount} posts`);
+      if (tag.subjectMatterExpertCount && tag.subjectMatterExpertCount > 0) {
+        console.log(`   - ${tag.subjectMatterExpertCount} SMEs`);
+      }
+      console.log(`   - ${tag.watcherCount} watchers`);
+    });
+    
+    return watchedTags.items;
+  } catch (error) {
+    console.error(`Failed to get watched tags for user ${userId}:`, error.message);
+    return [];
+  }
+}
+
+const watchedTags = await getUserWatchedTags(12345);
+```
+
+### Current User's Watched Tags
+
+```typescript
+async function displayMyWatchedTags() {
+  try {
+    const myWatchedTags = await sdk.users.getCurrentUserWatchedTags();
+    
+    if (!myWatchedTags.items || myWatchedTags.items.length === 0) {
+      console.log('You are not watching any tags yet');
+      console.log('Consider watching tags for topics you\'re interested in to get notifications');
+      return;
+    }
+    
+    console.log(`You are watching ${myWatchedTags.items.length} tags:`);
+    
+    // Sort by post count (most active first)
+    const sortedTags = myWatchedTags.items.sort((a, b) => (b.postCount || 0) - (a.postCount || 0));
+    
+    sortedTags.forEach((tag, index) => {
+      console.log(`\n${index + 1}. ${tag.name}`);
+      console.log(`   Description: ${tag.description || 'No description'}`);
+      console.log(`   Activity: ${tag.postCount} posts`);
+      console.log(`   Community: ${tag.watcherCount} watchers`);
+      
+      if (tag.subjectMatterExpertCount && tag.subjectMatterExpertCount > 0) {
+        console.log(`   Expertise: ${tag.subjectMatterExpertCount} SMEs available`);
+      }
+      
+      console.log(`   Link: ${tag.webUrl}`);
+    });
+    
+    return myWatchedTags.items;
+  } catch (error) {
+    console.error('Failed to get your watched tags:', error.message);
+    return [];
+  }
+}
+
+const myTags = await displayMyWatchedTags();
+```
+
+### Watch List Analysis
+
+```typescript
+async function analyzeUserWatchLists(userIds: number[]) {
+  const analysis = {
+    totalUsers: userIds.length,
+    usersWithWatches: 0,
+    usersWithoutWatches: 0,
+    totalWatchedTags: 0,
+    tagPopularity: new Map(),
+    averageWatchesPerUser: 0,
+    mostWatchedTags: [],
+    userWatchProfiles: []
+  };
+  
+  console.log(`Analyzing watch lists for ${userIds.length} users...`);
+  
+  for (const userId of userIds) {
+    try {
+      const userWatchedTags = await sdk.users.getWatchedTags(userId);
+      const watchCount = userWatchedTags.items?.length || 0;
+      
+      if (watchCount > 0) {
+        analysis.usersWithWatches++;
+        analysis.totalWatchedTags += watchCount;
+        
+        // Track tag popularity across users
+        userWatchedTags.items?.forEach(tag => {
+          const currentCount = analysis.tagPopularity.get(tag.name) || 0;
+          analysis.tagPopularity.set(tag.name, currentCount + 1);
+        });
+        
+        analysis.userWatchProfiles.push({
+          userId,
+          watchCount,
+          tags: userWatchedTags.items?.map(t => t.name) || []
+        });
+      } else {
+        analysis.usersWithoutWatches++;
+        analysis.userWatchProfiles.push({
+          userId,
+          watchCount: 0,
+          tags: []
+        });
+      }
+    } catch (error) {
+      console.warn(`Could not analyze user ${userId}: ${error.message}`);
+      analysis.usersWithoutWatches++;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  
+  // Calculate metrics
+  analysis.averageWatchesPerUser = analysis.totalWatchedTags / Math.max(analysis.usersWithWatches, 1);
+  
+  // Find most watched tags
+  analysis.mostWatchedTags = Array.from(analysis.tagPopularity.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10)
+    .map(([tag, count]) => ({ tag, userCount: count }));
+  
+  console.log('\n=== Watch List Analysis ===');
+  console.log(`Users Analyzed: ${analysis.totalUsers}`);
+  console.log(`Users with Watched Tags: ${analysis.usersWithWatches}`);
+  console.log(`Users without Watched Tags: ${analysis.usersWithoutWatches}`);
+  console.log(`Total Tag Watches: ${analysis.totalWatchedTags}`);
+  console.log(`Average Watches per Active User: ${analysis.averageWatchesPerUser.toFixed(1)}`);
+  
+  console.log('\n--- Most Popular Tags to Watch ---');
+  analysis.mostWatchedTags.forEach((item, index) => {
+    console.log(`${index + 1}. ${item.tag}: watched by ${item.userCount} users`);
+  });
+  
+  // Show engagement rate
+  const engagementRate = ((analysis.usersWithWatches / analysis.totalUsers) * 100).toFixed(1);
+  console.log(`\nTag Watching Engagement Rate: ${engagementRate}%`);
+  
+  return analysis;
+}
+
+const watchAnalysis = await analyzeUserWatchLists([123, 456, 789, 101112]);
+```
+
+### Tag Recommendation System
+
+```typescript
+async function recommendTagsForUser(userId: number) {
+  try {
+    // Get user's current watched tags
+    const currentWatches = await sdk.users.getWatchedTags(userId);
+    const watchedTagNames = new Set(currentWatches.items?.map(t => t.name) || []);
+    
+    // Get user details for context
+    const user = await sdk.users.get(userId);
+    
+    const recommendations = {
+      user: {
+        id: userId,
+        name: user.name,
+        department: user.department,
+        role: user.role,
+        currentWatches: watchedTagNames.size
+      },
+      suggested: [],
+      reasons: new Map()
+    };
+    
+    // Get all available tags for analysis
+    const allTags = await sdk.tags.getAll({
+      pageSize: 100,
+      sort: 'postCount',
+      order: 'desc'
+    });
+    
+    if (!allTags.items) {
+      console.log('No tags available for recommendations');
+      return recommendations;
+    }
+    
+    // Analyze and recommend tags
+    allTags.items.forEach(tag => {
+      if (watchedTagNames.has(tag.name)) {
+        return; // Skip already watched tags
+      }
+      
+      const reasons = [];
+      let score = 0;
+      
+      // High activity tags are generally good to watch
+      if (tag.postCount && tag.postCount > 50) {
+        score += 2;
+        reasons.push('High activity');
+      }
+      
+      // Tags with SMEs provide good expertise
+      if (tag.subjectMatterExpertCount && tag.subjectMatterExpertCount > 0) {
+        score += 3;
+        reasons.push('Has subject matter experts');
+      }
+      
+      // Popular tags (many watchers) suggest community interest
+      if (tag.watcherCount && tag.watcherCount > 10) {
+        score += 1;
+        reasons.push('Popular with community');
+      }
+      
+      // Department-based recommendations
+      if (user.department) {
+        const dept = user.department.toLowerCase();
+        const tagName = tag.name.toLowerCase();
+        
+        if (dept.includes('engineering') && (tagName.includes('dev') || tagName.includes('code') || tagName.includes('tech'))) {
+          score += 2;
+          reasons.push('Relevant to engineering');
+        }
+        
+        if (dept.includes('product') && (tagName.includes('product') || tagName.includes('design') || tagName.includes('ux'))) {
+          score += 2;
+          reasons.push('Relevant to product team');
+        }
+        
+        if (dept.includes('marketing') && (tagName.includes('marketing') || tagName.includes('content') || tagName.includes('brand'))) {
+          score += 2;
+          reasons.push('Relevant to marketing');
+        }
+      }
+      
+      // Role-based recommendations
+      if (user.role === 'admin' && tag.name.toLowerCase().includes('admin')) {
+        score += 2;
+        reasons.push('Relevant to admin role');
+      }
+      
+      if (score >= 3) { // Only recommend tags with decent scores
+        recommendations.suggested.push({
+          tag: {
+            name: tag.name,
+            description: tag.description,
+            postCount: tag.postCount,
+            watcherCount: tag.watcherCount,
+            subjectMatterExpertCount: tag.subjectMatterExpertCount
+          },
+          score,
+          reasons: reasons.slice() // Copy reasons array
+        });
+        
+        recommendations.reasons.set(tag.name, reasons);
+      }
+    });
+    
+    // Sort by score (highest first)
+    recommendations.suggested.sort((a, b) => b.score - a.score);
+    
+    // Limit to top 10 recommendations
+    recommendations.suggested = recommendations.suggested.slice(0, 10);
+    
+    console.log(`=== Tag Recommendations for ${recommendations.user.name} ===`);
+    console.log(`Current watched tags: ${recommendations.user.currentWatches}`);
+    console.log(`Department: ${recommendations.user.department || 'Not specified'}`);
+    console.log(`Role: ${recommendations.user.role}`);
+    
+    if (recommendations.suggested.length === 0) {
+      console.log('\nNo recommendations available - user may already be watching most relevant tags');
+      return recommendations;
+    }
+    
+    console.log(`\nTop ${recommendations.suggested.length} Recommended Tags:`);
+    recommendations.suggested.forEach((rec, index) => {
+      console.log(`\n${index + 1}. ${rec.tag.name} (Score: ${rec.score})`);
+      console.log(`   ${rec.tag.description || 'No description'}`);
+      console.log(`   Activity: ${rec.tag.postCount} posts, ${rec.tag.watcherCount} watchers`);
+      if (rec.tag.subjectMatterExpertCount && rec.tag.subjectMatterExpertCount > 0) {
+        console.log(`   Expertise: ${rec.tag.subjectMatterExpertCount} SMEs`);
+      }
+      console.log(`   Reasons: ${rec.reasons.join(', ')}`);
+    });
+    
+    return recommendations;
+  } catch (error) {
+    console.error(`Failed to generate tag recommendations for user ${userId}:`, error.message);
+    return null;
+  }
+}
+
+const tagRecommendations = await recommendTagsForUser(12345);
+```
+
+### Team Tag Engagement Report
+
+```typescript
+async function generateTagEngagementReport(userIds: number[]) {
+  const report = {
+    timestamp: new Date(),
+    totalUsers: userIds.length,
+    engagementMetrics: {
+      activeWatchers: 0,
+      totalWatches: 0,
+      uniqueTagsWatched: new Set(),
+      averageWatchesPerUser: 0
+    },
+    tagMetrics: {
+      mostWatchedTags: [],
+      underutilizedTags: [],
+      expertiseTags: []
+    },
+    userSegments: {
+      powerWatchers: [], // 10+ tags
+      regularWatchers: [], // 3-9 tags
+      lightWatchers: [],  // 1-2 tags
+      nonWatchers: []     // 0 tags
+    },
+    insights: []
+  };
+  
+  console.log(`Generating tag engagement report for ${userIds.length} users...`);
+  
+  // Collect user watching data
+  for (const userId of userIds) {
+    try {
+      const watchedTags = await sdk.users.getWatchedTags(userId);
+      const user = await sdk.users.get(userId);
+      
+      const watchCount = watchedTags.items?.length || 0;
+      const userProfile = {
+        userId,
+        name: user.name,
+        department: user.department,
+        role: user.role,
+        watchCount,
+        tags: watchedTags.items || []
+      };
+      
+      if (watchCount === 0) {
+        report.userSegments.nonWatchers.push(userProfile);
+      } else {
+        report.engagementMetrics.activeWatchers++;
+        report.engagementMetrics.totalWatches += watchCount;
+        
+        // Add to unique tags set
+        watchedTags.items?.forEach(tag => {
+          report.engagementMetrics.uniqueTagsWatched.add(tag.name);
+        });
+        
+        // Categorize users by engagement level
+        if (watchCount >= 10) {
+          report.userSegments.powerWatchers.push(userProfile);
+        } else if (watchCount >= 3) {
+          report.userSegments.regularWatchers.push(userProfile);
+        } else {
+          report.userSegments.lightWatchers.push(userProfile);
+        }
+      }
+    } catch (error) {
+      console.warn(`Could not process user ${userId}: ${error.message}`);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 400));
+  }
+  
+  // Calculate metrics
+  report.engagementMetrics.averageWatchesPerUser = 
+    report.engagementMetrics.totalWatches / Math.max(report.engagementMetrics.activeWatchers, 1);
+  
+  // Analyze tag popularity across all users
+  const tagPopularity = new Map();
+  [...report.userSegments.powerWatchers, ...report.userSegments.regularWatchers, ...report.userSegments.lightWatchers]
+    .forEach(user => {
+      user.tags.forEach(tag => {
+        const current = tagPopularity.get(tag.name) || { count: 0, tag };
+        tagPopularity.set(tag.name, { count: current.count + 1, tag });
+      });
+    });
+  
+  // Get most watched tags
+  report.tagMetrics.mostWatchedTags = Array.from(tagPopularity.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+    .map(item => ({
+      name: item.tag.name,
+      userCount: item.count,
+      postCount: item.tag.postCount,
+      hasExperts: (item.tag.subjectMatterExpertCount || 0) > 0
+    }));
+  
+  // Find tags with experts
+  report.tagMetrics.expertiseTags = Array.from(tagPopularity.values())
+    .filter(item => (item.tag.subjectMatterExpertCount || 0) > 0)
+    .sort((a, b) => (b.tag.subjectMatterExpertCount || 0) - (a.tag.subjectMatterExpertCount || 0))
+    .slice(0, 5)
+    .map(item => ({
+      name: item.tag.name,
+      expertCount: item.tag.subjectMatterExpertCount,
+      watcherCount: item.count,
+      postCount: item.tag.postCount
+    }));
+  
+  // Generate insights
+  const engagementRate = (report.engagementMetrics.activeWatchers / report.totalUsers) * 100;
+  
+  if (engagementRate < 50) {
+    report.insights.push('Low tag engagement - consider promoting tag watching benefits');
+  }
+  
+  if (report.userSegments.nonWatchers.length > report.totalUsers * 0.3) {
+    report.insights.push('High number of non-watchers - may need onboarding improvement');
+  }
+  
+  if (report.tagMetrics.mostWatchedTags.length > 0 && report.tagMetrics.mostWatchedTags[0].userCount < report.totalUsers * 0.2) {
+    report.insights.push('No dominant tag interests - community may be fragmented');
+  }
+  
+  console.log('\n=== Tag Engagement Report ===');
+  console.log(`Report Date: ${report.timestamp.toLocaleString()}`);
+  console.log(`Users Analyzed: ${report.totalUsers}`);
+  
+  console.log('\n--- Engagement Overview ---');
+  console.log(`Active Watchers: ${report.engagementMetrics.activeWatchers} (${engagementRate.toFixed(1)}%)`);
+  console.log(`Total Tag Watches: ${report.engagementMetrics.totalWatches}`);
+  console.log(`Unique Tags Watched: ${report.engagementMetrics.uniqueTagsWatched.size}`);
+  console.log(`Average Watches per Active User: ${report.engagementMetrics.averageWatchesPerUser.toFixed(1)}`);
+  
+  console.log('\n--- User Segments ---');
+  console.log(`Power Watchers (10+ tags): ${report.userSegments.powerWatchers.length}`);
+  console.log(`Regular Watchers (3-9 tags): ${report.userSegments.regularWatchers.length}`);
+  console.log(`Light Watchers (1-2 tags): ${report.userSegments.lightWatchers.length}`);
+  console.log(`Non-Watchers (0 tags): ${report.userSegments.nonWatchers.length}`);
+  
+  console.log('\n--- Most Watched Tags ---');
+  report.tagMetrics.mostWatchedTags.forEach((tag, index) => {
+    const expertStatus = tag.hasExperts ? ' (has SMEs)' : '';
+    console.log(`${index + 1}. ${tag.name}: ${tag.userCount} watchers, ${tag.postCount} posts${expertStatus}`);
+  });
+  
+  if (report.tagMetrics.expertiseTags.length > 0) {
+    console.log('\n--- Tags with Subject Matter Experts ---');
+    report.tagMetrics.expertiseTags.forEach((tag, index) => {
+      console.log(`${index + 1}. ${tag.name}: ${tag.expertCount} SMEs, ${tag.watcherCount} watchers`);
+    });
+  }
+  
+  if (report.insights.length > 0) {
+    console.log('\n--- Key Insights ---');
+    report.insights.forEach(insight => console.log(`- ${insight}`));
+  }
+  
+  return report;
+}
+
+const engagementReport = await generateTagEngagementReport([123, 456, 789, 101, 112]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `UserNotFoundError` | 404 | User with specified ID does not exist |
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to view user's watched tags |
+| `ValidationError` | 400 | Invalid user ID format |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { UserNotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+async function safeGetWatchedTags(userId: number): Promise<TagSummaryResponseModel | null> {
+  try {
+    const watchedTags = await sdk.users.getWatchedTags(userId);
+    const tagCount = watchedTags.items?.length || 0;
+    console.log(`User ${userId} is watching ${tagCount} tags`);
+    return watchedTags;
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      console.error(`User ${userId} not found`);
+    } else if (error instanceof ForbiddenError) {
+      console.error(`Cannot access watched tags for user ${userId} - insufficient permissions`);
+    } else {
+      console.error(`Failed to get watched tags for user ${userId}:`, error.message);
+    }
+    return null;
+  }
+}
+
+const watchedTags = await safeGetWatchedTags(12345);
+```
+
+### Graceful Current User Handling
+
+```typescript
+async function safeGetCurrentUserWatchedTags() {
+  try {
+    const watchedTags = await sdk.users.getCurrentUserWatchedTags();
+    return watchedTags;
+  } catch (error) {
+    if (error.message.includes('Current user ID not available')) {
+      console.error('Unable to determine current user identity');
+      console.log('This may indicate an issue with the authentication token');
+    } else {
+      console.error('Failed to get your watched tags:', error.message);
+    }
+    return null;
+  }
+}
+
+const myWatchedTags = await safeGetCurrentUserWatchedTags();
+if (myWatchedTags) {
+  console.log(`You are watching ${myWatchedTags.items?.length || 0} tags`);
+}
+```
+
+## Notes
+
+- **Privacy Considerations**: Viewing another user's watched tags may require specific permissions depending on system configuration.
+- **Current User Convenience**: The `getCurrentUserWatchedTags()` method automatically determines the current user and retrieves their watched tags.
+- **Notification Integration**: Watched tags typically drive email notifications and feed personalization for users.
+- **Empty Results**: An empty items array indicates the user is not watching any tags, which is common for new users.
+- **Tag Metadata**: The returned tag summaries include full tag information, useful for displaying tag details in UI.
+- **Community Insights**: Analyzing watched tags across users can reveal community interests and engagement patterns.
+- **Recommendation Systems**: User watching patterns can inform tag recommendation algorithms and content personalization.
+- **Performance**: Individual lookups are efficient, but bulk analysis should include rate limiting.
+- **Context Sensitivity**: Watched tags may differ between team and enterprise contexts based on available tags.
+- **User Experience**: Understanding watched tags helps create personalized dashboards and notification preferences.

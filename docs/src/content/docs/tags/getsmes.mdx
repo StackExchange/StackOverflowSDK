@@ -1,0 +1,632 @@
+---
+title: getSubjectMatterExperts()
+description: Retrieve the complete list of Subject Matter Experts assigned to a specific tag, including individual users and user groups.
+---
+
+# getSubjectMatterExperts()
+
+Retrieve the complete list of Subject Matter Experts assigned to a specific tag, including individual users and user groups.
+
+## Syntax
+
+```typescript
+async getSubjectMatterExperts(tagId: number): Promise<SubjectMatterExpertResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+
+## Return Value
+
+Returns a `Promise<SubjectMatterExpertResponseModel>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `users` | `UserSummaryResponseModel[]` | Individual users assigned as SMEs |
+| `userGroups` | `UserGroupResponseModel[]` | User groups assigned as SMEs |
+
+### UserSummaryResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `userId` | `number` | User's unique identifier |
+| `displayName` | `string` | User's display name |
+| `reputation` | `number` | User's reputation score |
+| `profileUrl` | `string` | URL to user's profile |
+| `profileImage` | `string` | URL to user's avatar image |
+
+### UserGroupResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | Group's unique identifier |
+| `name` | `string` | Group name |
+| `description` | `string` | Group description |
+| `memberCount` | `number` | Number of members in the group |
+| `isPrivate` | `boolean` | Whether the group is private |
+
+## Examples
+
+### Basic SME Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get Subject Matter Experts for a tag
+const smes = await sdk.tags.getSubjectMatterExperts(12345);
+
+console.log('Subject Matter Experts:');
+
+// Display individual SME users
+if (smes.users && smes.users.length > 0) {
+  console.log('\nIndividual SMEs:');
+  smes.users.forEach((user, index) => {
+    console.log(`${index + 1}. ${user.displayName}`);
+    console.log(`   Reputation: ${user.reputation?.toLocaleString()}`);
+    console.log(`   Profile: ${user.profileUrl}`);
+  });
+} else {
+  console.log('\nNo individual SMEs assigned');
+}
+
+// Display SME groups
+if (smes.userGroups && smes.userGroups.length > 0) {
+  console.log('\nSME Groups:');
+  smes.userGroups.forEach((group, index) => {
+    console.log(`${index + 1}. ${group.name}`);
+    console.log(`   Members: ${group.memberCount}`);
+    console.log(`   Description: ${group.description || 'No description'}`);
+    console.log(`   Private: ${group.isPrivate ? 'Yes' : 'No'}`);
+  });
+} else {
+  console.log('\nNo SME groups assigned');
+}
+
+// Calculate totals
+const individualCount = smes.users?.length || 0;
+const groupMemberCount = smes.userGroups?.reduce((sum, group) => sum + (group.memberCount || 0), 0) || 0;
+const totalSmeReach = individualCount + groupMemberCount;
+
+console.log(`\nSME Summary:`);
+console.log(`- Individual SMEs: ${individualCount}`);
+console.log(`- SME Groups: ${smes.userGroups?.length || 0}`);
+console.log(`- Total Group Members: ${groupMemberCount}`);
+console.log(`- Total SME Reach: ${totalSmeReach}`);
+```
+
+### SME Analysis and Reporting
+
+```typescript
+async function analyzeSmeConfiguration(tagId: number) {
+  try {
+    const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    const analysis = {
+      tagId,
+      retrievedAt: new Date().toISOString(),
+      coverage: {
+        hasIndividuals: (smes.users?.length || 0) > 0,
+        hasGroups: (smes.userGroups?.length || 0) > 0,
+        totalIndividuals: smes.users?.length || 0,
+        totalGroups: smes.userGroups?.length || 0,
+        totalGroupMembers: smes.userGroups?.reduce((sum, group) => sum + (group.memberCount || 0), 0) || 0,
+        effectiveReach: 0
+      },
+      users: smes.users?.map(user => ({
+        id: user.userId,
+        name: user.displayName,
+        reputation: user.reputation || 0,
+        profileUrl: user.profileUrl
+      })) || [],
+      groups: smes.userGroups?.map(group => ({
+        id: group.id,
+        name: group.name,
+        memberCount: group.memberCount || 0,
+        isPrivate: group.isPrivate || false,
+        description: group.description
+      })) || [],
+      insights: []
+    };
+    
+    analysis.coverage.effectiveReach = analysis.coverage.totalIndividuals + analysis.coverage.totalGroupMembers;
+    
+    // Generate insights
+    if (!analysis.coverage.hasIndividuals && !analysis.coverage.hasGroups) {
+      analysis.insights.push('No SMEs assigned - tag lacks expert coverage');
+    }
+    
+    if (analysis.coverage.hasIndividuals && !analysis.coverage.hasGroups) {
+      analysis.insights.push('Only individual SMEs assigned - consider adding groups for broader coverage');
+    }
+    
+    if (!analysis.coverage.hasIndividuals && analysis.coverage.hasGroups) {
+      analysis.insights.push('Only group SMEs assigned - consider adding individual experts');
+    }
+    
+    if (analysis.coverage.effectiveReach < 3) {
+      analysis.insights.push('Low SME coverage - consider adding more experts');
+    }
+    
+    if (analysis.coverage.effectiveReach > 20) {
+      analysis.insights.push('High SME coverage - good expert availability');
+    }
+    
+    if (analysis.users.some(user => user.reputation > 10000)) {
+      analysis.insights.push('High-reputation SMEs available - strong expert credibility');
+    }
+    
+    if (analysis.groups.some(group => group.memberCount > 10)) {
+      analysis.insights.push('Large SME groups present - broad knowledge base available');
+    }
+    
+    console.log(`\n=== SME Analysis for Tag ${tagId} ===`);
+    console.log(`Individual SMEs: ${analysis.coverage.totalIndividuals}`);
+    console.log(`SME Groups: ${analysis.coverage.totalGroups}`);
+    console.log(`Effective Reach: ${analysis.coverage.effectiveReach} people`);
+    
+    if (analysis.users.length > 0) {
+      console.log('\nTop Individual SMEs:');
+      analysis.users
+        .sort((a, b) => b.reputation - a.reputation)
+        .slice(0, 5)
+        .forEach((user, index) => {
+          console.log(`${index + 1}. ${user.name} (${user.reputation.toLocaleString()} rep)`);
+        });
+    }
+    
+    if (analysis.groups.length > 0) {
+      console.log('\nLargest SME Groups:');
+      analysis.groups
+        .sort((a, b) => b.memberCount - a.memberCount)
+        .slice(0, 5)
+        .forEach((group, index) => {
+          console.log(`${index + 1}. ${group.name} (${group.memberCount} members)${group.isPrivate ? ' [Private]' : ''}`);
+        });
+    }
+    
+    if (analysis.insights.length > 0) {
+      console.log('\nInsights:');
+      analysis.insights.forEach(insight => console.log(`- ${insight}`));
+    }
+    
+    return analysis;
+  } catch (error) {
+    console.error(`Failed to analyze SMEs for tag ${tagId}:`, error.message);
+    throw error;
+  }
+}
+
+const smeAnalysis = await analyzeSmeConfiguration(12345);
+```
+
+### SME Coverage Comparison
+
+```typescript
+async function compareSmeAcrossTags(tagIds: number[]) {
+  console.log(`Comparing SME coverage across ${tagIds.length} tags...`);
+  
+  const comparisons = [];
+  
+  for (const tagId of tagIds) {
+    try {
+      const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+      
+      // Get tag details for context
+      const tag = await sdk.tags.get(tagId);
+      
+      comparisons.push({
+        tagId,
+        tagName: tag.name,
+        coverage: {
+          individuals: smes.users?.length || 0,
+          groups: smes.userGroups?.length || 0,
+          groupMembers: smes.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0,
+          totalReach: (smes.users?.length || 0) + (smes.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0),
+          hasAnyExperts: (smes.users?.length || 0) > 0 || (smes.userGroups?.length || 0) > 0
+        },
+        context: {
+          postCount: tag.postCount || 0,
+          watcherCount: tag.watcherCount || 0,
+          smeToPostRatio: 0,
+          smeToWatcherRatio: 0
+        },
+        topExpert: null,
+        largestGroup: null
+      });
+      
+      const lastComparison = comparisons[comparisons.length - 1];
+      
+      // Calculate ratios
+      if (lastComparison.context.postCount > 0) {
+        lastComparison.context.smeToPostRatio = lastComparison.coverage.totalReach / lastComparison.context.postCount;
+      }
+      
+      if (lastComparison.context.watcherCount > 0) {
+        lastComparison.context.smeToWatcherRatio = lastComparison.coverage.totalReach / lastComparison.context.watcherCount;
+      }
+      
+      // Identify top expert and largest group
+      if (smes.users?.length) {
+        lastComparison.topExpert = smes.users.reduce((top, user) => 
+          (user.reputation || 0) > (top?.reputation || 0) ? user : top
+        );
+      }
+      
+      if (smes.userGroups?.length) {
+        lastComparison.largestGroup = smes.userGroups.reduce((largest, group) => 
+          (group.memberCount || 0) > (largest?.memberCount || 0) ? group : largest
+        );
+      }
+      
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch (error) {
+      console.warn(`Failed to get SMEs for tag ${tagId}:`, error.message);
+    }
+  }
+  
+  // Sort by different metrics for analysis
+  const byTotalReach = [...comparisons].sort((a, b) => b.coverage.totalReach - a.coverage.totalReach);
+  const bySmeRatio = [...comparisons].sort((a, b) => b.context.smeToPostRatio - a.context.smeToPostRatio);
+  const byPostActivity = [...comparisons].sort((a, b) => b.context.postCount - a.context.postCount);
+  
+  console.log('\n=== SME Coverage Comparison ===');
+  
+  console.log('\nBy Total SME Reach:');
+  byTotalReach.slice(0, 5).forEach((tag, index) => {
+    console.log(`${index + 1}. ${tag.tagName}: ${tag.coverage.totalReach} SMEs`);
+    console.log(`   (${tag.coverage.individuals} individuals, ${tag.coverage.groups} groups)`);
+  });
+  
+  console.log('\nBy SME-to-Post Ratio:');
+  bySmeRatio.slice(0, 5).forEach((tag, index) => {
+    console.log(`${index + 1}. ${tag.tagName}: ${(tag.context.smeToPostRatio * 100).toFixed(2)} SMEs per 100 posts`);
+  });
+  
+  console.log('\nHighly Active Tags:');
+  byPostActivity.slice(0, 5).forEach((tag, index) => {
+    const status = tag.coverage.hasAnyExperts ? 'Has SMEs' : 'NO SMEs';
+    console.log(`${index + 1}. ${tag.tagName}: ${tag.context.postCount} posts [${status}]`);
+  });
+  
+  // Coverage statistics
+  const withSmes = comparisons.filter(t => t.coverage.hasAnyExperts).length;
+  const averageReach = comparisons.reduce((sum, t) => sum + t.coverage.totalReach, 0) / comparisons.length;
+  
+  console.log('\nOverall Statistics:');
+  console.log(`- Tags with SMEs: ${withSmes}/${comparisons.length} (${((withSmes / comparisons.length) * 100).toFixed(1)}%)`);
+  console.log(`- Average SME reach: ${averageReach.toFixed(1)}`);
+  
+  return {
+    comparisons,
+    rankings: { byTotalReach, bySmeRatio, byPostActivity },
+    stats: { withSmes, averageReach, totalTags: comparisons.length }
+  };
+}
+
+const smeComparison = await compareSmeAcrossTags([12345, 12346, 12347, 12348]);
+```
+
+### SME Expertise Assessment
+
+```typescript
+async function assessSmeExpertise(tagId: number) {
+  const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+  const tag = await sdk.tags.get(tagId);
+  
+  const assessment = {
+    tagName: tag.name,
+    tagId,
+    overallScore: 0,
+    factors: {
+      coverage: {
+        score: 0,
+        hasIndividuals: (smes.users?.length || 0) > 0,
+        hasGroups: (smes.userGroups?.length || 0) > 0,
+        totalExperts: (smes.users?.length || 0) + (smes.userGroups?.length || 0),
+        effectiveReach: (smes.users?.length || 0) + (smes.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0)
+      },
+      quality: {
+        score: 0,
+        averageReputation: 0,
+        highReputationExperts: 0,
+        topExpertReputation: 0
+      },
+      diversity: {
+        score: 0,
+        hasMultipleSources: false,
+        groupDiversity: 0,
+        totalGroupMembers: smes.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0
+      }
+    },
+    recommendations: []
+  };
+  
+  // Coverage scoring (0-40 points)
+  if (assessment.factors.coverage.totalExperts === 0) {
+    assessment.factors.coverage.score = 0;
+  } else if (assessment.factors.coverage.totalExperts <= 2) {
+    assessment.factors.coverage.score = 20;
+  } else if (assessment.factors.coverage.totalExperts <= 5) {
+    assessment.factors.coverage.score = 30;
+  } else {
+    assessment.factors.coverage.score = 40;
+  }
+  
+  // Quality scoring (0-40 points)
+  if (smes.users && smes.users.length > 0) {
+    const reputations = smes.users.map(u => u.reputation || 0);
+    assessment.factors.quality.averageReputation = reputations.reduce((sum, rep) => sum + rep, 0) / reputations.length;
+    assessment.factors.quality.topExpertReputation = Math.max(...reputations);
+    assessment.factors.quality.highReputationExperts = reputations.filter(rep => rep > 5000).length;
+    
+    if (assessment.factors.quality.averageReputation > 10000) {
+      assessment.factors.quality.score = 40;
+    } else if (assessment.factors.quality.averageReputation > 5000) {
+      assessment.factors.quality.score = 30;
+    } else if (assessment.factors.quality.averageReputation > 1000) {
+      assessment.factors.quality.score = 20;
+    } else {
+      assessment.factors.quality.score = 10;
+    }
+  }
+  
+  // Diversity scoring (0-20 points)
+  assessment.factors.diversity.hasMultipleSources = assessment.factors.coverage.hasIndividuals && assessment.factors.coverage.hasGroups;
+  assessment.factors.diversity.groupDiversity = smes.userGroups?.length || 0;
+  
+  if (assessment.factors.diversity.hasMultipleSources) {
+    assessment.factors.diversity.score = 15;
+  } else if (assessment.factors.coverage.hasGroups || assessment.factors.coverage.hasIndividuals) {
+    assessment.factors.diversity.score = 10;
+  }
+  
+  if (assessment.factors.diversity.groupDiversity > 2) {
+    assessment.factors.diversity.score += 5;
+  }
+  
+  // Overall score
+  assessment.overallScore = 
+    assessment.factors.coverage.score + 
+    assessment.factors.quality.score + 
+    assessment.factors.diversity.score;
+  
+  // Generate recommendations
+  if (assessment.factors.coverage.totalExperts === 0) {
+    assessment.recommendations.push('No SMEs assigned - assign subject matter experts to provide guidance');
+  }
+  
+  if (assessment.factors.coverage.totalExperts < 3 && (tag.postCount || 0) > 50) {
+    assessment.recommendations.push('Low SME coverage for active tag - consider adding more experts');
+  }
+  
+  if (assessment.factors.quality.averageReputation < 1000 && smes.users?.length) {
+    assessment.recommendations.push('Low average reputation among SMEs - consider recruiting more experienced users');
+  }
+  
+  if (!assessment.factors.diversity.hasMultipleSources) {
+    assessment.recommendations.push('Single source of expertise - consider adding both individual users and groups');
+  }
+  
+  if (assessment.factors.coverage.hasIndividuals && assessment.factors.quality.highReputationExperts === 0) {
+    assessment.recommendations.push('No high-reputation individual SMEs - seek experts with proven track records');
+  }
+  
+  if (assessment.factors.coverage.hasGroups && assessment.factors.diversity.totalGroupMembers < 5) {
+    assessment.recommendations.push('Small SME groups - consider larger groups for broader knowledge base');
+  }
+  
+  console.log(`\n=== SME Expertise Assessment: ${assessment.tagName} ===`);
+  console.log(`Overall Expertise Score: ${assessment.overallScore}/100`);
+  
+  console.log('\nScore Breakdown:');
+  console.log(`- Coverage: ${assessment.factors.coverage.score}/40`);
+  console.log(`- Quality: ${assessment.factors.quality.score}/40`);
+  console.log(`- Diversity: ${assessment.factors.diversity.score}/20`);
+  
+  console.log('\nExpertise Metrics:');
+  console.log(`- Total Experts: ${assessment.factors.coverage.totalExperts}`);
+  console.log(`- Effective Reach: ${assessment.factors.coverage.effectiveReach} people`);
+  console.log(`- Average Reputation: ${assessment.factors.quality.averageReputation.toFixed(0)}`);
+  console.log(`- Top Expert Reputation: ${assessment.factors.quality.topExpertReputation.toLocaleString()}`);
+  
+  if (assessment.recommendations.length > 0) {
+    console.log('\nRecommendations:');
+    assessment.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return assessment;
+}
+
+const expertiseAssessment = await assessSmeExpertise(12345);
+```
+
+### SME Data Export
+
+```typescript
+async function exportSmeData(tagId: number, format: 'json' | 'csv' | 'markdown' = 'json') {
+  try {
+    const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+    const tag = await sdk.tags.get(tagId);
+    
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      tagId,
+      tagName: tag.name,
+      smes
+    };
+    
+    switch (format) {
+      case 'json':
+        return {
+          format: 'json',
+          content: JSON.stringify(exportData, null, 2),
+          filename: `smes-tag-${tagId}-${tag.name}.json`
+        };
+        
+      case 'csv':
+        let csvContent = 'Type,ID,Name,Reputation,Members,Private,ProfileURL\n';
+        
+        // Add individual users
+        smes.users?.forEach(user => {
+          csvContent += `User,${user.userId},"${user.displayName}",${user.reputation || 0},1,false,"${user.profileUrl}"\n`;
+        });
+        
+        // Add groups
+        smes.userGroups?.forEach(group => {
+          csvContent += `Group,${group.id},"${group.name}",0,${group.memberCount || 0},${group.isPrivate},""\n`;
+        });
+        
+        return {
+          format: 'csv',
+          content: csvContent,
+          filename: `smes-tag-${tagId}-${tag.name}.csv`
+        };
+        
+      case 'markdown':
+        let markdownContent = `# Subject Matter Experts - ${tag.name}\n\n`;
+        markdownContent += `**Tag ID:** ${tagId}  \n`;
+        markdownContent += `**Exported:** ${new Date().toLocaleString()}  \n\n`;
+        
+        if (smes.users && smes.users.length > 0) {
+          markdownContent += '## Individual SMEs\n\n';
+          smes.users.forEach((user, index) => {
+            markdownContent += `${index + 1}. **${user.displayName}**\n`;
+            markdownContent += `   - Reputation: ${user.reputation?.toLocaleString()}\n`;
+            markdownContent += `   - Profile: [${user.profileUrl}](${user.profileUrl})\n\n`;
+          });
+        }
+        
+        if (smes.userGroups && smes.userGroups.length > 0) {
+          markdownContent += '## SME Groups\n\n';
+          smes.userGroups.forEach((group, index) => {
+            markdownContent += `${index + 1}. **${group.name}**\n`;
+            markdownContent += `   - Members: ${group.memberCount}\n`;
+            markdownContent += `   - Private: ${group.isPrivate ? 'Yes' : 'No'}\n`;
+            if (group.description) {
+              markdownContent += `   - Description: ${group.description}\n`;
+            }
+            markdownContent += '\n';
+          });
+        }
+        
+        if ((!smes.users || smes.users.length === 0) && (!smes.userGroups || smes.userGroups.length === 0)) {
+          markdownContent += '## No SMEs Assigned\n\nThis tag currently has no Subject Matter Experts assigned.\n';
+        }
+        
+        return {
+          format: 'markdown',
+          content: markdownContent,
+          filename: `smes-tag-${tagId}-${tag.name}.md`
+        };
+        
+      default:
+        throw new Error(`Unsupported export format: ${format}`);
+    }
+  } catch (error) {
+    console.error(`Failed to export SME data for tag ${tagId}:`, error.message);
+    throw error;
+  }
+}
+
+// Export SME data in different formats
+const jsonExport = await exportSmeData(12345, 'json');
+const csvExport = await exportSmeData(12345, 'csv');
+const markdownExport = await exportSmeData(12345, 'markdown');
+
+console.log('Markdown Export:');
+console.log(markdownExport.content);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access SME information |
+| `NotFoundError` | 404 | Tag with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const smes = await sdk.tags.getSubjectMatterExperts(12345);
+  console.log(`Retrieved SME information: ${smes.users?.length || 0} users, ${smes.userGroups?.length || 0} groups`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag not found - cannot retrieve SME information');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot access SME information - insufficient permissions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access SME information');
+  } else {
+    console.error('Failed to retrieve SME information:', error.message);
+  }
+}
+```
+
+### Safe SME Retrieval
+
+```typescript
+async function safeGetSmes(tagId: number) {
+  try {
+    const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    return {
+      success: true,
+      data: smes,
+      summary: {
+        users: smes.users?.length || 0,
+        groups: smes.userGroups?.length || 0,
+        totalReach: (smes.users?.length || 0) + (smes.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0)
+      }
+    };
+  } catch (error) {
+    console.warn(`Failed to retrieve SMEs for tag ${tagId}:`, error.message);
+    
+    return {
+      success: false,
+      error: error.message,
+      data: { users: [], userGroups: [] }
+    };
+  }
+}
+
+const smeResult = await safeGetSmes(12345);
+if (smeResult.success) {
+  console.log(`SME retrieval successful: ${smeResult.summary.totalReach} total experts`);
+} else {
+  console.log(`SME retrieval failed: ${smeResult.error}`);
+}
+```
+
+## Notes
+
+- **Complete Information**: Returns full details about both individual users and user groups assigned as SMEs.
+- **Group Membership**: User group SMEs include member counts, providing insight into the actual number of experts available.
+- **User Profiles**: Individual SME information includes reputation scores and profile URLs for context about expertise level.
+- **Empty Results**: If no SMEs are assigned, the response contains empty arrays rather than null values.
+- **Permission Requirements**: Accessing SME information may require specific permissions depending on privacy settings.
+- **Group Privacy**: Private groups are indicated by the `isPrivate` flag and may have restricted visibility.
+- **Performance**: This method makes a single API call and is efficient for checking SME assignments.
+- **Team Context**: SME assignments are context-specific and may differ between team and public environments.

@@ -1,0 +1,800 @@
+---
+title: addSubjectMatterExpertUserGroups() & removeSubjectMatterExpertUserGroup()
+description: Add and remove user groups as Subject Matter Experts for specific tags without affecting existing SME assignments.
+---
+
+# addSubjectMatterExpertUserGroups() & removeSubjectMatterExpertUserGroup()
+
+Add and remove user groups as Subject Matter Experts for specific tags without affecting existing SME assignments.
+
+## Syntax
+
+```typescript
+async addSubjectMatterExpertUserGroups(tagId: number, userGroupIds: number[]): Promise<SubjectMatterExpertResponseModel>
+async removeSubjectMatterExpertUserGroup(tagId: number, userGroupId: number): Promise<void>
+async addSubjectMatterExpertUserGroup(tagId: number, userGroupId: number): Promise<SubjectMatterExpertResponseModel>
+```
+
+## Parameters
+
+### addSubjectMatterExpertUserGroups()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `userGroupIds` | `number[]` | Yes | Array of user group IDs to add as SMEs |
+
+### removeSubjectMatterExpertUserGroup()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `userGroupId` | `number` | Yes | The user group ID to remove from SMEs |
+
+### addSubjectMatterExpertUserGroup()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `userGroupId` | `number` | Yes | The user group ID to add as SME |
+
+## Return Value
+
+`addSubjectMatterExpertUserGroups()` and `addSubjectMatterExpertUserGroup()` return a `Promise<SubjectMatterExpertResponseModel>` containing the updated SME configuration.
+
+`removeSubjectMatterExpertUserGroup()` returns `Promise<void>` (no response body).
+
+## Examples
+
+### Adding SME User Groups
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Add multiple user groups as SMEs
+const updatedSmes = await sdk.tags.addSubjectMatterExpertUserGroups(12345, [501, 502, 503]);
+
+console.log('Added new SME groups:');
+console.log(`Total individual SMEs: ${updatedSmes.users?.length || 0}`);
+console.log(`Total SME groups: ${updatedSmes.userGroups?.length || 0}`);
+
+// Display all current SME groups
+if (updatedSmes.userGroups && updatedSmes.userGroups.length > 0) {
+  console.log('\nCurrent SME Groups:');
+  updatedSmes.userGroups.forEach((group, index) => {
+    console.log(`${index + 1}. ${group.name}`);
+    console.log(`   Members: ${group.memberCount}`);
+    console.log(`   Private: ${group.isPrivate ? 'Yes' : 'No'}`);
+    if (group.description) {
+      console.log(`   Description: ${group.description}`);
+    }
+  });
+  
+  // Calculate total group membership reach
+  const totalGroupMembers = updatedSmes.userGroups.reduce((sum, group) => sum + (group.memberCount || 0), 0);
+  console.log(`\nTotal SME reach through groups: ${totalGroupMembers} members`);
+}
+
+// Add a single group (convenience method)
+const singleGroupResult = await sdk.tags.addSubjectMatterExpertUserGroup(12345, 504);
+console.log(`\nAdded single group. New total: ${singleGroupResult.userGroups?.length || 0} SME groups`);
+```
+
+### Removing SME User Groups
+
+```typescript
+// Remove a specific user group from SMEs
+await sdk.tags.removeSubjectMatterExpertUserGroup(12345, 501);
+console.log('User group 501 removed from SME list');
+
+// Verify removal by checking current SMEs
+const currentSmes = await sdk.tags.getSubjectMatterExperts(12345);
+const removedGroupStillPresent = currentSmes.userGroups?.some(group => group.id === 501);
+
+if (removedGroupStillPresent) {
+  console.log('Warning: Group still appears in SME list');
+} else {
+  console.log('Confirmation: Group successfully removed from SME list');
+}
+
+console.log(`Remaining SME groups: ${currentSmes.userGroups?.length || 0}`);
+
+// Calculate impact of removal
+const remainingGroupMembers = currentSmes.userGroups?.reduce((sum, group) => sum + (group.memberCount || 0), 0) || 0;
+console.log(`Remaining SME reach through groups: ${remainingGroupMembers} members`);
+```
+
+### Strategic Group-Based SME Management
+
+```typescript
+async function manageGroupSmes(tagId: number, strategy: 'specialized' | 'broad' | 'hierarchical') {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    const currentSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`Managing group SMEs for ${tag.name} using '${strategy}' strategy`);
+    console.log(`Current groups: ${currentSmes.userGroups?.length || 0}`);
+    
+    // In a real implementation, you would have predefined groups for different strategies
+    const groupStrategies = {
+      specialized: [
+        { id: 601, name: 'Senior Developers', focus: 'technical expertise' },
+        { id: 602, name: 'Architecture Team', focus: 'system design' }
+      ],
+      broad: [
+        { id: 701, name: 'Development Team', focus: 'general development' },
+        { id: 702, name: 'QA Team', focus: 'quality assurance' },
+        { id: 703, name: 'DevOps Team', focus: 'operations' }
+      ],
+      hierarchical: [
+        { id: 801, name: 'Tech Leads', focus: 'leadership guidance' },
+        { id: 802, name: 'Team Leads', focus: 'team coordination' }
+      ]
+    };
+    
+    const selectedGroups = groupStrategies[strategy];
+    const groupIds = selectedGroups.map(g => g.id);
+    
+    console.log(`\nApplying ${strategy} strategy:`);
+    selectedGroups.forEach(group => {
+      console.log(`- ${group.name}: ${group.focus}`);
+    });
+    
+    // Apply the strategy by replacing current group SMEs
+    const result = await sdk.tags.addSubjectMatterExpertUserGroups(tagId, groupIds);
+    
+    // Calculate impact
+    const totalMembers = result.userGroups?.reduce((sum, group) => sum + (group.memberCount || 0), 0) || 0;
+    
+    console.log(`\nStrategy applied successfully:`);
+    console.log(`- SME Groups: ${result.userGroups?.length || 0}`);
+    console.log(`- Total Group Members: ${totalMembers}`);
+    console.log(`- Individual SMEs: ${result.users?.length || 0}`);
+    
+    return {
+      strategy,
+      groupsAdded: groupIds.length,
+      totalReach: (result.users?.length || 0) + totalMembers,
+      result
+    };
+    
+  } catch (error) {
+    console.error(`Group SME management failed for tag ${tagId}: ${error.message}`);
+    throw error;
+  }
+}
+
+// Apply different strategies
+const specializedResult = await manageGroupSmes(12345, 'specialized');
+const broadResult = await manageGroupSmes(12346, 'broad');
+const hierarchicalResult = await manageGroupSmes(12347, 'hierarchical');
+```
+
+### Group SME Optimization
+
+```typescript
+async function optimizeGroupSmes(tagId: number, criteria: {
+  maxGroups?: number;
+  minMembersPerGroup?: number;
+  preferPublicGroups?: boolean;
+  balanceGroupSizes?: boolean;
+}) {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    const currentSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`Optimizing group SMEs for ${tag.name}`);
+    console.log(`Current groups: ${currentSmes.userGroups?.length || 0}`);
+    
+    if (!currentSmes.userGroups || currentSmes.userGroups.length === 0) {
+      console.log('No current group SMEs to optimize');
+      return { optimized: false, reason: 'no_groups' };
+    }
+    
+    const analysis = {
+      current: currentSmes.userGroups.map(group => ({
+        id: group.id,
+        name: group.name,
+        memberCount: group.memberCount || 0,
+        isPrivate: group.isPrivate || false,
+        score: 0 // Will be calculated
+      })),
+      recommendations: {
+        keep: [],
+        remove: [],
+        reasons: []
+      }
+    };
+    
+    // Score each group based on criteria
+    analysis.current.forEach(group => {
+      let score = 50; // Base score
+      
+      // Member count scoring
+      if (criteria.minMembersPerGroup && group.memberCount < criteria.minMembersPerGroup) {
+        score -= 30;
+        analysis.recommendations.reasons.push(`${group.name}: Below minimum members (${group.memberCount})`);
+      } else if (group.memberCount > 20) {
+        score += 20; // Large groups are valuable
+      } else if (group.memberCount > 5) {
+        score += 10; // Medium groups are good
+      }
+      
+      // Privacy scoring
+      if (criteria.preferPublicGroups && group.isPrivate) {
+        score -= 15;
+        analysis.recommendations.reasons.push(`${group.name}: Private group (prefer public)`);
+      }
+      
+      group.score = score;
+    });
+    
+    // Sort by score and apply limits
+    analysis.current.sort((a, b) => b.score - a.score);
+    
+    const maxGroups = criteria.maxGroups || analysis.current.length;
+    analysis.recommendations.keep = analysis.current.slice(0, maxGroups);
+    analysis.recommendations.remove = analysis.current.slice(maxGroups);
+    
+    // Balance group sizes if requested
+    if (criteria.balanceGroupSizes && analysis.recommendations.keep.length > 1) {
+      const totalMembers = analysis.recommendations.keep.reduce((sum, g) => sum + g.memberCount, 0);
+      const averageSize = totalMembers / analysis.recommendations.keep.length;
+      
+      console.log(`Group size balance: Average ${averageSize.toFixed(1)} members per group`);
+      
+      analysis.recommendations.keep.forEach(group => {
+        if (group.memberCount > averageSize * 2) {
+          analysis.recommendations.reasons.push(`${group.name}: Much larger than average (${group.memberCount} vs ${averageSize.toFixed(1)})`);
+        }
+      });
+    }
+    
+    console.log(`\n=== SME Group Optimization Analysis ===`);
+    console.log(`Groups to keep: ${analysis.recommendations.keep.length}`);
+    console.log(`Groups to remove: ${analysis.recommendations.remove.length}`);
+    
+    if (analysis.recommendations.keep.length > 0) {
+      console.log('\nOptimal Groups:');
+      analysis.recommendations.keep.forEach((group, index) => {
+        console.log(`${index + 1}. ${group.name} (Score: ${group.score}, Members: ${group.memberCount})`);
+      });
+    }
+    
+    if (analysis.recommendations.remove.length > 0) {
+      console.log('\nGroups to Remove:');
+      analysis.recommendations.remove.forEach((group, index) => {
+        console.log(`${index + 1}. ${group.name} (Score: ${group.score}, Members: ${group.memberCount})`);
+      });
+    }
+    
+    if (analysis.recommendations.reasons.length > 0) {
+      console.log('\nOptimization Reasons:');
+      analysis.recommendations.reasons.forEach(reason => console.log(`- ${reason}`));
+    }
+    
+    // Apply optimization if changes needed
+    if (analysis.recommendations.remove.length > 0) {
+      console.log(`\nApplying optimization...`);
+      
+      for (const group of analysis.recommendations.remove) {
+        try {
+          await sdk.tags.removeSubjectMatterExpertUserGroup(tagId, group.id);
+          console.log(`- Removed ${group.name}`);
+        } catch (error) {
+          console.warn(`- Failed to remove ${group.name}: ${error.message}`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      console.log('Optimization complete');
+      
+      return {
+        optimized: true,
+        analysis,
+        changes: analysis.recommendations.remove.length
+      };
+    } else {
+      console.log('No optimization needed - current configuration is optimal');
+      return {
+        optimized: false,
+        reason: 'already_optimal',
+        analysis
+      };
+    }
+    
+  } catch (error) {
+    console.error(`Group SME optimization failed: ${error.message}`);
+    throw error;
+  }
+}
+
+// Optimize group SMEs with specific criteria
+const optimization = await optimizeGroupSmes(12345, {
+  maxGroups: 3,
+  minMembersPerGroup: 5,
+  preferPublicGroups: true,
+  balanceGroupSizes: true
+});
+```
+
+### Cross-Tag Group SME Analysis
+
+```typescript
+async function analyzeGroupSmeDistribution(tagIds: number[]) {
+  console.log(`Analyzing group SME distribution across ${tagIds.length} tags...`);
+  
+  const analysis = {
+    tags: [],
+    groupUsage: new Map(),
+    recommendations: []
+  };
+  
+  // Collect data from all tags
+  for (const tagId of tagIds) {
+    try {
+      const tag = await sdk.tags.get(tagId);
+      const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+      
+      const tagAnalysis = {
+        tagId,
+        tagName: tag.name,
+        groupCount: smes.userGroups?.length || 0,
+        groups: smes.userGroups?.map(g => ({
+          id: g.id,
+          name: g.name,
+          memberCount: g.memberCount || 0,
+          isPrivate: g.isPrivate || false
+        })) || []
+      };
+      
+      analysis.tags.push(tagAnalysis);
+      
+      // Track group usage across tags
+      tagAnalysis.groups.forEach(group => {
+        if (analysis.groupUsage.has(group.id)) {
+          const existing = analysis.groupUsage.get(group.id);
+          existing.tagCount++;
+          existing.tagIds.push(tagId);
+          existing.tagNames.push(tag.name);
+        } else {
+          analysis.groupUsage.set(group.id, {
+            ...group,
+            tagCount: 1,
+            tagIds: [tagId],
+            tagNames: [tag.name]
+          });
+        }
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch (error) {
+      console.warn(`Failed to analyze tag ${tagId}: ${error.message}`);
+    }
+  }
+  
+  // Convert group usage map to array for analysis
+  const groupStats = Array.from(analysis.groupUsage.values())
+    .sort((a, b) => b.tagCount - a.tagCount);
+  
+  console.log(`\n=== Group SME Distribution Analysis ===`);
+  console.log(`Tags analyzed: ${analysis.tags.length}`);
+  console.log(`Unique groups found: ${groupStats.length}`);
+  
+  // Most used groups
+  console.log('\nMost Used SME Groups:');
+  groupStats.slice(0, 5).forEach((group, index) => {
+    console.log(`${index + 1}. ${group.name}`);
+    console.log(`   Used in ${group.tagCount} tags (${group.memberCount} members)`);
+    console.log(`   Tags: ${group.tagNames.slice(0, 3).join(', ')}${group.tagNames.length > 3 ? '...' : ''}`);
+  });
+  
+  // Identify over-used and under-used groups
+  const overUsedGroups = groupStats.filter(g => g.tagCount > analysis.tags.length * 0.5);
+  const underUsedGroups = groupStats.filter(g => g.tagCount === 1 && g.memberCount > 10);
+  const singleTagGroups = groupStats.filter(g => g.tagCount === 1);
+  
+  if (overUsedGroups.length > 0) {
+    console.log(`\nOver-used Groups (used in >50% of tags):`);
+    overUsedGroups.forEach(group => {
+      console.log(`- ${group.name}: ${group.tagCount}/${analysis.tags.length} tags`);
+    });
+    analysis.recommendations.push(`Consider diversifying SME groups to reduce dependency on ${overUsedGroups.length} heavily-used groups`);
+  }
+  
+  if (underUsedGroups.length > 0) {
+    console.log(`\nUnder-utilized Large Groups:`);
+    underUsedGroups.forEach(group => {
+      console.log(`- ${group.name}: ${group.memberCount} members, only used for "${group.tagNames[0]}"`);
+    });
+    analysis.recommendations.push(`Consider expanding ${underUsedGroups.length} large groups to more relevant tags`);
+  }
+  
+  // Tag coverage analysis
+  const tagsWithoutGroups = analysis.tags.filter(t => t.groupCount === 0);
+  const tagsWithManyGroups = analysis.tags.filter(t => t.groupCount > 3);
+  
+  if (tagsWithoutGroups.length > 0) {
+    console.log(`\nTags without Group SMEs (${tagsWithoutGroups.length}):`);
+    tagsWithoutGroups.forEach(tag => {
+      console.log(`- ${tag.tagName}`);
+    });
+    analysis.recommendations.push(`Assign group SMEs to ${tagsWithoutGroups.length} tags currently without group coverage`);
+  }
+  
+  if (tagsWithManyGroups.length > 0) {
+    console.log(`\nTags with Many Group SMEs (>3):`);
+    tagsWithManyGroups.forEach(tag => {
+      console.log(`- ${tag.tagName}: ${tag.groupCount} groups`);
+    });
+    analysis.recommendations.push(`Review ${tagsWithManyGroups.length} tags with high group counts for potential consolidation`);
+  }
+  
+  if (analysis.recommendations.length > 0) {
+    console.log('\nRecommendations:');
+    analysis.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return {
+    analysis,
+    groupStats,
+    metrics: {
+      totalTags: analysis.tags.length,
+      uniqueGroups: groupStats.length,
+      averageGroupsPerTag: analysis.tags.reduce((sum, t) => sum + t.groupCount, 0) / analysis.tags.length,
+      overUsedGroups: overUsedGroups.length,
+      underUsedGroups: underUsedGroups.length,
+      singleUseGroups: singleTagGroups.length
+    }
+  };
+}
+
+// Analyze group distribution across multiple tags
+const distributionAnalysis = await analyzeGroupSmeDistribution([12345, 12346, 12347, 12348, 12349]);
+```
+
+### Automated Group SME Rotation
+
+```typescript
+async function rotateGroupSmes(rotationConfig: {
+  tagId: number;
+  rotationPeriodDays: number;
+  groupPool: number[];
+  groupsPerRotation: number;
+}) {
+  try {
+    const { tagId, rotationPeriodDays, groupPool, groupsPerRotation } = rotationConfig;
+    
+    const tag = await sdk.tags.get(tagId);
+    const currentSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`Starting group SME rotation for ${tag.name}`);
+    console.log(`Current groups: ${currentSmes.userGroups?.length || 0}`);
+    console.log(`Pool size: ${groupPool.length} groups`);
+    console.log(`Groups per rotation: ${groupsPerRotation}`);
+    
+    const currentGroupIds = currentSmes.userGroups?.map(g => g.id) || [];
+    const availableGroups = groupPool.filter(id => !currentGroupIds.includes(id));
+    
+    if (availableGroups.length < groupsPerRotation) {
+      console.log(`Insufficient groups for rotation: need ${groupsPerRotation}, available ${availableGroups.length}`);
+      return { rotated: false, reason: 'insufficient_groups' };
+    }
+    
+    // Select groups for rotation (random selection for this example)
+    const groupsToRotateOut = currentGroupIds.slice(0, Math.min(groupsPerRotation, currentGroupIds.length));
+    const groupsToRotateIn = availableGroups
+      .sort(() => 0.5 - Math.random()) // Random shuffle
+      .slice(0, groupsPerRotation);
+    
+    console.log(`\nRotation plan:`);
+    console.log(`- Removing: ${groupsToRotateOut.length} groups`);
+    console.log(`- Adding: ${groupsToRotateIn.length} groups`);
+    
+    const rotationLog = {
+      tagId,
+      timestamp: new Date().toISOString(),
+      rotationPeriod: rotationPeriodDays,
+      operations: []
+    };
+    
+    // Remove outgoing groups
+    for (const groupId of groupsToRotateOut) {
+      try {
+        await sdk.tags.removeSubjectMatterExpertUserGroup(tagId, groupId);
+        rotationLog.operations.push({ action: 'remove', groupId, success: true });
+        console.log(`- Removed group ${groupId}`);
+      } catch (error) {
+        rotationLog.operations.push({ action: 'remove', groupId, success: false, error: error.message });
+        console.warn(`- Failed to remove group ${groupId}: ${error.message}`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // Add incoming groups
+    if (groupsToRotateIn.length > 0) {
+      try {
+        const addResult = await sdk.tags.addSubjectMatterExpertUserGroups(tagId, groupsToRotateIn);
+        rotationLog.operations.push({ 
+          action: 'add', 
+          groupIds: groupsToRotateIn, 
+          success: true,
+          newTotal: addResult.userGroups?.length || 0
+        });
+        console.log(`- Added ${groupsToRotateIn.length} groups`);
+      } catch (error) {
+        rotationLog.operations.push({ 
+          action: 'add', 
+          groupIds: groupsToRotateIn, 
+          success: false, 
+          error: error.message 
+        });
+        console.warn(`- Failed to add groups: ${error.message}`);
+      }
+    }
+    
+    // Final status
+    const finalSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    const finalGroupMembers = finalSmes.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0;
+    
+    console.log(`\nRotation complete:`);
+    console.log(`- Final group count: ${finalSmes.userGroups?.length || 0}`);
+    console.log(`- Total group members: ${finalGroupMembers}`);
+    
+    return {
+      rotated: true,
+      rotationLog,
+      finalState: {
+        groupCount: finalSmes.userGroups?.length || 0,
+        totalMembers: finalGroupMembers
+      }
+    };
+    
+  } catch (error) {
+    console.error(`Group SME rotation failed: ${error.message}`);
+    throw error;
+  }
+}
+
+// Set up rotation for different tags
+const rotationResults = await Promise.all([
+  rotateGroupSmes({
+    tagId: 12345,
+    rotationPeriodDays: 90,
+    groupPool: [601, 602, 603, 604, 605, 606],
+    groupsPerRotation: 2
+  }),
+  rotateGroupSmes({
+    tagId: 12346,
+    rotationPeriodDays: 60,
+    groupPool: [701, 702, 703, 704, 705],
+    groupsPerRotation: 3
+  })
+]);
+```
+
+### Group SME Impact Assessment
+
+```typescript
+async function assessGroupSmeImpact(tagId: number, assessmentPeriodDays: number = 30) {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`Assessing group SME impact for ${tag.name} over ${assessmentPeriodDays} days`);
+    
+    if (!smes.userGroups || smes.userGroups.length === 0) {
+      return {
+        tagId,
+        tagName: tag.name,
+        hasGroupSmes: false,
+        message: 'No group SMEs to assess'
+      };
+    }
+    
+    // In a real implementation, you would gather actual metrics
+    // For this example, we'll simulate impact data
+    const groupImpact = smes.userGroups.map(group => {
+      const simulatedMetrics = {
+        groupId: group.id,
+        groupName: group.name,
+        memberCount: group.memberCount || 0,
+        isPrivate: group.isPrivate || false,
+        
+        // Simulated impact metrics
+        questionsAnswered: Math.floor(Math.random() * 50),
+        answersProvided: Math.floor(Math.random() * 30),
+        upvotesReceived: Math.floor(Math.random() * 100),
+        acceptedAnswers: Math.floor(Math.random() * 15),
+        
+        // Member participation (percentage of group that was active)
+        activeMembers: Math.floor((group.memberCount || 0) * (0.2 + Math.random() * 0.6)),
+        
+        // Derived metrics
+        participationRate: 0,
+        effectivenessScore: 0,
+        impactScore: 0
+      };
+      
+      // Calculate participation rate
+      if (simulatedMetrics.memberCount > 0) {
+        simulatedMetrics.participationRate = (simulatedMetrics.activeMembers / simulatedMetrics.memberCount) * 100;
+      }
+      
+      // Calculate effectiveness (quality of contributions)
+      const answerQuality = simulatedMetrics.answersProvided > 0 ? 
+        (simulatedMetrics.acceptedAnswers / simulatedMetrics.answersProvided) * 100 : 0;
+      const engagementQuality = simulatedMetrics.answersProvided > 0 ? 
+        simulatedMetrics.upvotesReceived / simulatedMetrics.answersProvided : 0;
+      
+      simulatedMetrics.effectivenessScore = Math.min(100, (answerQuality * 0.6) + (engagementQuality * 0.4));
+      
+      // Overall impact score
+      simulatedMetrics.impactScore = (
+        simulatedMetrics.participationRate * 0.3 +
+        simulatedMetrics.effectivenessScore * 0.4 +
+        Math.min(100, simulatedMetrics.answersProvided * 2) * 0.3
+      );
+      
+      return simulatedMetrics;
+    });
+    
+    // Sort by impact score
+    groupImpact.sort((a, b) => b.impactScore - a.impactScore);
+    
+    console.log(`\n=== Group SME Impact Assessment ===`);
+    console.log(`Assessment period: ${assessmentPeriodDays} days`);
+    console.log(`Groups assessed: ${groupImpact.length}`);
+    
+    console.log('\nGroup Performance:');
+    groupImpact.forEach((group, index) => {
+      console.log(`${index + 1}. ${group.groupName}`);
+      console.log(`   Impact Score: ${group.impactScore.toFixed(1)}/100`);
+      console.log(`   Members: ${group.memberCount} (${group.activeMembers} active - ${group.participationRate.toFixed(1)}%)`);
+      console.log(`   Contributions: ${group.answersProvided} answers, ${group.acceptedAnswers} accepted`);
+      console.log(`   Effectiveness: ${group.effectivenessScore.toFixed(1)}/100`);
+      console.log('');
+    });
+    
+    // Identify high and low performers
+    const highPerformers = groupImpact.filter(g => g.impactScore > 70);
+    const lowPerformers = groupImpact.filter(g => g.impactScore < 40);
+    const inactiveGroups = groupImpact.filter(g => g.activeMembers === 0);
+    
+    const recommendations = [];
+    
+    if (highPerformers.length > 0) {
+      console.log(`High-Performing Groups (${highPerformers.length}):`);
+      highPerformers.forEach(group => {
+        console.log(`- ${group.groupName}: ${group.impactScore.toFixed(1)} score`);
+      });
+      recommendations.push(`Maintain and potentially expand high-performing groups: ${highPerformers.map(g => g.groupName).join(', ')}`);
+    }
+    
+    if (lowPerformers.length > 0) {
+      console.log(`Low-Performing Groups (${lowPerformers.length}):`);
+      lowPerformers.forEach(group => {
+        console.log(`- ${group.groupName}: ${group.impactScore.toFixed(1)} score`);
+      });
+      recommendations.push(`Review and potentially replace low-performing groups: ${lowPerformers.map(g => g.groupName).join(', ')}`);
+    }
+    
+    if (inactiveGroups.length > 0) {
+      console.log(`Inactive Groups (${inactiveGroups.length}):`);
+      inactiveGroups.forEach(group => {
+        console.log(`- ${group.groupName}: No active members`);
+      });
+      recommendations.push(`Remove or replace inactive groups: ${inactiveGroups.map(g => g.groupName).join(', ')}`);
+    }
+    
+    if (recommendations.length > 0) {
+      console.log('\nRecommendations:');
+      recommendations.forEach(rec => console.log(`- ${rec}`));
+    }
+    
+    return {
+      tagId,
+      tagName: tag.name,
+      assessmentPeriod: assessmentPeriodDays,
+      hasGroupSmes: true,
+      groupImpact,
+      summary: {
+        totalGroups: groupImpact.length,
+        highPerformers: highPerformers.length,
+        lowPerformers: lowPerformers.length,
+        inactiveGroups: inactiveGroups.length,
+        averageImpactScore: groupImpact.reduce((sum, g) => sum + g.impactScore, 0) / groupImpact.length,
+        totalMembers: groupImpact.reduce((sum, g) => sum + g.memberCount, 0),
+        activeMembers: groupImpact.reduce((sum, g) => sum + g.activeMembers, 0)
+      },
+      recommendations
+    };
+    
+  } catch (error) {
+    console.error(`Group SME impact assessment failed: ${error.message}`);
+    throw error;
+  }
+}
+
+// Assess impact of group SMEs
+const impactAssessment = await assessGroupSmeImpact(12345, 30);
+
+if (impactAssessment.hasGroupSmes) {
+  console.log(`Overall assessment: ${impactAssessment.summary.averageImpactScore.toFixed(1)}/100 average impact`);
+  console.log(`Group participation: ${impactAssessment.summary.activeMembers}/${impactAssessment.summary.totalMembers} active members`);
+}
+```
+
+## Error Handling
+
+These methods can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to modify SME assignments |
+| `NotFoundError` | 404 | Tag or user group with specified ID does not exist |
+| `ValidationError` | 400 | Invalid group IDs or group already/not assigned |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Safe add operation
+try {
+  const result = await sdk.tags.addSubjectMatterExpertUserGroups(12345, [501, 502]);
+  console.log(`Added ${result.userGroups?.length || 0} SME groups`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag or one of the groups not found');
+  } else if (error instanceof ValidationError) {
+    console.error('Invalid group IDs or groups may already be SMEs');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot modify SME assignments - insufficient permissions');
+  } else {
+    console.error('Failed to add SME groups:', error.message);
+  }
+}
+
+// Safe remove operation
+try {
+  await sdk.tags.removeSubjectMatterExpertUserGroup(12345, 501);
+  console.log('SME group removed successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag or group not found, or group was not an SME');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot remove SME group - insufficient permissions');
+  } else {
+    console.error('Failed to remove SME group:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Incremental Changes**: These methods modify existing SME assignments without affecting individual users or other groups.
+- **Group Membership**: SME groups provide broader expert coverage through their member count.
+- **Duplicate Prevention**: Adding a group that is already an SME may result in a validation error or be ignored.
+- **Non-existent Groups**: Adding non-existent group IDs will cause the operation to fail.
+- **Batch Operations**: `addSubjectMatterExpertUserGroups()` is more efficient than multiple calls to the single-group method.
+- **No Response Body**: `removeSubjectMatterExpertUserGroup()` returns void, so check for exceptions to confirm success.
+- **Permission Requirements**: Requires appropriate permissions to modify SME assignments for the tag.
+- **Group Privacy**: Private groups may have restricted visibility but function the same as public groups for SME purposes.
+- **Member Dynamics**: Group membership can change independently of SME assignments, affecting total expert reach.

@@ -1,0 +1,341 @@
+---
+title: get()
+description: Retrieve detailed information for a specific user by their unique identifier.
+---
+
+# get()
+
+Retrieve detailed information for a specific user by their unique identifier.
+
+## Syntax
+
+```typescript
+async get(userId: number): Promise<UserDetailsResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userId` | `number` | Yes | The unique identifier of the user to retrieve |
+
+## Return Value
+
+Returns a `Promise<UserDetailsResponseModel>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `accountId` | `number \| null` | User's Stack Overflow network account ID |
+| `name` | `string` | User's display name |
+| `email` | `string \| null` | Email address (visible to admins or current user only) |
+| `avatarUrl` | `string` | URL to user's profile picture |
+| `webUrl` | `string` | URL to user's profile page |
+| `reputation` | `number` | User's reputation score |
+| `role` | `string` | User's role on the site |
+| `externalId` | `string \| null` | External ID from SCIM or SAML |
+| `department` | `string \| null` | Organizational department from SAML |
+| `jobTitle` | `string \| null` | Job title from SAML |
+| `communities` | `CommunitySummaryResponseModel[]` | Communities the user belongs to |
+
+### CommunitySummaryResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | Community's unique identifier |
+| `name` | `string` | Community's name |
+| `description` | `string` | Community's description |
+| `memberCount` | `number` | Number of members in the community |
+| `tags` | `TagSummaryResponseModel[]` | Tags associated with the community |
+
+## Examples
+
+### Basic User Lookup
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function getUserDetails(userId: number) {
+  try {
+    const user = await sdk.users.get(userId);
+    
+    console.log(`User Details for ID ${userId}:`);
+    console.log(`Name: ${user.name}`);
+    console.log(`Reputation: ${user.reputation}`);
+    console.log(`Role: ${user.role}`);
+    
+    if (user.email) {
+      console.log(`Email: ${user.email}`);
+    }
+    
+    if (user.department) {
+      console.log(`Department: ${user.department}`);
+    }
+    
+    if (user.jobTitle) {
+      console.log(`Job Title: ${user.jobTitle}`);
+    }
+    
+    console.log(`Profile URL: ${user.webUrl}`);
+    
+    return user;
+  } catch (error) {
+    console.error(`Failed to get user ${userId}:`, error.message);
+    return null;
+  }
+}
+
+const userDetails = await getUserDetails(12345);
+```
+
+### Community Membership Analysis
+
+```typescript
+async function analyzeCommunityMembership(userId: number) {
+  const user = await sdk.users.get(userId);
+  
+  if (!user.communities || user.communities.length === 0) {
+    console.log(`${user.name} is not a member of any communities`);
+    return;
+  }
+  
+  console.log(`${user.name} belongs to ${user.communities.length} communities:`);
+  
+  user.communities.forEach(community => {
+    console.log(`\n- ${community.name}`);
+    console.log(`  Description: ${community.description}`);
+    console.log(`  Members: ${community.memberCount}`);
+    
+    if (community.tags && community.tags.length > 0) {
+      const tagNames = community.tags.map(tag => tag.name).join(', ');
+      console.log(`  Tags: ${tagNames}`);
+    }
+  });
+  
+  // Find most active community by member count
+  const mostActiveCommunity = user.communities.reduce((prev, current) => 
+    (current.memberCount || 0) > (prev.memberCount || 0) ? current : prev
+  );
+  
+  console.log(`\nMost active community: ${mostActiveCommunity.name} (${mostActiveCommunity.memberCount} members)`);
+  
+  return {
+    user,
+    communityCount: user.communities.length,
+    mostActiveCommunity
+  };
+}
+
+const membershipAnalysis = await analyzeCommunityMembership(12345);
+```
+
+### User Profile Validation
+
+```typescript
+async function validateUserProfile(userId: number) {
+  const user = await sdk.users.get(userId);
+  
+  const validation = {
+    hasCompleteProfile: true,
+    missingFields: [],
+    hasExternalIntegration: false,
+    hasCommunities: false,
+    recommendations: []
+  };
+  
+  // Check required fields
+  if (!user.name) {
+    validation.hasCompleteProfile = false;
+    validation.missingFields.push('name');
+  }
+  
+  if (!user.email) {
+    validation.missingFields.push('email');
+  }
+  
+  // Check optional profile enhancement fields
+  if (!user.department) {
+    validation.recommendations.push('Add department information for better organization');
+  }
+  
+  if (!user.jobTitle) {
+    validation.recommendations.push('Add job title for professional context');
+  }
+  
+  // Check external integration
+  if (user.externalId) {
+    validation.hasExternalIntegration = true;
+  } else {
+    validation.recommendations.push('Consider setting up SCIM or SAML integration');
+  }
+  
+  // Check community participation
+  if (user.communities && user.communities.length > 0) {
+    validation.hasCommunities = true;
+  } else {
+    validation.recommendations.push('Join relevant communities to enhance collaboration');
+  }
+  
+  console.log(`Profile Validation for ${user.name}:`);
+  console.log(`Complete Profile: ${validation.hasCompleteProfile ? 'Yes' : 'No'}`);
+  
+  if (validation.missingFields.length > 0) {
+    console.log(`Missing Fields: ${validation.missingFields.join(', ')}`);
+  }
+  
+  console.log(`External Integration: ${validation.hasExternalIntegration ? 'Yes' : 'No'}`);
+  console.log(`Community Member: ${validation.hasCommunities ? 'Yes' : 'No'}`);
+  
+  if (validation.recommendations.length > 0) {
+    console.log('\nRecommendations:');
+    validation.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return validation;
+}
+
+const profileValidation = await validateUserProfile(12345);
+```
+
+### Team vs Enterprise Context
+
+```typescript
+async function compareUserAcrossContexts(userId: number, teamId: string) {
+  try {
+    // Get user in enterprise context
+    const enterpriseUser = await sdk.users.get(userId);
+    
+    // Get user in team context
+    const teamUser = await sdk.forTeam(teamId).users.get(userId);
+    
+    console.log('=== Context Comparison ===');
+    console.log(`User: ${enterpriseUser.name || teamUser.name}`);
+    
+    console.log('\nEnterprise Context:');
+    console.log(`- Reputation: ${enterpriseUser.reputation}`);
+    console.log(`- Role: ${enterpriseUser.role}`);
+    console.log(`- Communities: ${enterpriseUser.communities?.length || 0}`);
+    
+    console.log('\nTeam Context:');
+    console.log(`- Reputation: ${teamUser.reputation}`);
+    console.log(`- Role: ${teamUser.role}`);
+    console.log(`- Communities: ${teamUser.communities?.length || 0}`);
+    
+    // Compare community memberships
+    const enterpriseCommunities = enterpriseUser.communities?.map(c => c.name) || [];
+    const teamCommunities = teamUser.communities?.map(c => c.name) || [];
+    
+    const sharedCommunities = enterpriseCommunities.filter(name => 
+      teamCommunities.includes(name)
+    );
+    
+    console.log(`\nShared Communities: ${sharedCommunities.length}`);
+    if (sharedCommunities.length > 0) {
+      console.log(`- ${sharedCommunities.join(', ')}`);
+    }
+    
+    return {
+      enterpriseUser,
+      teamUser,
+      sharedCommunities
+    };
+  } catch (error) {
+    console.error('Context comparison failed:', error.message);
+    return null;
+  }
+}
+
+const contextComparison = await compareUserAcrossContexts(12345, 'team-123');
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `UserNotFoundError` | 404 | User with specified ID does not exist |
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access user details |
+| `ValidationError` | 400 | Invalid user ID format |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { UserNotFoundError, ForbiddenError, ValidationError } from 'stack-overflow-sdk';
+
+async function safeGetUser(userId: number): Promise<UserDetailsResponseModel | null> {
+  try {
+    const user = await sdk.users.get(userId);
+    console.log(`Successfully retrieved user: ${user.name}`);
+    return user;
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      console.error(`User ${userId} not found`);
+    } else if (error instanceof ForbiddenError) {
+      console.error(`Cannot access user ${userId} - insufficient permissions`);
+    } else if (error instanceof ValidationError) {
+      console.error('Invalid user ID format');
+    } else {
+      console.error(`Failed to retrieve user ${userId}:`, error.message);
+    }
+    return null;
+  }
+}
+
+const user = await safeGetUser(12345);
+if (user) {
+  console.log(`User found: ${user.name}`);
+} else {
+  console.log('User could not be retrieved');
+}
+```
+
+### Bulk User Retrieval with Error Handling
+
+```typescript
+async function getMultipleUsersWithErrorHandling(userIds: number[]) {
+  const results = {
+    successful: [],
+    failed: [],
+    total: userIds.length
+  };
+  
+  for (const userId of userIds) {
+    try {
+      const user = await sdk.users.get(userId);
+      results.successful.push({ userId, user });
+      console.log(`✓ Retrieved user ${userId}: ${user.name}`);
+    } catch (error) {
+      results.failed.push({ userId, error: error.message });
+      console.log(`✗ Failed to retrieve user ${userId}: ${error.message}`);
+    }
+    
+    // Rate limiting delay
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  console.log(`\nResults: ${results.successful.length}/${results.total} successful`);
+  return results;
+}
+
+const bulkResults = await getMultipleUsersWithErrorHandling([123, 456, 789]);
+```
+
+## Notes
+
+- **Community Information**: The `communities` array provides insight into user collaboration patterns and organizational structure.
+- **Email Visibility**: Email addresses are only visible to administrators or when accessing your own user information.
+- **External Integration**: Users with `externalId`, `department`, and `jobTitle` values likely have SCIM or SAML integration configured.
+- **Profile URLs**: The `webUrl` property provides direct links to user profiles for UI integration.
+- **Context Sensitivity**: User details may vary between team and enterprise contexts, particularly community memberships.
+- **Performance**: Individual user lookups are efficient for small numbers of users. Use `getAll()` for bulk operations.
+- **Data Freshness**: User details are current as of the API call and may change between requests.
+- **Avatar URLs**: Profile pictures are typically cached and may not reflect immediate changes.

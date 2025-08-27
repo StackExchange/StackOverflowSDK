@@ -1,0 +1,558 @@
+---
+title: getAll()
+description: Retrieve paginated lists of tags with comprehensive filtering, sorting, and search capabilities.
+---
+
+# getAll()
+
+Retrieve paginated lists of tags with comprehensive filtering, sorting, and search capabilities.
+
+## Syntax
+
+```typescript
+async getAll(options: GetTagsOptions = {}): Promise<PaginatedTags>
+async search(partialName: string, options: Omit<GetTagsOptions, 'partialName'> = {}): Promise<PaginatedTags>
+async getWithSmes(options: Omit<GetTagsOptions, 'hasSmes'> = {}): Promise<PaginatedTags>
+async getWithoutSmes(options: Omit<GetTagsOptions, 'hasSmes'> = {}): Promise<PaginatedTags>
+async getWithSynonyms(options: Omit<GetTagsOptions, 'hasSynonyms'> = {}): Promise<PaginatedTags>
+async getWithoutSynonyms(options: Omit<GetTagsOptions, 'hasSynonyms'> = {}): Promise<PaginatedTags>
+async getAllByName(options: Omit<GetTagsOptions, 'sort' | 'order'> = {}): Promise<PaginatedTags>
+async getAllByCreationDate(options: Omit<GetTagsOptions, 'sort' | 'order'> = {}): Promise<PaginatedTags>
+async getAllByPostCount(options: Omit<GetTagsOptions, 'sort' | 'order'> = {}): Promise<PaginatedTags>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `GetTagsOptions` | No | Tag filtering and sorting options |
+
+### GetTagsOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `page` | `number` | No | Page number (defaults to 1) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| `sort` | `TagsSortParameter` | No | Sort field: `'name'`, `'postCount'`, or `'creationDate'` |
+| `order` | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+| `partialName` | `string` | No | Search for tags containing this text |
+| `hasSmes` | `boolean` | No | Filter by presence of Subject Matter Experts |
+| `hasSynonyms` | `boolean` | No | Filter by presence of tag synonyms |
+
+## Return Value
+
+Returns a `Promise<PaginatedTags>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of tags found |
+| `pageSize` | `number` | Number of results per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `TagsSortParameter` | Applied sort field |
+| `order` | `SortOrder` | Applied sort direction |
+| `items` | `TagSummaryResponseModel[]` | Array of tag summary objects |
+
+### TagSummaryResponseModel Properties
+
+Each tag summary includes basic information for list display purposes. For complete tag details, use the `get()` method.
+
+## Examples
+
+### Basic Tag Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all tags with default options
+const allTags = await sdk.tags.getAll();
+
+console.log(`Found ${allTags.totalCount} total tags`);
+console.log(`Page ${allTags.page} of ${allTags.totalPages}`);
+console.log(`Showing ${allTags.items?.length} tags on this page`);
+
+// Display tag information
+allTags.items?.forEach(tag => {
+  console.log(`- ${tag.name}: ${tag.postCount} posts`);
+  if (tag.subjectMatterExpertCount && tag.subjectMatterExpertCount > 0) {
+    console.log(`  SMEs: ${tag.subjectMatterExpertCount}`);
+  }
+  if (tag.watcherCount && tag.watcherCount > 0) {
+    console.log(`  Watchers: ${tag.watcherCount}`);
+  }
+});
+```
+
+### Advanced Filtering and Sorting
+
+```typescript
+async function exploreTagsWithFilters() {
+  // Get tags sorted by popularity (post count)
+  const popularTags = await sdk.tags.getAllByPostCount({
+    pageSize: 50
+  });
+  
+  console.log('Most Popular Tags:');
+  popularTags.items?.slice(0, 10).forEach((tag, index) => {
+    console.log(`${index + 1}. ${tag.name} - ${tag.postCount} posts`);
+  });
+  
+  // Find tags with Subject Matter Experts
+  const smeEnabledTags = await sdk.tags.getWithSmes({
+    pageSize: 30,
+    sort: 'name',
+    order: 'asc'
+  });
+  
+  console.log(`\nTags with SMEs: ${smeEnabledTags.totalCount}`);
+  smeEnabledTags.items?.forEach(tag => {
+    console.log(`- ${tag.name}: ${tag.subjectMatterExpertCount} SMEs`);
+  });
+  
+  // Get recently created tags
+  const recentTags = await sdk.tags.getAllByCreationDate({
+    pageSize: 20
+  });
+  
+  console.log('\nRecently Created Tags:');
+  recentTags.items?.forEach(tag => {
+    const createdDate = new Date(tag.creationDate || '').toLocaleDateString();
+    console.log(`- ${tag.name} (created: ${createdDate})`);
+  });
+  
+  // Find tags with synonyms
+  const tagsWithSynonyms = await sdk.tags.getWithSynonyms({
+    sort: 'postCount',
+    order: 'desc'
+  });
+  
+  console.log(`\nTags with Synonyms: ${tagsWithSynonyms.totalCount}`);
+  
+  return {
+    popularTags,
+    smeEnabledTags,
+    recentTags,
+    tagsWithSynonyms
+  };
+}
+
+const tagAnalysis = await exploreTagsWithFilters();
+```
+
+### Tag Search and Discovery
+
+```typescript
+async function searchAndDiscoverTags() {
+  // Search for JavaScript-related tags
+  const jsRelatedTags = await sdk.tags.search('javascript', {
+    pageSize: 30,
+    sort: 'postCount',
+    order: 'desc'
+  });
+  
+  console.log(`Found ${jsRelatedTags.totalCount} JavaScript-related tags:`);
+  jsRelatedTags.items?.forEach(tag => {
+    console.log(`- ${tag.name}: ${tag.postCount} posts`);
+  });
+  
+  // Search for Python tags with SMEs
+  const pythonTagsWithSmes = await sdk.tags.search('python', {
+    hasSmes: true,
+    sort: 'name',
+    order: 'asc'
+  });
+  
+  console.log(`\nPython tags with SMEs: ${pythonTagsWithSmes.totalCount}`);
+  pythonTagsWithSmes.items?.forEach(tag => {
+    console.log(`- ${tag.name}: ${tag.subjectMatterExpertCount} SMEs, ${tag.postCount} posts`);
+  });
+  
+  // Find Docker-related tags without SMEs (potential candidates for SME assignment)
+  const dockerTagsWithoutSmes = await sdk.tags.search('docker', {
+    hasSmes: false,
+    sort: 'postCount',
+    order: 'desc'
+  });
+  
+  console.log(`\nDocker tags needing SMEs: ${dockerTagsWithoutSmes.totalCount}`);
+  dockerTagsWithoutSmes.items?.slice(0, 5).forEach(tag => {
+    console.log(`- ${tag.name}: ${tag.postCount} posts (no SMEs assigned)`);
+  });
+  
+  return {
+    jsRelatedTags,
+    pythonTagsWithSmes,
+    dockerTagsWithoutSmes
+  };
+}
+
+const searchResults = await searchAndDiscoverTags();
+```
+
+### Tag Analytics and Reporting
+
+```typescript
+async function generateTagReport() {
+  // Get comprehensive tag statistics
+  const allTagsFirstPage = await sdk.tags.getAll({
+    pageSize: 100,
+    sort: 'postCount',
+    order: 'desc'
+  });
+  
+  const stats = {
+    totalTags: allTagsFirstPage.totalCount || 0,
+    topTags: allTagsFirstPage.items?.slice(0, 10) || [],
+    smeStats: {
+      tagsWithSmes: 0,
+      totalSmeCount: 0,
+      averageSmes: 0
+    },
+    watcherStats: {
+      tagsWithWatchers: 0,
+      totalWatchers: 0,
+      averageWatchers: 0
+    },
+    postStats: {
+      totalPosts: 0,
+      averagePosts: 0,
+      mostActiveTags: []
+    },
+    synonymStats: {
+      tagsWithSynonyms: 0,
+      percentageWithSynonyms: 0
+    }
+  };
+  
+  // Analyze first page of results
+  allTagsFirstPage.items?.forEach(tag => {
+    // SME statistics
+    if (tag.subjectMatterExpertCount && tag.subjectMatterExpertCount > 0) {
+      stats.smeStats.tagsWithSmes++;
+      stats.smeStats.totalSmeCount += tag.subjectMatterExpertCount;
+    }
+    
+    // Watcher statistics
+    if (tag.watcherCount && tag.watcherCount > 0) {
+      stats.watcherStats.tagsWithWatchers++;
+      stats.watcherStats.totalWatchers += tag.watcherCount;
+    }
+    
+    // Post statistics
+    if (tag.postCount) {
+      stats.postStats.totalPosts += tag.postCount;
+    }
+    
+    // Synonym statistics
+    if (tag.hasSynonyms) {
+      stats.synonymStats.tagsWithSynonyms++;
+    }
+  });
+  
+  // Calculate averages
+  const sampleSize = allTagsFirstPage.items?.length || 1;
+  stats.smeStats.averageSmes = stats.smeStats.totalSmeCount / Math.max(stats.smeStats.tagsWithSmes, 1);
+  stats.watcherStats.averageWatchers = stats.watcherStats.totalWatchers / Math.max(stats.watcherStats.tagsWithWatchers, 1);
+  stats.postStats.averagePosts = stats.postStats.totalPosts / sampleSize;
+  stats.synonymStats.percentageWithSynonyms = (stats.synonymStats.tagsWithSynonyms / sampleSize) * 100;
+  
+  // Most active tags (top 5)
+  stats.postStats.mostActiveTags = allTagsFirstPage.items?.slice(0, 5).map(tag => ({
+    name: tag.name,
+    postCount: tag.postCount || 0
+  })) || [];
+  
+  console.log('=== Tag Analytics Report ===');
+  console.log(`Total Tags: ${stats.totalTags.toLocaleString()}`);
+  console.log(`Sample Size: ${sampleSize} (top ${sampleSize} by post count)`);
+  
+  console.log('\nSubject Matter Expert Stats:');
+  console.log(`- Tags with SMEs: ${stats.smeStats.tagsWithSmes} (${((stats.smeStats.tagsWithSmes / sampleSize) * 100).toFixed(1)}%)`);
+  console.log(`- Total SME assignments: ${stats.smeStats.totalSmeCount}`);
+  console.log(`- Average SMEs per tag: ${stats.smeStats.averageSmes.toFixed(1)}`);
+  
+  console.log('\nTag Watcher Stats:');
+  console.log(`- Tags with watchers: ${stats.watcherStats.tagsWithWatchers}`);
+  console.log(`- Total watchers: ${stats.watcherStats.totalWatchers}`);
+  console.log(`- Average watchers per tag: ${stats.watcherStats.averageWatchers.toFixed(1)}`);
+  
+  console.log('\nPost Activity Stats:');
+  console.log(`- Total posts (sample): ${stats.postStats.totalPosts.toLocaleString()}`);
+  console.log(`- Average posts per tag: ${stats.postStats.averagePosts.toFixed(1)}`);
+  console.log('- Most active tags:');
+  stats.postStats.mostActiveTags.forEach((tag, index) => {
+    console.log(`  ${index + 1}. ${tag.name}: ${tag.postCount.toLocaleString()} posts`);
+  });
+  
+  console.log('\nSynonym Stats:');
+  console.log(`- Tags with synonyms: ${stats.synonymStats.tagsWithSynonyms} (${stats.synonymStats.percentageWithSynonyms.toFixed(1)}%)`);
+  
+  return stats;
+}
+
+const tagReport = await generateTagReport();
+```
+
+### Pagination and Bulk Operations
+
+```typescript
+async function processAllTags(processor: (tag: any, pageNumber: number) => void) {
+  console.log('Starting to process all tags...');
+  
+  let currentPage = 1;
+  let hasMorePages = true;
+  let totalProcessed = 0;
+  
+  while (hasMorePages) {
+    console.log(`Loading page ${currentPage}...`);
+    
+    const pageResults = await sdk.tags.getAll({
+      page: currentPage,
+      pageSize: 100,
+      sort: 'name',
+      order: 'asc'
+    });
+    
+    if (pageResults.items && pageResults.items.length > 0) {
+      pageResults.items.forEach(tag => {
+        processor(tag, currentPage);
+        totalProcessed++;
+      });
+      
+      console.log(`Page ${currentPage}: Processed ${pageResults.items.length} tags`);
+      console.log(`Total processed so far: ${totalProcessed} of ${pageResults.totalCount}`);
+      
+      hasMorePages = currentPage < (pageResults.totalPages || 0);
+      currentPage++;
+      
+      // Rate limiting delay
+      if (hasMorePages) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } else {
+      hasMorePages = false;
+    }
+  }
+  
+  console.log(`Processing complete: ${totalProcessed} tags processed`);
+  return totalProcessed;
+}
+
+// Example usage: Find all tags that need SME assignment
+const tagsNeedingSmes = [];
+await processAllTags((tag, pageNumber) => {
+  if (!tag.subjectMatterExpertCount && tag.postCount > 50) {
+    tagsNeedingSmes.push({
+      name: tag.name,
+      id: tag.id,
+      postCount: tag.postCount,
+      pageNumber
+    });
+  }
+});
+
+console.log(`Found ${tagsNeedingSmes.length} high-activity tags without SMEs:`);
+tagsNeedingSmes.slice(0, 10).forEach(tag => {
+  console.log(`- ${tag.name}: ${tag.postCount} posts`);
+});
+```
+
+### Tag Discovery Helpers
+
+```typescript
+// Using the built-in convenience methods
+async function useTagDiscoveryHelpers() {
+  // Find tags by partial name match
+  const reactTags = await sdk.tags.findTagsByName('react', 20);
+  console.log(`React-related tags: ${reactTags.totalCount}`);
+  reactTags.items?.forEach(tag => {
+    console.log(`- ${tag.name}`);
+  });
+  
+  // Get most recently created tags
+  const newTags = await sdk.tags.getRecentTags(15);
+  console.log(`\nRecently created tags: ${newTags.totalCount}`);
+  newTags.items?.forEach(tag => {
+    const created = new Date(tag.creationDate || '').toLocaleDateString();
+    console.log(`- ${tag.name} (${created})`);
+  });
+  
+  // Get most used tags
+  const popularTags = await sdk.tags.getMostUsedTags(25);
+  console.log(`\nMost used tags:`);
+  popularTags.items?.forEach((tag, index) => {
+    console.log(`${index + 1}. ${tag.name}: ${tag.postCount} posts`);
+  });
+  
+  return {
+    reactTags,
+    newTags,
+    popularTags
+  };
+}
+
+const discoveryResults = await useTagDiscoveryHelpers();
+```
+
+### Team vs Public Context Comparison
+
+```typescript
+async function compareTagContexts(teamId: string) {
+  try {
+    console.log('Comparing tag availability across contexts...');
+    
+    // Get public tags
+    const publicTags = await sdk.tags.getAll({
+      pageSize: 50,
+      sort: 'postCount',
+      order: 'desc'
+    });
+    
+    // Get team tags
+    const teamTags = await sdk.forTeam(teamId).tags.getAll({
+      pageSize: 50,
+      sort: 'postCount',
+      order: 'desc'
+    });
+    
+    const comparison = {
+      public: {
+        total: publicTags.totalCount || 0,
+        withSmes: publicTags.items?.filter(t => t.subjectMatterExpertCount && t.subjectMatterExpertCount > 0).length || 0,
+        withSynonyms: publicTags.items?.filter(t => t.hasSynonyms).length || 0,
+        avgPostCount: 0
+      },
+      team: {
+        total: teamTags.totalCount || 0,
+        withSmes: teamTags.items?.filter(t => t.subjectMatterExpertCount && t.subjectMatterExpertCount > 0).length || 0,
+        withSynonyms: teamTags.items?.filter(t => t.hasSynonyms).length || 0,
+        avgPostCount: 0
+      }
+    };
+    
+    // Calculate averages
+    if (publicTags.items?.length) {
+      comparison.public.avgPostCount = publicTags.items.reduce((sum, tag) => sum + (tag.postCount || 0), 0) / publicTags.items.length;
+    }
+    
+    if (teamTags.items?.length) {
+      comparison.team.avgPostCount = teamTags.items.reduce((sum, tag) => sum + (tag.postCount || 0), 0) / teamTags.items.length;
+    }
+    
+    console.log('\n=== Context Comparison ===');
+    console.log(`Public Tags: ${comparison.public.total.toLocaleString()}`);
+    console.log(`- With SMEs: ${comparison.public.withSmes}`);
+    console.log(`- With Synonyms: ${comparison.public.withSynonyms}`);
+    console.log(`- Avg Post Count: ${comparison.public.avgPostCount.toFixed(1)}`);
+    
+    console.log(`\nTeam Tags: ${comparison.team.total.toLocaleString()}`);
+    console.log(`- With SMEs: ${comparison.team.withSmes}`);
+    console.log(`- With Synonyms: ${comparison.team.withSynonyms}`);
+    console.log(`- Avg Post Count: ${comparison.team.avgPostCount.toFixed(1)}`);
+    
+    return comparison;
+  } catch (error) {
+    console.error('Context comparison failed:', error.message);
+    return null;
+  }
+}
+
+const contextComparison = await compareTagContexts('team-123');
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access tags |
+| `ValidationError` | 400 | Invalid filter parameters or sort options |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ValidationError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const tags = await sdk.tags.getAll({
+    pageSize: 50,
+    sort: 'postCount',
+    order: 'desc'
+  });
+  
+  console.log(`Retrieved ${tags.totalCount} tags successfully`);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Invalid parameters - check sort options and filters');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot access tags - insufficient permissions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access tags');
+  } else {
+    console.error('Failed to retrieve tags:', error.message);
+  }
+}
+```
+
+### Safe Tag Retrieval
+
+```typescript
+async function safeGetTags(options: GetTagsOptions = {}): Promise<PaginatedTags | null> {
+  try {
+    const tags = await sdk.tags.getAll(options);
+    console.log(`Successfully retrieved ${tags.items?.length} tags from page ${tags.page}`);
+    return tags;
+  } catch (error) {
+    console.warn('Failed to retrieve tags:', error.message);
+    
+    // Try with simplified options on failure
+    if (Object.keys(options).length > 0) {
+      console.log('Retrying with default options...');
+      try {
+        return await sdk.tags.getAll();
+      } catch (retryError) {
+        console.error('Retry also failed:', retryError.message);
+      }
+    }
+    
+    return null;
+  }
+}
+
+const tags = await safeGetTags({
+  sort: 'postCount',
+  order: 'desc',
+  pageSize: 50
+});
+
+if (tags) {
+  console.log(`Retrieved ${tags.totalCount} total tags`);
+} else {
+  console.log('Could not retrieve tags');
+}
+```
+
+## Notes
+
+- **Convenience Methods**: Use sorting and filtering convenience methods (`getAllByName`, `getWithSmes`, etc.) for cleaner, more readable code.
+- **Search Functionality**: The `search()` method performs partial name matching and is case-insensitive.
+- **SME Filtering**: Subject Matter Expert filtering helps identify tags with assigned expertise or those needing SME assignment.
+- **Synonym Awareness**: Tags with synonyms provide alternative naming options for better content organization.
+- **Performance**: Large tag collections should use pagination rather than attempting to retrieve all tags at once.
+- **Team Context**: Team tags may have different SME assignments and usage patterns compared to public tags.
+- **Sort Options**: Three sort fields available - name (alphabetical), postCount (popularity), and creationDate (recency).
+- **Rate Limiting**: Be mindful of API limits when iterating through multiple pages or performing bulk operations.

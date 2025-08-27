@@ -103,19 +103,31 @@ export default defineConfig({
 			{
 				label: 'Search',
 				items: [
-					{ label: '', slug: '' },
+					{ label: 'Searching Content', slug: 'search/search' },
+					{ label: 'Search Pagination', slug: 'search/searchpagination'},
 				]
 			},
    			{
    				label: 'Tags',
    				items: [
-   					{ label: 'search', slug: 'tags/search' },
+   					{ label: 'get', slug: 'tags/get' },
+					{ label: 'getAll', slug: 'tags/getall' },
+					{ label: 'getSubjectMatterExperts', slug: 'tags/getsmes' },
+					{ label: 'getTagWatchers', slug: 'tags/gettagwatchers' },
+					{ label: 'setSubjectMatterExperts', slug: 'tags/setsmes' },
+					{ label: 'SME User Management', slug: 'tags/smeusermanagement' },
+					{ label: 'SME User Group Management', slug: 'tags/smeusergroupmanagement' }
    				]
    			},
 			{
 				label: 'Users',
 				items: [
-					{ label: '', slug: '' }
+					{ label: 'get', slug: 'users/get' },
+					{ label: 'getall', slug: 'users/getall' },
+					{ label: 'getByEmail', slug: 'users/getbyemail' },
+					{ label: 'getByExternalId', slug: 'users/getbyexternalid' },
+					{ label: 'getCurrentUser', slug: 'users/getcurrentuser' },
+					{ label: 'manage', slug: 'users/manage' }
 				]
 			},
 			{

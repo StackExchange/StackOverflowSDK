@@ -1,0 +1,749 @@
+---
+title: search()
+description: Performs comprehensive search across questions, answers, and articles with flexible options for query, pagination, and sorting.
+---
+
+# search()
+
+Performs comprehensive search across questions, answers, and articles with flexible options for query, pagination, and sorting.
+
+## Syntax
+
+```typescript
+async search(options: SearchOptions = {}): Promise<PaginatedSearchResults>
+async query(query: string, options: Omit<SearchOptions, 'query'> = {}): Promise<PaginatedSearchResults>
+async searchByRelevance(query: string, options: Omit<SearchOptions, 'query' | 'sort'> = {}): Promise<PaginatedSearchResults>
+async searchByDate(query: string, options: Omit<SearchOptions, 'query' | 'sort'> = {}): Promise<PaginatedSearchResults>
+async searchByActivity(query: string, options: Omit<SearchOptions, 'query' | 'sort'> = {}): Promise<PaginatedSearchResults>
+async searchByVotes(query: string, options: Omit<SearchOptions, 'query' | 'sort'> = {}): Promise<PaginatedSearchResults>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `SearchOptions` | No | Search configuration options |
+
+### SearchOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `query` | `string` | No | Search query string |
+| `page` | `number` | No | Page number (defaults to 1) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| `sort` | `SearchSortParameter` | No | Sort order: `'relevance'`, `'newest'`, `'active'`, or `'score'` |
+
+## Return Value
+
+Returns a `Promise<PaginatedSearchResults>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of results found |
+| `pageSize` | `number` | Number of results per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `SearchSortParameter` | Applied sort order |
+| `items` | `Array<QuestionSearchResultModel \| AnswerSearchResultModel \| ArticleSearchResultModel>` | Search results |
+
+### Search Result Types
+
+Each result item contains a `type` field and type-specific properties:
+
+#### QuestionSearchResultModel
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `string` | Always `'question'` |
+| `questionId` | `number` | Question identifier |
+| `title` | `string` | Question title |
+| `snippet` | `string` | Content preview |
+| `score` | `number` | Question score |
+| `answerCount` | `number` | Number of answers |
+| `hasAcceptedAnswer` | `boolean` | Whether question has accepted answer |
+| `viewCount` | `number` | View count |
+| `tags` | `TagSummaryResponseModel[]` | Associated tags |
+| `owner` | `UserSummaryResponseModel` | Question author |
+| `creationDate` | `Date` | Creation timestamp |
+| `webUrl` | `string` | Direct URL to question |
+
+#### AnswerSearchResultModel
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `string` | Always `'answer'` |
+| `answerId` | `number` | Answer identifier |
+| `parentQuestionId` | `number` | Parent question ID |
+| `title` | `string` | Answer title (usually question title) |
+| `snippet` | `string` | Answer content preview |
+| `score` | `number` | Answer score |
+| `isAccepted` | `boolean` | Whether answer is accepted |
+| `tags` | `TagSummaryResponseModel[]` | Question tags |
+| `owner` | `UserSummaryResponseModel` | Answer author |
+| `creationDate` | `Date` | Creation timestamp |
+| `webUrl` | `string` | Direct URL to answer |
+
+#### ArticleSearchResultModel
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `string` | Always `'article'` |
+| `articleId` | `number` | Article identifier |
+| `title` | `string` | Article title |
+| `snippet` | `string` | Article content preview |
+| `score` | `number` | Article score |
+| `viewCount` | `number` | View count |
+| `articleType` | `ArticleType` | Article category |
+| `readTimeInMinutes` | `number` | Estimated reading time |
+| `tags` | `TagSummaryResponseModel[]` | Associated tags |
+| `owner` | `UserSummaryResponseModel` | Article author |
+| `creationDate` | `Date` | Creation timestamp |
+| `webUrl` | `string` | Direct URL to article |
+
+## Examples
+
+### Basic Search
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Simple search without query (returns recent content)
+const allResults = await sdk.search.search();
+
+console.log(`Found ${allResults.totalCount} total results`);
+console.log(`Page ${allResults.page} of ${allResults.totalPages}`);
+console.log(`Results per page: ${allResults.pageSize}`);
+
+// Process mixed result types
+allResults.items?.forEach(item => {
+  switch (item.type) {
+    case 'question':
+      console.log(`Q: ${item.title} (${item.answerCount} answers, score: ${item.score})`);
+      break;
+    case 'answer':
+      console.log(`A: ${item.title} (${item.isAccepted ? 'accepted' : 'not accepted'}, score: ${item.score})`);
+      break;
+    case 'article':
+      console.log(`Article: ${item.title} (${item.readTimeInMinutes} min read, score: ${item.score})`);
+      break;
+  }
+});
+```
+
+### Convenience Method Usage
+
+```typescript
+// Using query() - requires query parameter
+const queryResults = await sdk.search.query('typescript interfaces');
+
+// Using sort-specific convenience methods
+const relevantResults = await sdk.search.searchByRelevance('react hooks');
+const newestResults = await sdk.search.searchByDate('docker deployment');
+const activeResults = await sdk.search.searchByActivity('kubernetes monitoring');
+const topResults = await sdk.search.searchByVotes('javascript async');
+
+// All convenience methods accept the same options (except query/sort)
+const recentWithOptions = await sdk.search.searchByDate('python pandas', {
+  pageSize: 50,
+  page: 2
+});
+
+console.log(`Found ${recentWithOptions.totalCount} results sorted by date`);
+console.log(`Showing page ${recentWithOptions.page} with ${recentWithOptions.pageSize} results per page`);
+```
+
+### Search with Query and Options
+
+```typescript
+async function searchWithOptions() {
+  const results = await sdk.search.search({
+    query: 'javascript async await',
+    page: 1,
+    pageSize: 30,
+    sort: 'relevance'
+  });
+  
+  console.log(`Search: "${results.query}" - ${results.totalCount} results`);
+  console.log(`Sorted by: ${results.sort}`);
+  
+  // Filter by result type
+  const questions = results.items?.filter(item => item.type === 'question') || [];
+  const answers = results.items?.filter(item => item.type === 'answer') || [];
+  const articles = results.items?.filter(item => item.type === 'article') || [];
+  
+  console.log(`Found: ${questions.length} questions, ${answers.length} answers, ${articles.length} articles`);
+  
+  // Show top questions
+  questions.slice(0, 5).forEach((q, index) => {
+    console.log(`${index + 1}. ${q.title}`);
+    console.log(`   Score: ${q.score} | Answers: ${q.answerCount} | Views: ${q.viewCount}`);
+    console.log(`   Tags: ${q.tags?.map(t => t.name).join(', ')}`);
+    console.log(`   Snippet: ${q.snippet?.substring(0, 100)}...`);
+    console.log('');
+  });
+  
+  return results;
+}
+
+const searchResults = await searchWithOptions();
+```
+
+### Advanced Search Analysis
+
+```typescript
+async function analyzeSearchResults(query: string) {
+  const results = await sdk.search.search({
+    query,
+    pageSize: 100,
+    sort: 'relevance'
+  });
+  
+  // Analyze result distribution
+  const analysis = {
+    query,
+    totalResults: results.totalCount || 0,
+    pagination: {
+      currentPage: results.page || 1,
+      totalPages: results.totalPages || 0,
+      pageSize: results.pageSize || 0
+    },
+    typeDistribution: {
+      questions: 0,
+      answers: 0,
+      articles: 0
+    },
+    scoreStats: {
+      highest: 0,
+      lowest: 0,
+      average: 0,
+      total: 0
+    },
+    engagement: {
+      totalViews: 0,
+      totalAnswers: 0,
+      acceptedAnswers: 0,
+      averageReadTime: 0
+    },
+    tags: new Map<string, number>(),
+    authors: new Map<string, number>()
+  };
+  
+  // Process each result
+  results.items?.forEach(item => {
+    // Type distribution
+    if (item.type === 'question') {
+      analysis.typeDistribution.questions++;
+      analysis.engagement.totalViews += item.viewCount || 0;
+      analysis.engagement.totalAnswers += item.answerCount || 0;
+      if (item.hasAcceptedAnswer) {
+        analysis.engagement.acceptedAnswers++;
+      }
+    } else if (item.type === 'answer') {
+      analysis.typeDistribution.answers++;
+      if (item.isAccepted) {
+        analysis.engagement.acceptedAnswers++;
+      }
+    } else if (item.type === 'article') {
+      analysis.typeDistribution.articles++;
+      analysis.engagement.totalViews += item.viewCount || 0;
+      analysis.engagement.averageReadTime += item.readTimeInMinutes || 0;
+    }
+    
+    // Score statistics
+    const score = item.score || 0;
+    analysis.scoreStats.total += score;
+    if (score > analysis.scoreStats.highest) analysis.scoreStats.highest = score;
+    if (score < analysis.scoreStats.lowest) analysis.scoreStats.lowest = score;
+    
+    // Tag frequency
+    item.tags?.forEach(tag => {
+      const current = analysis.tags.get(tag.name) || 0;
+      analysis.tags.set(tag.name, current + 1);
+    });
+    
+    // Author frequency
+    if (item.owner?.displayName) {
+      const current = analysis.authors.get(item.owner.displayName) || 0;
+      analysis.authors.set(item.owner.displayName, current + 1);
+    }
+  });
+  
+  // Calculate averages
+  const itemCount = results.items?.length || 0;
+  if (itemCount > 0) {
+    analysis.scoreStats.average = analysis.scoreStats.total / itemCount;
+    if (analysis.typeDistribution.articles > 0) {
+      analysis.engagement.averageReadTime = analysis.engagement.averageReadTime / analysis.typeDistribution.articles;
+    }
+  }
+  
+  // Generate report
+  console.log(`\n=== Search Analysis: "${query}" ===`);
+  console.log(`Total Results: ${analysis.totalResults} (showing ${itemCount} on page ${analysis.pagination.currentPage})`);
+  
+  console.log('\nContent Distribution:');
+  console.log(`- Questions: ${analysis.typeDistribution.questions} (${((analysis.typeDistribution.questions / itemCount) * 100).toFixed(1)}%)`);
+  console.log(`- Answers: ${analysis.typeDistribution.answers} (${((analysis.typeDistribution.answers / itemCount) * 100).toFixed(1)}%)`);
+  console.log(`- Articles: ${analysis.typeDistribution.articles} (${((analysis.typeDistribution.articles / itemCount) * 100).toFixed(1)}%)`);
+  
+  console.log('\nScore Statistics:');
+  console.log(`- Highest: ${analysis.scoreStats.highest}`);
+  console.log(`- Lowest: ${analysis.scoreStats.lowest}`);
+  console.log(`- Average: ${analysis.scoreStats.average.toFixed(2)}`);
+  
+  console.log('\nEngagement Metrics:');
+  console.log(`- Total Views: ${analysis.engagement.totalViews.toLocaleString()}`);
+  console.log(`- Total Answers: ${analysis.engagement.totalAnswers}`);
+  console.log(`- Accepted Answers: ${analysis.engagement.acceptedAnswers}`);
+  if (analysis.engagement.averageReadTime > 0) {
+    console.log(`- Average Read Time: ${analysis.engagement.averageReadTime.toFixed(1)} minutes`);
+  }
+  
+  // Top tags
+  const topTags = Array.from(analysis.tags.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10);
+  
+  if (topTags.length > 0) {
+    console.log('\nTop Tags:');
+    topTags.forEach(([tag, count]) => {
+      console.log(`- ${tag}: ${count} results`);
+    });
+  }
+  
+  // Top authors
+  const topAuthors = Array.from(analysis.authors.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5);
+  
+  if (topAuthors.length > 0) {
+    console.log('\nTop Authors:');
+    topAuthors.forEach(([author, count]) => {
+      console.log(`- ${author}: ${count} results`);
+    });
+  }
+  
+  return analysis;
+}
+
+const analysis = await analyzeSearchResults('react hooks useState');
+```
+
+### Pagination Workflow
+
+```typescript
+async function searchAllPages(query: string, maxPages: number = 5) {
+  const allResults = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+  
+  console.log(`Starting comprehensive search for: "${query}"`);
+  
+  while (hasMorePages && currentPage <= maxPages) {
+    try {
+      console.log(`Loading page ${currentPage}...`);
+      
+      const pageResults = await sdk.search.search({
+        query,
+        page: currentPage,
+        pageSize: 50,
+        sort: 'relevance'
+      });
+      
+      if (pageResults.items && pageResults.items.length > 0) {
+        allResults.push(...pageResults.items);
+        
+        console.log(`Page ${currentPage}: Found ${pageResults.items.length} results`);
+        console.log(`Total so far: ${allResults.length} of ${pageResults.totalCount} results`);
+        
+        // Check if there are more pages
+        hasMorePages = currentPage < (pageResults.totalPages || 0);
+        currentPage++;
+        
+        // Add delay to avoid rate limiting
+        if (hasMorePages && currentPage <= maxPages) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } else {
+        hasMorePages = false;
+      }
+    } catch (error) {
+      console.error(`Failed to load page ${currentPage}:`, error.message);
+      hasMorePages = false;
+    }
+  }
+  
+  console.log(`\nCompleted search: Collected ${allResults.length} total results across ${currentPage - 1} pages`);
+  
+  return allResults;
+}
+
+const comprehensiveResults = await searchAllPages('typescript generics', 3);
+
+// Process all collected results
+const questionResults = comprehensiveResults.filter(item => item.type === 'question');
+const highScoreResults = comprehensiveResults.filter(item => (item.score || 0) > 5);
+
+console.log(`Found ${questionResults.length} questions with high scores: ${highScoreResults.length}`);
+```
+
+### Team vs Public Search
+
+```typescript
+async function compareSearchContexts(query: string, teamId: string) {
+  try {
+    console.log(`Comparing search results for: "${query}"`);
+    
+    // Search in public context
+    const publicResults = await sdk.search.search({
+      query,
+      pageSize: 30,
+      sort: 'relevance'
+    });
+    
+    // Search in team context
+    const teamResults = await sdk.forTeam(teamId).search.search({
+      query,
+      pageSize: 30,
+      sort: 'relevance'
+    });
+    
+    const comparison = {
+      query,
+      public: {
+        totalResults: publicResults.totalCount || 0,
+        questions: publicResults.items?.filter(i => i.type === 'question').length || 0,
+        answers: publicResults.items?.filter(i => i.type === 'answer').length || 0,
+        articles: publicResults.items?.filter(i => i.type === 'article').length || 0,
+        avgScore: 0
+      },
+      team: {
+        totalResults: teamResults.totalCount || 0,
+        questions: teamResults.items?.filter(i => i.type === 'question').length || 0,
+        answers: teamResults.items?.filter(i => i.type === 'answer').length || 0,
+        articles: teamResults.items?.filter(i => i.type === 'article').length || 0,
+        avgScore: 0
+      }
+    };
+    
+    // Calculate average scores
+    if (publicResults.items?.length) {
+      comparison.public.avgScore = publicResults.items.reduce((sum, item) => sum + (item.score || 0), 0) / publicResults.items.length;
+    }
+    
+    if (teamResults.items?.length) {
+      comparison.team.avgScore = teamResults.items.reduce((sum, item) => sum + (item.score || 0), 0) / teamResults.items.length;
+    }
+    
+    console.log('\n=== Search Context Comparison ===');
+    console.log(`\nPublic Results: ${comparison.public.totalResults}`);
+    console.log(`- Questions: ${comparison.public.questions}`);
+    console.log(`- Answers: ${comparison.public.answers}`);
+    console.log(`- Articles: ${comparison.public.articles}`);
+    console.log(`- Avg Score: ${comparison.public.avgScore.toFixed(2)}`);
+    
+    console.log(`\nTeam Results: ${comparison.team.totalResults}`);
+    console.log(`- Questions: ${comparison.team.questions}`);
+    console.log(`- Answers: ${comparison.team.answers}`);
+    console.log(`- Articles: ${comparison.team.articles}`);
+    console.log(`- Avg Score: ${comparison.team.avgScore.toFixed(2)}`);
+    
+    // Show unique content types
+    const publicTypes = new Set(publicResults.items?.map(i => i.type) || []);
+    const teamTypes = new Set(teamResults.items?.map(i => i.type) || []);
+    
+    console.log(`\nContent Types - Public: [${Array.from(publicTypes).join(', ')}]`);
+    console.log(`Content Types - Team: [${Array.from(teamTypes).join(', ')}]`);
+    
+    return comparison;
+  } catch (error) {
+    console.error('Context comparison failed:', error.message);
+    throw error;
+  }
+}
+
+const contextComparison = await compareSearchContexts('docker deployment', 'team-123');
+```
+
+### Search Result Processing
+
+```typescript
+async function processSearchResults(query: string) {
+  const results = await sdk.search.search({
+    query,
+    pageSize: 50,
+    sort: 'relevance'
+  });
+  
+  // Type-safe result processing
+  const processedResults = {
+    questions: [],
+    answers: [],
+    articles: [],
+    summary: {
+      totalFound: results.totalCount || 0,
+      processingDate: new Date().toISOString(),
+      query
+    }
+  };
+  
+  results.items?.forEach(item => {
+    const baseInfo = {
+      id: null,
+      title: item.title || '',
+      snippet: item.snippet || '',
+      score: item.score || 0,
+      author: item.owner?.displayName || 'Unknown',
+      created: item.creationDate,
+      url: item.webUrl || '',
+      tags: item.tags?.map(t => t.name) || []
+    };
+    
+    switch (item.type) {
+      case 'question':
+        processedResults.questions.push({
+          ...baseInfo,
+          id: item.questionId,
+          answerCount: item.answerCount || 0,
+          viewCount: item.viewCount || 0,
+          hasAcceptedAnswer: item.hasAcceptedAnswer || false,
+          type: 'question'
+        });
+        break;
+        
+      case 'answer':
+        processedResults.answers.push({
+          ...baseInfo,
+          id: item.answerId,
+          parentQuestionId: item.parentQuestionId,
+          isAccepted: item.isAccepted || false,
+          type: 'answer'
+        });
+        break;
+        
+      case 'article':
+        processedResults.articles.push({
+          ...baseInfo,
+          id: item.articleId,
+          viewCount: item.viewCount || 0,
+          readTimeMinutes: item.readTimeInMinutes || 0,
+          articleType: item.articleType,
+          type: 'article'
+        });
+        break;
+    }
+  });
+  
+  console.log(`Processed ${processedResults.questions.length} questions, ${processedResults.answers.length} answers, ${processedResults.articles.length} articles`);
+  
+  // Sort each type by score
+  processedResults.questions.sort((a, b) => b.score - a.score);
+  processedResults.answers.sort((a, b) => b.score - a.score);
+  processedResults.articles.sort((a, b) => b.score - a.score);
+  
+  return processedResults;
+}
+
+const processed = await processSearchResults('kubernetes monitoring');
+
+// Use processed results
+console.log('Top Questions:');
+processed.questions.slice(0, 3).forEach(q => {
+  console.log(`- ${q.title} (Score: ${q.score}, ${q.answerCount} answers)`);
+});
+
+console.log('\nTop Articles:');
+processed.articles.slice(0, 3).forEach(a => {
+  console.log(`- ${a.title} (${a.readTimeMinutes} min read, Score: ${a.score})`);
+});
+```
+
+### Search Performance Monitoring
+
+```typescript
+async function monitorSearchPerformance(query: string, iterations: number = 5) {
+  console.log(`Monitoring search performance for: "${query}" (${iterations} iterations)`);
+  
+  const results = [];
+  
+  for (let i = 1; i <= iterations; i++) {
+    const startTime = Date.now();
+    
+    try {
+      const searchResults = await sdk.search.search({
+        query,
+        pageSize: 30,
+        sort: 'relevance'
+      });
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      const iterationResult = {
+        iteration: i,
+        duration,
+        totalResults: searchResults.totalCount || 0,
+        returnedResults: searchResults.items?.length || 0,
+        success: true,
+        timestamp: new Date().toISOString()
+      };
+      
+      results.push(iterationResult);
+      
+      console.log(`Iteration ${i}: ${duration}ms - ${iterationResult.returnedResults}/${iterationResult.totalResults} results`);
+      
+      // Add delay between requests
+      if (i < iterations) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } catch (error) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      results.push({
+        iteration: i,
+        duration,
+        totalResults: 0,
+        returnedResults: 0,
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.error(`Iteration ${i} failed after ${duration}ms:`, error.message);
+    }
+  }
+  
+  // Calculate statistics
+  const successfulResults = results.filter(r => r.success);
+  const avgDuration = successfulResults.reduce((sum, r) => sum + r.duration, 0) / successfulResults.length;
+  const minDuration = Math.min(...successfulResults.map(r => r.duration));
+  const maxDuration = Math.max(...successfulResults.map(r => r.duration));
+  
+  console.log(`\n=== Performance Summary ===`);
+  console.log(`Successful requests: ${successfulResults.length}/${iterations}`);
+  console.log(`Average response time: ${avgDuration.toFixed(2)}ms`);
+  console.log(`Fastest response: ${minDuration}ms`);
+  console.log(`Slowest response: ${maxDuration}ms`);
+  
+  return {
+    query,
+    iterations,
+    results,
+    stats: {
+      successRate: (successfulResults.length / iterations) * 100,
+      avgDuration,
+      minDuration,
+      maxDuration
+    }
+  };
+}
+
+const performanceResults = await monitorSearchPerformance('api integration', 5);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions for search operation |
+| `ValidationError` | 400 | Invalid search parameters or query format |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ValidationError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const results = await sdk.search.search({
+    query: 'javascript promises',
+    pageSize: 50
+  });
+  
+  console.log(`Search completed: ${results.totalCount} results found`);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Invalid search parameters - check query format and options');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot perform search - insufficient permissions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required for search operation');
+  } else {
+    console.error('Search failed:', error.message);
+  }
+}
+```
+
+### Safe Search with Retry Logic
+
+```typescript
+async function safeSearch(query: string, maxRetries: number = 3): Promise<PaginatedSearchResults | null> {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Search attempt ${attempt}/${maxRetries} for: "${query}"`);
+      
+      const results = await sdk.search.search({
+        query,
+        pageSize: 30,
+        sort: 'relevance'
+      });
+      
+      console.log(`Search successful on attempt ${attempt}`);
+      return results;
+      
+    } catch (error) {
+      lastError = error;
+      console.warn(`Attempt ${attempt} failed:`, error.message);
+      
+      // Don't retry on certain error types
+      if (error instanceof ValidationError || error instanceof ForbiddenError) {
+        console.error('Non-retryable error encountered');
+        break;
+      }
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error(`Search failed after ${maxRetries} attempts:`, lastError?.message);
+  return null;
+}
+
+const results = await safeSearch('docker containers', 3);
+if (results) {
+  console.log(`Found ${results.totalCount} results`);
+} else {
+  console.log('Search could not be completed');
+}
+```
+
+## Notes
+
+- **Mixed Content Types**: Search returns questions, answers, and articles in a single result set. Use the `type` field to differentiate.
+- **Team vs Public Context**: Search scope depends on SDK initialization. Team searches are limited to team content.
+- **Pagination**: Results are paginated with comprehensive metadata. Use `totalPages` and current `page` to implement navigation.
+- **Sorting Options**: Four sort modes available - relevance (default), newest, active (most recent activity), and score (highest voted).
+- **Query Flexibility**: The `query` parameter is optional. Omitting it returns recent content across all types.
+- **Performance**: Search operations may take longer than single-item retrieval. Consider implementing caching for repeated queries.
+- **Rate Limiting**: Be mindful of API rate limits when performing multiple search operations or pagination loops.
+- **Content Snippets**: All result types include content previews in the `snippet` field for quick scanning.
+- **Tag Inheritance**: Answer results include tags from their parent questions for better searchability.

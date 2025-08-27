@@ -1,0 +1,266 @@
+---
+title: getAll()
+description: Retrieve paginated lists of users with sorting and filtering capabilities for both team and enterprise contexts.
+---
+
+# getAll()
+
+Retrieve paginated lists of users with sorting and filtering capabilities for both team and enterprise contexts.
+
+## Syntax
+
+```typescript
+async getAll(options: GetUsersOptions = {}): Promise<PaginatedUsers>
+async getAllByReputation(options: Omit<GetUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedUsers>
+async getTopUsers(limit?: number): Promise<PaginatedUsers>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `GetUsersOptions` | No | User filtering and sorting options |
+
+### GetUsersOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `page` | `number` | No | Page number (defaults to 1) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| `sort` | `UsersSortParameter` | No | Sort field: `'reputation'` |
+| `order` | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+
+## Return Value
+
+Returns a `Promise<PaginatedUsers>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of users found |
+| `pageSize` | `number` | Number of results per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `UsersSortParameter` | Applied sort field |
+| `order` | `SortOrder` | Applied sort direction |
+| `items` | `UserResponseModel[]` | Array of user summary objects |
+
+### UserResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `accountId` | `number \| null` | User's Stack Overflow network account ID |
+| `name` | `string` | User's display name |
+| `email` | `string \| null` | Email address (visible to admins only) |
+| `avatarUrl` | `string` | URL to user's profile picture |
+| `webUrl` | `string` | URL to user's profile page |
+| `reputation` | `number` | User's reputation score |
+| `role` | `string` | User's role on the site |
+| `externalId` | `string \| null` | External ID from SCIM or SAML |
+| `department` | `string \| null` | Organizational department from SAML |
+| `jobTitle` | `string \| null` | Job title from SAML |
+
+## Examples
+
+### Basic User Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all users with default options
+const allUsers = await sdk.users.getAll();
+console.log(`Found ${allUsers.totalCount} total users`);
+console.log(`Page ${allUsers.page} of ${allUsers.totalPages}`);
+
+// Display user information
+allUsers.items?.forEach(user => {
+  console.log(`- ${user.name} (${user.reputation} reputation)`);
+  console.log(`  Role: ${user.role}`);
+  if (user.department) {
+    console.log(`  Department: ${user.department}`);
+  }
+});
+```
+
+### Pagination and Sorting
+
+```typescript
+async function getUsersByReputation() {
+  // Get users sorted by reputation (highest first)
+  const topUsers = await sdk.users.getAllByReputation({
+    pageSize: 50
+  });
+  
+  console.log('Top Users by Reputation:');
+  topUsers.items?.slice(0, 10).forEach((user, index) => {
+    console.log(`${index + 1}. ${user.name} - ${user.reputation} reputation`);
+  });
+  
+  // Get specific page with custom page size
+  const page2Users = await sdk.users.getAll({
+    page: 2,
+    pageSize: 30,
+    sort: 'reputation',
+    order: 'desc'
+  });
+  
+  console.log(`\nPage 2 Users (${page2Users.items?.length} users):`);
+  page2Users.items?.forEach(user => {
+    console.log(`- ${user.name}: ${user.reputation} reputation`);
+  });
+  
+  return { topUsers, page2Users };
+}
+
+const userResults = await getUsersByReputation();
+```
+
+### Team vs Enterprise Context
+
+```typescript
+async function compareUserContexts(teamId: string) {
+  // Get enterprise users
+  const enterpriseUsers = await sdk.users.getAll({
+    pageSize: 50,
+    sort: 'reputation',
+    order: 'desc'
+  });
+  
+  // Get team users
+  const teamUsers = await sdk.forTeam(teamId).users.getAll({
+    pageSize: 50,
+    sort: 'reputation',
+    order: 'desc'
+  });
+  
+  console.log(`Enterprise Users: ${enterpriseUsers.totalCount}`);
+  console.log(`Team Users: ${teamUsers.totalCount}`);
+  
+  // Compare top users
+  const topEnterpriseUser = enterpriseUsers.items?.[0];
+  const topTeamUser = teamUsers.items?.[0];
+  
+  if (topEnterpriseUser && topTeamUser) {
+    console.log(`\nTop Enterprise User: ${topEnterpriseUser.name} (${topEnterpriseUser.reputation})`);
+    console.log(`Top Team User: ${topTeamUser.name} (${topTeamUser.reputation})`);
+  }
+  
+  return { enterpriseUsers, teamUsers };
+}
+
+const contextComparison = await compareUserContexts('team-123');
+```
+
+### Bulk User Processing
+
+```typescript
+async function processAllUsers(processor: (user: UserResponseModel, pageNumber: number) => void) {
+  console.log('Processing all users...');
+  
+  let currentPage = 1;
+  let hasMorePages = true;
+  let totalProcessed = 0;
+  
+  while (hasMorePages) {
+    console.log(`Loading page ${currentPage}...`);
+    
+    const pageResults = await sdk.users.getAll({
+      page: currentPage,
+      pageSize: 100,
+      sort: 'reputation',
+      order: 'desc'
+    });
+    
+    if (pageResults.items && pageResults.items.length > 0) {
+      pageResults.items.forEach(user => {
+        processor(user, currentPage);
+        totalProcessed++;
+      });
+      
+      console.log(`Page ${currentPage}: Processed ${pageResults.items.length} users`);
+      console.log(`Total processed: ${totalProcessed} of ${pageResults.totalCount}`);
+      
+      hasMorePages = currentPage < (pageResults.totalPages || 0);
+      currentPage++;
+      
+      // Rate limiting delay
+      if (hasMorePages) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } else {
+      hasMorePages = false;
+    }
+  }
+  
+  console.log(`Processing complete: ${totalProcessed} users processed`);
+  return totalProcessed;
+}
+
+// Example: Find high-reputation users without departments
+const highRepUsersWithoutDepts = [];
+await processAllUsers((user, pageNumber) => {
+  if (user.reputation && user.reputation > 1000 && !user.department) {
+    highRepUsersWithoutDepts.push({
+      name: user.name,
+      reputation: user.reputation,
+      pageNumber
+    });
+  }
+});
+
+console.log(`Found ${highRepUsersWithoutDepts.length} high-rep users without departments`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access users |
+| `ValidationError` | 400 | Invalid pagination or sort parameters |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ValidationError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+try {
+  const users = await sdk.users.getAll({
+    pageSize: 50,
+    sort: 'reputation',
+    order: 'desc'
+  });
+  
+  console.log(`Retrieved ${users.totalCount} users successfully`);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Invalid parameters - check page size and sort options');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot access users - insufficient permissions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access users');
+  } else {
+    console.error('Failed to retrieve users:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Limited Sorting**: Currently only supports sorting by reputation. Additional sort options may be available in management methods.
+- **Email Visibility**: User email addresses are only visible to administrators or when accessing your own user information.
+- **Team Context**: When using team context, results are filtered to team members only.
+- **Enterprise Context**: Enterprise context provides access to all users in the organization.
+- **Pagination**: Use pagination for large user bases rather than attempting to retrieve all users at once.
+- **Rate Limiting**: Be mindful of API limits when iterating through multiple pages.
+- **Convenience Methods**: Use `getAllByReputation()` and `getTopUsers()` for common use cases.
+- **External Integration**: Users may have `externalId`, `department`, and `jobTitle` populated via SCIM or SAML integration.
