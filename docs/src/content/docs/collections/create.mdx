@@ -1,0 +1,251 @@
+---
+title: create()
+description: Creates a new collection with specified title, description, content, and editor permissions.
+---
+
+# create()
+
+Creates a new collection with specified title, description, content, and editor permissions.
+
+## Syntax
+
+```typescript
+async create(options: CreateCollectionOptions): Promise<CollectionsResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `CreateCollectionOptions` | Yes | The collection creation options |
+
+### CreateCollectionOptions
+
+Based on the underlying `CollectionRequestModel`, the following properties are available:
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `title` | `string` | Yes | A brief title to distinguish the collection and its contents |
+| `description` | `string` | No | A detailed description of what the collection contains (supports Markdown) |
+| `editorUserIds` | `number[]` | No | The IDs of users who can modify this collection |
+| `editorUserGroupIds` | `number[]` | No | The IDs of user groups whose members can modify this collection |
+| `contentIds` | `number[]` | No | The IDs of questions and/or articles that this collection contains, in order |
+
+## Return Value
+
+Returns a `Promise<CollectionsResponseModel>` containing the newly created collection with all its properties. See the [get() method documentation](./get) for details on the `CollectionsResponseModel` structure.
+
+## Examples
+
+### Basic Collection Creation
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Create a simple collection
+const newCollection = await sdk.collections.create({
+  title: 'TypeScript Best Practices',
+  description: `# TypeScript Best Practices
+
+This collection contains articles and Q&A about TypeScript development best practices.
+
+## Topics Covered
+- Type definitions
+- Error handling
+- Performance optimization
+- Testing strategies`
+});
+
+console.log(`Created collection with ID: ${newCollection.id}`);
+console.log(`Collection title: ${newCollection.title}`);
+```
+
+### Collection with Initial Content
+
+```typescript
+// Create a collection with initial questions and articles
+const contentCollection = await sdk.collections.create({
+  title: 'React Development Guide',
+  description: 'Comprehensive guide for React developers covering common patterns and solutions.',
+  contentIds: [123, 456, 789] // IDs of existing questions/articles
+});
+
+console.log(`Created collection with ${contentCollection.content?.length || 0} initial items`);
+```
+
+### Collection with Editor Permissions
+
+```typescript
+// Create a collection with specific editors
+const teamCollection = await sdk.collections.create({
+  title: 'Team Knowledge Base',
+  description: 'Internal knowledge base for the development team.',
+  editorUserIds: [123, 456, 789], // Specific team members who can edit
+  editorUserGroupIds: [10, 20], // Groups whose members can edit
+  contentIds: [101, 102, 103] // Initial content
+});
+
+console.log(`Created team collection with ${teamCollection.editorUsers?.length || 0} individual editors`);
+console.log(`Editor groups: ${teamCollection.editorUserGroups?.length || 0}`);
+```
+
+### Documentation Collection
+
+```typescript
+// Create a comprehensive documentation collection
+const docsCollection = await sdk.collections.create({
+  title: 'API Documentation',
+  description: `# API Documentation Collection
+
+This collection contains all documentation related to our API endpoints.
+
+## Sections
+- **Authentication** - How to authenticate with the API
+- **Endpoints** - Detailed endpoint documentation
+- **Examples** - Code examples and tutorials
+- **Troubleshooting** - Common issues and solutions
+
+## Maintenance
+This collection is maintained by the API team and updated regularly.`,
+  editorUserIds: [123, 456], // API team members
+  editorUserGroupIds: [5], // API team group
+  contentIds: [201, 202, 203, 204, 205] // Documentation articles
+});
+
+console.log(`Created documentation collection: ${docsCollection.title}`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamCollection = await teamSDK.collections.create({
+  title: 'Team-Specific Collection',
+  description: 'Collection for internal team use.',
+  editorUserGroupIds: [15] // Team-specific group
+});
+
+// Or with direct client initialization
+import { CollectionClient } from 'stack-overflow-sdk';
+const teamCollectionClient = new CollectionClient(config, 'team-123');
+const collection = await teamCollectionClient.create({
+  title: 'Team Collection',
+  description: 'Internal collection'
+});
+```
+
+### Batch Collection Creation
+
+```typescript
+interface CollectionTemplate {
+  title: string;
+  description: string;
+  editorUserIds?: number[];
+  editorUserGroupIds?: number[];
+  contentIds?: number[];
+}
+
+async function createMultipleCollections(templates: CollectionTemplate[]) {
+  const createdCollections = [];
+  const errors = [];
+
+  for (const template of templates) {
+    try {
+      const collection = await sdk.collections.create(template);
+      createdCollections.push(collection);
+      console.log(`✓ Created: ${collection.title}`);
+    } catch (error) {
+      errors.push({ 
+        title: template.title, 
+        error: error.message 
+      });
+      console.error(`✗ Failed to create "${template.title}":`, error.message);
+    }
+  }
+
+  return { createdCollections, errors };
+}
+
+const collectionTemplates = [
+  {
+    title: 'Frontend Development',
+    description: 'Resources for frontend developers',
+    contentIds: [401, 402, 403]
+  },
+  {
+    title: 'Backend Development', 
+    description: 'Server-side development resources',
+    contentIds: [501, 502, 503]
+  }
+];
+
+const result = await createMultipleCollections(collectionTemplates);
+console.log(`Created ${result.createdCollections.length} collections successfully`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to create collections |
+| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ForbiddenError, SDKError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const collection = await sdk.collections.create({
+    title: 'My New Collection',
+    description: 'A collection for organizing important content',
+    editorUserIds: [456],
+    contentIds: [123, 789]
+  });
+  
+  console.log(`Collection created successfully: ${collection.title}`);
+  console.log(`Collection ID: ${collection.id}`);
+} catch (error) {
+  if (error instanceof ForbiddenError) {
+    console.error('Access denied - insufficient permissions to create collections');
+  } else if (error instanceof SDKError) {
+    if (error.message.includes('title')) {
+      console.error('Invalid title - title is required');
+    } else if (error.message.includes('contentIds')) {
+      console.error('Invalid content IDs - some referenced items may not exist');
+    } else {
+      console.error('Validation error:', error.message);
+    }
+  } else {
+    console.error('Failed to create collection:', error.message);
+  }
+}
+```
+
+## Notes
+
+- The `title` field is required and cannot be empty
+- The `description` field supports Markdown formatting for rich content
+- Editor permissions can be granted to individual users (`editorUserIds`) and/or user groups (`editorUserGroupIds`)
+- Initial content can be added via `contentIds` - these must be existing question or article IDs
+- The content order in the collection will match the order of IDs in the `contentIds` array
+- The authenticated user automatically becomes the owner of the created collection
+- Collections are created in the context (public or team) determined by how the client was initialized
+- Editor users and groups must exist and be accessible in the same context as the collection
+- Content items specified in `contentIds` must exist and be accessible to the authenticated user
+- The returned collection object includes all fields populated by the server (ID, creation date, etc.)

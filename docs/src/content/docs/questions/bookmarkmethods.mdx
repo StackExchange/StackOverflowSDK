@@ -1,0 +1,789 @@
+---
+title: Bookmark Methods
+description: Bookmark questions for personal reference and later access. Bookmarks are private and only visible to the user who created them.
+---
+
+# Bookmark Methods
+
+Bookmark questions for personal reference and later access. Bookmarks are private and only visible to the user who created them.
+
+## bookmark()
+
+Bookmarks a question for personal reference, allowing quick access later.
+
+### Syntax
+```typescript
+async bookmark(questionId: number): Promise<QuestionResponseModel>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to bookmark |
+
+---
+
+## removeBookmark()
+
+Removes a bookmark from a previously bookmarked question.
+
+### Syntax
+```typescript
+async removeBookmark(questionId: number): Promise<QuestionResponseModel>
+```
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to remove bookmark from |
+
+## Return Value
+
+Both methods return a `Promise<QuestionResponseModel>` containing the updated question with the `userHasBookmarked` property reflecting the current bookmark status.
+
+## Examples
+
+### Basic Bookmark Operations
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Bookmark a question
+const bookmarkedQuestion = await sdk.questions.bookmark(12345);
+console.log(`Bookmarked: ${bookmarkedQuestion.title}`);
+console.log(`Is bookmarked: ${bookmarkedQuestion.userHasBookmarked}`);
+
+// Remove a bookmark
+const unbookmarkedQuestion = await sdk.questions.removeBookmark(12345);
+console.log(`Removed bookmark from: ${unbookmarkedQuestion.title}`);
+console.log(`Is bookmarked: ${unbookmarkedQuestion.userHasBookmarked}`);
+```
+
+### Smart Bookmark Management
+
+```typescript
+async function manageBookmark(questionId: number, shouldBookmark: boolean) {
+  try {
+    // Get current bookmark status
+    const question = await sdk.questions.get(questionId);
+    
+    console.log(`Managing bookmark for: ${question.title}`);
+    console.log(`Current bookmark status: ${question.userHasBookmarked}`);
+    
+    if (shouldBookmark && !question.userHasBookmarked) {
+      console.log('Adding bookmark...');
+      const bookmarked = await sdk.questions.bookmark(questionId);
+      console.log(`Bookmark added successfully`);
+      return { action: 'added', question: bookmarked };
+    } else if (!shouldBookmark && question.userHasBookmarked) {
+      console.log('Removing bookmark...');
+      const unbookmarked = await sdk.questions.removeBookmark(questionId);
+      console.log(`Bookmark removed successfully`);
+      return { action: 'removed', question: unbookmarked };
+    } else {
+      console.log('No action needed - bookmark status already matches desired state');
+      return { action: 'no_change', question };
+    }
+  } catch (error) {
+    console.error('Bookmark management failed:', error.message);
+    throw error;
+  }
+}
+
+// Usage examples
+const addBookmark = await manageBookmark(12345, true);
+const removeBookmark = await manageBookmark(12346, false);
+```
+
+### Bookmark Collection Management
+
+```typescript
+async function createBookmarkCollection(name: string, questionIds: number[], description?: string) {
+  console.log(`Creating bookmark collection "${name}" with ${questionIds.length} questions...`);
+  
+  const collection = {
+    name,
+    description: description || '',
+    created: new Date().toISOString(),
+    questions: [],
+    failed: []
+  };
+  
+  for (let i = 0; i < questionIds.length; i++) {
+    const questionId = questionIds[i];
+    
+    try {
+      console.log(`Bookmarking question ${i + 1}/${questionIds.length}: ${questionId}`);
+      
+      const bookmarked = await sdk.questions.bookmark(questionId);
+      
+      collection.questions.push({
+        id: bookmarked.id,
+        title: bookmarked.title,
+        score: bookmarked.score,
+        tags: bookmarked.tags?.map(t => t.name) || [],
+        bookmarked: bookmarked.userHasBookmarked,
+        url: bookmarked.webUrl
+      });
+      
+      console.log(`✓ Bookmarked: ${bookmarked.title}`);
+      
+      // Rate limiting delay
+      if (i < questionIds.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+    } catch (error) {
+      console.error(`✗ Failed to bookmark question ${questionId}:`, error.message);
+      collection.failed.push({ questionId, error: error.message });
+    }
+  }
+  
+  console.log(`\nBookmark collection "${name}" created:`);
+  console.log(`- Successfully bookmarked: ${collection.questions.length}`);
+  console.log(`- Failed: ${collection.failed.length}`);
+  
+  return collection;
+}
+
+// Create themed bookmark collections
+const learningCollection = await createBookmarkCollection(
+  'TypeScript Learning',
+  [12345, 12346, 12347],
+  'Questions about TypeScript patterns and best practices'
+);
+
+const troubleshootingCollection = await createBookmarkCollection(
+  'Common Issues',
+  [12348, 12349, 12350],
+  'Questions about debugging and problem solving'
+);
+```
+
+### Reading List Management
+
+```typescript
+async function manageReadingList() {
+  const readingList = {
+    toRead: [],
+    inProgress: [],
+    completed: [],
+    archived: []
+  };
+  
+  // This would typically integrate with a persistence layer
+  // For demo purposes, we'll use local arrays
+  
+  async function addToReadingList(questionId: number, category: keyof typeof readingList = 'toRead') {
+    try {
+      const bookmarked = await sdk.questions.bookmark(questionId);
+      
+      const item = {
+        id: bookmarked.id,
+        title: bookmarked.title,
+        score: bookmarked.score,
+        answerCount: bookmarked.answerCount,
+        tags: bookmarked.tags?.map(t => t.name) || [],
+        addedAt: new Date().toISOString(),
+        url: bookmarked.webUrl
+      };
+      
+      readingList[category].push(item);
+      
+      console.log(`Added to ${category}: ${bookmarked.title}`);
+      return item;
+    } catch (error) {
+      console.error('Failed to add to reading list:', error.message);
+      throw error;
+    }
+  }
+  
+  async function moveInReadingList(questionId: number, fromCategory: keyof typeof readingList, toCategory: keyof typeof readingList) {
+    const itemIndex = readingList[fromCategory].findIndex(item => item.id === questionId);
+    
+    if (itemIndex === -1) {
+      throw new Error(`Question ${questionId} not found in ${fromCategory}`);
+    }
+    
+    const item = readingList[fromCategory].splice(itemIndex, 1)[0];
+    item.movedAt = new Date().toISOString();
+    readingList[toCategory].push(item);
+    
+    console.log(`Moved "${item.title}" from ${fromCategory} to ${toCategory}`);
+    return item;
+  }
+  
+  async function removeFromReadingList(questionId: number) {
+    // Remove from all categories and unbookmark
+    for (const [category, items] of Object.entries(readingList)) {
+      const itemIndex = items.findIndex(item => item.id === questionId);
+      if (itemIndex !== -1) {
+        const removed = items.splice(itemIndex, 1)[0];
+        await sdk.questions.removeBookmark(questionId);
+        console.log(`Removed "${removed.title}" from reading list`);
+        return removed;
+      }
+    }
+    
+    throw new Error(`Question ${questionId} not found in reading list`);
+  }
+  
+  function getReadingListSummary() {
+    return {
+      toRead: readingList.toRead.length,
+      inProgress: readingList.inProgress.length,
+      completed: readingList.completed.length,
+      archived: readingList.archived.length,
+      total: Object.values(readingList).reduce((sum, list) => sum + list.length, 0)
+    };
+  }
+  
+  return {
+    addToReadingList,
+    moveInReadingList,
+    removeFromReadingList,
+    getReadingListSummary,
+    readingList
+  };
+}
+
+const readingListManager = await manageReadingList();
+
+// Add questions to reading list
+await readingListManager.addToReadingList(12345, 'toRead');
+await readingListManager.addToReadingList(12346, 'toRead');
+
+// Move question to in-progress
+await readingListManager.moveInReadingList(12345, 'toRead', 'inProgress');
+
+// Get summary
+const summary = readingListManager.getReadingListSummary();
+console.log('Reading List Summary:', summary);
+```
+
+### Bookmark-Based Learning Tracker
+
+```typescript
+async function createLearningTracker(subject: string) {
+  console.log(`Creating learning tracker for: ${subject}`);
+  
+  const tracker = {
+    subject,
+    created: new Date().toISOString(),
+    questions: {
+      fundamentals: [],
+      intermediate: [],
+      advanced: [],
+      reference: []
+    },
+    progress: {
+      bookmarked: 0,
+      studied: 0,
+      mastered: 0
+    }
+  };
+  
+  async function categorizeAndBookmark(questionId: number, difficulty: keyof typeof tracker.questions) {
+    try {
+      const bookmarked = await sdk.questions.bookmark(questionId);
+      
+      // Analyze question to confirm difficulty level
+      const analysis = analyzeQuestionDifficulty(bookmarked);
+      
+      const entry = {
+        id: bookmarked.id,
+        title: bookmarked.title,
+        score: bookmarked.score,
+        answerCount: bookmarked.answerCount,
+        tags: bookmarked.tags?.map(t => t.name) || [],
+        difficulty: difficulty,
+        suggestedDifficulty: analysis.level,
+        complexity: analysis.complexity,
+        bookmarkedAt: new Date().toISOString(),
+        status: 'bookmarked' as 'bookmarked' | 'studied' | 'mastered',
+        url: bookmarked.webUrl
+      };
+      
+      tracker.questions[difficulty].push(entry);
+      tracker.progress.bookmarked++;
+      
+      if (analysis.level !== difficulty) {
+        console.log(`⚠️  Difficulty mismatch: Categorized as ${difficulty}, but analysis suggests ${analysis.level}`);
+      }
+      
+      console.log(`Added to ${difficulty}: ${bookmarked.title} (Complexity: ${analysis.complexity}/10)`);
+      return entry;
+    } catch (error) {
+      console.error('Failed to categorize and bookmark:', error.message);
+      throw error;
+    }
+  }
+  
+  async function updateProgress(questionId: number, status: 'studied' | 'mastered') {
+    for (const category of Object.values(tracker.questions)) {
+      const question = category.find(q => q.id === questionId);
+      if (question) {
+        const oldStatus = question.status;
+        question.status = status;
+        question.updatedAt = new Date().toISOString();
+        
+        // Update progress counters
+        if (oldStatus === 'bookmarked') tracker.progress.bookmarked--;
+        if (oldStatus === 'studied' && status === 'mastered') tracker.progress.studied--;
+        
+        tracker.progress[status]++;
+        
+        console.log(`Updated "${question.title}" status: ${oldStatus} → ${status}`);
+        return question;
+      }
+    }
+    
+    throw new Error(`Question ${questionId} not found in learning tracker`);
+  }
+  
+  function getProgressSummary() {
+    const totalQuestions = Object.values(tracker.questions).reduce((sum, list) => sum + list.length, 0);
+    const completionRate = totalQuestions > 0 ? (tracker.progress.mastered / totalQuestions * 100) : 0;
+    
+    return {
+      subject: tracker.subject,
+      totalQuestions,
+      progress: tracker.progress,
+      completionRate: parseFloat(completionRate.toFixed(1)),
+      distribution: {
+        fundamentals: tracker.questions.fundamentals.length,
+        intermediate: tracker.questions.intermediate.length,
+        advanced: tracker.questions.advanced.length,
+        reference: tracker.questions.reference.length
+      }
+    };
+  }
+  
+  return {
+    categorizeAndBookmark,
+    updateProgress,
+    getProgressSummary,
+    tracker
+  };
+}
+
+function analyzeQuestionDifficulty(question: any): { level: string, complexity: number } {
+  let complexity = 0;
+  
+  // Tag-based complexity
+  const tags = question.tags?.map(t => t.name.toLowerCase()) || [];
+  const advancedTags = ['advanced', 'performance', 'architecture', 'design-patterns'];
+  const intermediateTags = ['async', 'promises', 'generics', 'optimization'];
+  
+  if (tags.some(tag => advancedTags.includes(tag))) complexity += 4;
+  else if (tags.some(tag => intermediateTags.includes(tag))) complexity += 2;
+  else complexity += 1;
+  
+  // Content complexity
+  const bodyLength = question.bodyMarkdown?.length || 0;
+  if (bodyLength > 800) complexity += 2;
+  else if (bodyLength > 400) complexity += 1;
+  
+  // Code complexity
+  const codeBlocks = (question.bodyMarkdown || '').match(/```/g)?.length || 0;
+  complexity += Math.min(codeBlocks / 2, 2);
+  
+  // Community engagement complexity
+  if (question.score > 10) complexity += 1;
+  if (question.answerCount > 5) complexity += 1;
+  
+  complexity = Math.min(complexity, 10);
+  
+  let level: string;
+  if (complexity <= 3) level = 'fundamentals';
+  else if (complexity <= 6) level = 'intermediate';
+  else if (complexity <= 8) level = 'advanced';
+  else level = 'reference';
+  
+  return { level, complexity };
+}
+
+// Create learning tracker for TypeScript
+const tsLearningTracker = await createLearningTracker('TypeScript');
+
+// Add questions to different categories
+await tsLearningTracker.categorizeAndBookmark(12345, 'fundamentals');
+await tsLearningTracker.categorizeAndBookmark(12346, 'intermediate');
+await tsLearningTracker.categorizeAndBookmark(12347, 'advanced');
+
+// Update progress
+await tsLearningTracker.updateProgress(12345, 'studied');
+await tsLearningTracker.updateProgress(12345, 'mastered');
+
+// Get progress summary
+const learningProgress = tsLearningTracker.getProgressSummary();
+console.log('Learning Progress:', learningProgress);
+```
+
+### Bookmark Analytics and Insights
+
+```typescript
+async function analyzeBookmarkPatterns(bookmarkedQuestionIds: number[]) {
+  console.log(`Analyzing bookmark patterns for ${bookmarkedQuestionIds.length} questions...`);
+  
+  const analysis = {
+    questions: [],
+    patterns: {
+      topTags: new Map<string, number>(),
+      scoreDistribution: { low: 0, medium: 0, high: 0 },
+      answerStatus: { answered: 0, unanswered: 0 },
+      timeDistribution: { recent: 0, old: 0 },
+      complexity: { simple: 0, moderate: 0, complex: 0 }
+    },
+    insights: [],
+    recommendations: []
+  };
+  
+  for (const questionId of bookmarkedQuestionIds) {
+    try {
+      const question = await sdk.questions.get(questionId);
+      
+      if (question.userHasBookmarked) {
+        const questionData = {
+          id: question.id,
+          title: question.title,
+          score: question.score,
+          answerCount: question.answerCount,
+          isAnswered: question.isAnswered,
+          tags: question.tags?.map(t => t.name) || [],
+          creationDate: question.creationDate,
+          age: Math.floor((Date.now() - new Date(question.creationDate).getTime()) / (1000 * 60 * 60 * 24))
+        };
+        
+        analysis.questions.push(questionData);
+        
+        // Analyze tags
+        questionData.tags.forEach(tag => {
+          analysis.patterns.topTags.set(tag, (analysis.patterns.topTags.get(tag) || 0) + 1);
+        });
+        
+        // Score distribution
+        if (question.score <= 0) analysis.patterns.scoreDistribution.low++;
+        else if (question.score <= 5) analysis.patterns.scoreDistribution.medium++;
+        else analysis.patterns.scoreDistribution.high++;
+        
+        // Answer status
+        if (question.isAnswered) analysis.patterns.answerStatus.answered++;
+        else analysis.patterns.answerStatus.unanswered++;
+        
+        // Time distribution (recent = last 30 days)
+        if (questionData.age <= 30) analysis.patterns.timeDistribution.recent++;
+        else analysis.patterns.timeDistribution.old++;
+        
+        // Complexity assessment
+        const complexity = assessBookmarkComplexity(question);
+        if (complexity <= 3) analysis.patterns.complexity.simple++;
+        else if (complexity <= 6) analysis.patterns.complexity.moderate++;
+        else analysis.patterns.complexity.complex++;
+        
+      }
+    } catch (error) {
+      console.error(`Failed to analyze question ${questionId}:`, error.message);
+    }
+  }
+  
+  // Generate insights
+  analysis.insights = generateBookmarkInsights(analysis);
+  analysis.recommendations = generateBookmarkRecommendations(analysis);
+  
+  // Convert top tags map to sorted array
+  const sortedTags = Array.from(analysis.patterns.topTags.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10);
+  
+  console.log('Bookmark Analysis Results:');
+  console.log(`- Total bookmarked questions: ${analysis.questions.length}`);
+  console.log(`- Top tags: ${sortedTags.map(([tag, count]) => `${tag}(${count})`).join(', ')}`);
+  console.log(`- Score distribution: Low(${analysis.patterns.scoreDistribution.low}), Medium(${analysis.patterns.scoreDistribution.medium}), High(${analysis.patterns.scoreDistribution.high})`);
+  console.log(`- Answer status: Answered(${analysis.patterns.answerStatus.answered}), Unanswered(${analysis.patterns.answerStatus.unanswered})`);
+  
+  console.log('\nInsights:');
+  analysis.insights.forEach(insight => console.log(`- ${insight}`));
+  
+  console.log('\nRecommendations:');
+  analysis.recommendations.forEach(rec => console.log(`- ${rec}`));
+  
+  return { ...analysis, topTags: sortedTags };
+}
+
+function assessBookmarkComplexity(question: any): number {
+  let complexity = 1;
+  
+  // Advanced tags increase complexity
+  const advancedKeywords = ['advanced', 'performance', 'optimization', 'architecture', 'design-pattern'];
+  const tags = question.tags?.map(t => t.name.toLowerCase()) || [];
+  
+  if (tags.some(tag => advancedKeywords.some(keyword => tag.includes(keyword)))) {
+    complexity += 3;
+  }
+  
+  // Long content suggests complexity
+  if ((question.bodyMarkdown?.length || 0) > 500) complexity += 2;
+  
+  // Multiple code blocks suggest complexity
+  const codeBlocks = (question.bodyMarkdown || '').match(/```/g)?.length || 0;
+  complexity += Math.min(codeBlocks, 3);
+  
+  // High engagement suggests complexity
+  if (question.score > 5 && question.answerCount > 2) complexity += 1;
+  
+  return Math.min(complexity, 10);
+}
+
+function generateBookmarkInsights(analysis: any): string[] {
+  const insights = [];
+  const total = analysis.questions.length;
+  
+  if (analysis.patterns.answerStatus.unanswered / total > 0.3) {
+    insights.push('You tend to bookmark unanswered questions - good for tracking unsolved problems');
+  }
+  
+  if (analysis.patterns.scoreDistribution.high / total > 0.4) {
+    insights.push('You bookmark high-quality questions - shows good content curation');
+  }
+  
+  if (analysis.patterns.timeDistribution.recent / total > 0.6) {
+    insights.push('Most bookmarks are recent - you stay current with new content');
+  }
+  
+  if (analysis.patterns.complexity.complex / total > 0.4) {
+    insights.push('You bookmark complex topics - indicates advanced learning focus');
+  }
+  
+  return insights;
+}
+
+function generateBookmarkRecommendations(analysis: any): string[] {
+  const recommendations = [];
+  const total = analysis.questions.length;
+  
+  if (analysis.patterns.answerStatus.unanswered / total > 0.5) {
+    recommendations.push('Consider reviewing unanswered bookmarks - some may have been answered since bookmarking');
+  }
+  
+  if (analysis.patterns.complexity.simple / total > 0.6) {
+    recommendations.push('Try bookmarking more advanced topics to challenge yourself');
+  }
+  
+  if (total > 50) {
+    recommendations.push('Consider organizing bookmarks into categories or collections for better management');
+  }
+  
+  return recommendations;
+}
+
+// Analyze bookmark patterns
+const bookmarkAnalysis = await analyzeBookmarkPatterns([12345, 12346, 12347, 12348, 12349]);
+```
+
+### Team Context Bookmarking
+
+```typescript
+// Team context bookmarking
+const teamSDK = sdk.forTeam('team-123');
+
+async function manageTeamBookmarks() {
+  console.log('Managing team context bookmarks...');
+  
+  async function bookmarkTeamResource(questionId: number, category?: string) {
+    try {
+      const bookmarked = await teamSDK.questions.bookmark(questionId);
+      
+      console.log(`Team bookmark added: ${bookmarked.title}`);
+      console.log(`Category: ${category || 'General'}`);
+      console.log(`Team context: ${bookmarked.communities?.[0]?.name || 'Unknown'}`);
+      
+      return {
+        question: bookmarked,
+        category: category || 'General',
+        teamContext: true
+      };
+    } catch (error) {
+      console.error('Failed to bookmark team resource:', error.message);
+      throw error;
+    }
+  }
+  
+  async function createTeamReferenceList(resources: Array<{ questionId: number, category: string, description?: string }>) {
+    console.log(`Creating team reference list with ${resources.length} resources...`);
+    
+    const referenceList = {
+      created: new Date().toISOString(),
+      categories: new Map<string, any[]>(),
+      failed: []
+    };
+    
+    for (const resource of resources) {
+      try {
+        const bookmarkResult = await bookmarkTeamResource(resource.questionId, resource.category);
+        
+        if (!referenceList.categories.has(resource.category)) {
+          referenceList.categories.set(resource.category, []);
+        }
+        
+        referenceList.categories.get(resource.category)!.push({
+          ...bookmarkResult,
+          description: resource.description
+        });
+        
+        // Small delay for rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        referenceList.failed.push({
+          questionId: resource.questionId,
+          category: resource.category,
+          error: error.message
+        });
+      }
+    }
+    
+    console.log('Team reference list created:');
+    for (const [category, items] of referenceList.categories.entries()) {
+      console.log(`- ${category}: ${items.length} resources`);
+    }
+    
+    if (referenceList.failed.length > 0) {
+      console.log(`- Failed: ${referenceList.failed.length} resources`);
+    }
+    
+    return referenceList;
+  }
+  
+  return { bookmarkTeamResource, createTeamReferenceList };
+}
+
+const teamBookmarkManager = await manageTeamBookmarks();
+
+// Create team reference resources
+const teamResources = await teamBookmarkManager.createTeamReferenceList([
+  {
+    questionId: 12345,
+    category: 'API Guidelines',
+    description: 'Standard patterns for internal API development'
+  },
+  {
+    questionId: 12346,
+    category: 'Deployment Process',
+    description: 'Step-by-step deployment procedures'
+  },
+  {
+    questionId: 12347,
+    category: 'Troubleshooting',
+    description: 'Common issues and their solutions'
+  }
+]);
+```
+
+## Error Handling
+
+Both bookmark methods can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to bookmark questions |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `ConflictError` | 409 | Bookmark already exists (for bookmark) or doesn't exist (for removeBookmark) |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ConflictError, NotFoundError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const question = await sdk.questions.bookmark(12345);
+  console.log('Bookmark added successfully:', question.title);
+} catch (error) {
+  if (error instanceof ConflictError) {
+    console.error('Question is already bookmarked');
+  } else if (error instanceof NotFoundError) {
+    console.error('Question not found');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required for bookmarking');
+  } else {
+    console.error('Bookmarking failed:', error.message);
+  }
+}
+```
+
+### Safe Bookmark Operations
+
+```typescript
+async function safeBookmark(questionId: number, action: 'add' | 'remove') {
+  try {
+    let result: QuestionResponseModel;
+    
+    if (action === 'add') {
+      result = await sdk.questions.bookmark(questionId);
+    } else {
+      result = await sdk.questions.removeBookmark(questionId);
+    }
+    
+    return {
+      success: true,
+      question: result,
+      action,
+      bookmarked: result.userHasBookmarked,
+      message: `Bookmark ${action === 'add' ? 'added' : 'removed'} successfully`
+    };
+  } catch (error) {
+    if (error instanceof ConflictError) {
+      return {
+        success: false,
+        reason: 'conflict',
+        message: action === 'add' ? 'Question is already bookmarked' : 'Question is not bookmarked'
+      };
+    } else if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Question not found'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const bookmarkResult = await safeBookmark(12345, 'add');
+if (bookmarkResult.success) {
+  console.log(`Bookmark status: ${bookmarkResult.bookmarked}`);
+} else {
+  console.log(`Bookmark operation failed: ${bookmarkResult.message}`);
+}
+```
+
+## Notes
+
+- **Personal Feature**: Bookmarks are private and only visible to the user who created them
+- **No Limit**: Most platforms don't limit the number of questions you can bookmark
+- **State Tracking**: `userHasBookmarked` property indicates current bookmark status
+- **Team vs Public Context**: Bookmarks work in both contexts but are maintained separately
+- **Organization**: Consider creating categorization systems for managing large bookmark collections
+- **Accessibility**: Bookmarked questions can be accessed through user profile or dedicated bookmark sections
+- **Search Integration**: Many platforms allow searching within bookmarked questions
+- **Export Capability**: Some platforms support exporting bookmark lists
+- **Notification Options**: May receive notifications when bookmarked questions are updated
+- **Cleanup Recommended**: Regularly review and clean up bookmark collections for relevance

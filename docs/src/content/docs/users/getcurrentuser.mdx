@@ -1,0 +1,427 @@
+---
+title: getCurrentUser()
+description: Retrieve detailed information for the currently authenticated user.
+---
+
+# getCurrentUser()
+
+Retrieve detailed information for the currently authenticated user.
+
+## Syntax
+
+```typescript
+async getCurrentUser(): Promise<UserDetailsResponseModel>
+async getCurrentUserWatchedTags(): Promise<TagSummaryResponseModel>
+```
+
+## Parameters
+
+This method takes no parameters.
+
+## Return Value
+
+Returns a `Promise<UserDetailsResponseModel>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `accountId` | `number \| null` | User's Stack Overflow network account ID |
+| `name` | `string` | User's display name |
+| `email` | `string \| null` | Email address (always visible for current user) |
+| `avatarUrl` | `string` | URL to user's profile picture |
+| `webUrl` | `string` | URL to user's profile page |
+| `reputation` | `number` | User's reputation score |
+| `role` | `string` | User's role on the site |
+| `externalId` | `string \| null` | External ID from SCIM or SAML |
+| `department` | `string \| null` | Organizational department from SAML |
+| `jobTitle` | `string \| null` | Job title from SAML |
+| `communities` | `CommunitySummaryResponseModel[]` | Communities the user belongs to |
+
+## Examples
+
+### Basic Current User Information
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function displayCurrentUserInfo() {
+  try {
+    const currentUser = await sdk.users.getCurrentUser();
+    
+    console.log('=== Current User Profile ===');
+    console.log(`Name: ${currentUser.name}`);
+    console.log(`Email: ${currentUser.email}`);
+    console.log(`Reputation: ${currentUser.reputation}`);
+    console.log(`Role: ${currentUser.role}`);
+    console.log(`Profile URL: ${currentUser.webUrl}`);
+    
+    if (currentUser.department) {
+      console.log(`Department: ${currentUser.department}`);
+    }
+    
+    if (currentUser.jobTitle) {
+      console.log(`Job Title: ${currentUser.jobTitle}`);
+    }
+    
+    if (currentUser.externalId) {
+      console.log(`External ID: ${currentUser.externalId}`);
+    }
+    
+    console.log(`Communities: ${currentUser.communities?.length || 0}`);
+    
+    return currentUser;
+  } catch (error) {
+    console.error('Failed to get current user:', error.message);
+    return null;
+  }
+}
+
+const userInfo = await displayCurrentUserInfo();
+```
+
+### User Profile Dashboard
+
+```typescript
+async function createUserDashboard() {
+  const currentUser = await sdk.users.getCurrentUser();
+  const watchedTags = await sdk.users.getCurrentUserWatchedTags();
+  
+  const dashboard = {
+    profile: {
+      name: currentUser.name,
+      email: currentUser.email,
+      reputation: currentUser.reputation,
+      role: currentUser.role
+    },
+    organization: {
+      department: currentUser.department || 'Not specified',
+      jobTitle: currentUser.jobTitle || 'Not specified',
+      hasExternalId: !!currentUser.externalId
+    },
+    participation: {
+      communityCount: currentUser.communities?.length || 0,
+      communities: currentUser.communities?.map(c => c.name) || [],
+      watchedTagCount: watchedTags.items?.length || 0
+    },
+    integration: {
+      hasAvatar: !!currentUser.avatarUrl,
+      hasCompleteProfile: !!(currentUser.department && currentUser.jobTitle),
+      profileUrl: currentUser.webUrl
+    }
+  };
+  
+  console.log('=== User Dashboard ===');
+  console.log(`Welcome back, ${dashboard.profile.name}!`);
+  console.log(`Reputation: ${dashboard.profile.reputation} | Role: ${dashboard.profile.role}`);
+  
+  console.log('\n--- Organization ---');
+  console.log(`Department: ${dashboard.organization.department}`);
+  console.log(`Job Title: ${dashboard.organization.jobTitle}`);
+  console.log(`External Integration: ${dashboard.organization.hasExternalId ? 'Yes' : 'No'}`);
+  
+  console.log('\n--- Participation ---');
+  console.log(`Communities: ${dashboard.participation.communityCount}`);
+  if (dashboard.participation.communities.length > 0) {
+    console.log(`- ${dashboard.participation.communities.join(', ')}`);
+  }
+  console.log(`Watched Tags: ${dashboard.participation.watchedTagCount}`);
+  
+  console.log('\n--- Profile Status ---');
+  console.log(`Complete Profile: ${dashboard.integration.hasCompleteProfile ? 'Yes' : 'No'}`);
+  console.log(`Has Avatar: ${dashboard.integration.hasAvatar ? 'Yes' : 'No'}`);
+  
+  return dashboard;
+}
+
+const dashboard = await createUserDashboard();
+```
+
+### Profile Completeness Check
+
+```typescript
+async function checkProfileCompleteness() {
+  const user = await sdk.users.getCurrentUser();
+  
+  const completeness = {
+    score: 0,
+    maxScore: 8,
+    checks: {
+      hasName: { passed: !!user.name, points: 1, required: true },
+      hasEmail: { passed: !!user.email, points: 1, required: true },
+      hasAvatar: { passed: !!user.avatarUrl, points: 1, required: false },
+      hasDepartment: { passed: !!user.department, points: 1, required: false },
+      hasJobTitle: { passed: !!user.jobTitle, points: 1, required: false },
+      hasExternalId: { passed: !!user.externalId, points: 1, required: false },
+      hasCommunities: { passed: (user.communities?.length || 0) > 0, points: 1, required: false },
+      hasReputation: { passed: (user.reputation || 0) > 0, points: 1, required: false }
+    },
+    recommendations: []
+  };
+  
+  // Calculate score and generate recommendations
+  Object.entries(completeness.checks).forEach(([key, check]) => {
+    if (check.passed) {
+      completeness.score += check.points;
+    } else if (check.required) {
+      completeness.recommendations.push(`Required: Complete your ${key.replace('has', '').toLowerCase()}`);
+    } else {
+      completeness.recommendations.push(`Optional: Add ${key.replace('has', '').toLowerCase()} information`);
+    }
+  });
+  
+  const percentage = Math.round((completeness.score / completeness.maxScore) * 100);
+  
+  console.log('=== Profile Completeness Report ===');
+  console.log(`Overall Score: ${completeness.score}/${completeness.maxScore} (${percentage}%)`);
+  
+  console.log('\n--- Completed Items ---');
+  Object.entries(completeness.checks).forEach(([key, check]) => {
+    if (check.passed) {
+      const status = check.required ? '[Required]' : '[Optional]';
+      console.log(`✓ ${key.replace('has', '')} ${status}`);
+    }
+  });
+  
+  if (completeness.recommendations.length > 0) {
+    console.log('\n--- Recommendations ---');
+    completeness.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return completeness;
+}
+
+const profileCheck = await checkProfileCompleteness();
+```
+
+### Community Engagement Analysis
+
+```typescript
+async function analyzeCurrentUserEngagement() {
+  const user = await sdk.users.getCurrentUser();
+  const watchedTags = await sdk.users.getCurrentUserWatchedTags();
+  
+  const engagement = {
+    reputation: user.reputation || 0,
+    communityCount: user.communities?.length || 0,
+    watchedTagCount: watchedTags.items?.length || 0,
+    engagementLevel: 'Low',
+    recommendations: []
+  };
+  
+  // Calculate engagement level
+  let engagementScore = 0;
+  
+  if (engagement.reputation > 100) engagementScore += 2;
+  else if (engagement.reputation > 10) engagementScore += 1;
+  
+  if (engagement.communityCount > 2) engagementScore += 2;
+  else if (engagement.communityCount > 0) engagementScore += 1;
+  
+  if (engagement.watchedTagCount > 5) engagementScore += 2;
+  else if (engagement.watchedTagCount > 0) engagementScore += 1;
+  
+  if (engagementScore >= 5) engagement.engagementLevel = 'High';
+  else if (engagementScore >= 3) engagement.engagementLevel = 'Medium';
+  
+  // Generate recommendations
+  if (engagement.reputation < 50) {
+    engagement.recommendations.push('Consider asking or answering questions to build reputation');
+  }
+  
+  if (engagement.communityCount === 0) {
+    engagement.recommendations.push('Join communities relevant to your interests or department');
+  }
+  
+  if (engagement.watchedTagCount === 0) {
+    engagement.recommendations.push('Watch tags for topics you want to stay updated on');
+  }
+  
+  if (engagement.communityCount > 0 && engagement.watchedTagCount === 0) {
+    engagement.recommendations.push('Watch tags in your communities to get relevant notifications');
+  }
+  
+  console.log('=== Engagement Analysis ===');
+  console.log(`User: ${user.name}`);
+  console.log(`Engagement Level: ${engagement.engagementLevel}`);
+  console.log(`Reputation: ${engagement.reputation}`);
+  console.log(`Communities: ${engagement.communityCount}`);
+  console.log(`Watched Tags: ${engagement.watchedTagCount}`);
+  
+  if (user.communities && user.communities.length > 0) {
+    console.log('\n--- Your Communities ---');
+    user.communities.forEach(community => {
+      console.log(`- ${community.name} (${community.memberCount} members)`);
+    });
+  }
+  
+  if (engagement.recommendations.length > 0) {
+    console.log('\n--- Recommendations ---');
+    engagement.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return engagement;
+}
+
+const engagementAnalysis = await analyzeCurrentUserEngagement();
+```
+
+### Context-Aware User Experience
+
+```typescript
+async function createContextualUserExperience(teamId?: string) {
+  try {
+    // Get user in current context
+    const currentUser = await sdk.users.getCurrentUser();
+    
+    // If team ID provided, also get team context
+    let teamUser = null;
+    if (teamId) {
+      try {
+        teamUser = await sdk.forTeam(teamId).users.getCurrentUser();
+      } catch (error) {
+        console.log('User not accessible in team context');
+      }
+    }
+    
+    const experience = {
+      user: currentUser,
+      context: teamUser ? 'both' : 'enterprise',
+      capabilities: {
+        canManageUsers: currentUser.role === 'admin' || currentUser.role === 'moderator',
+        canAccessTeam: !!teamUser,
+        hasFullProfile: !!(currentUser.department && currentUser.jobTitle)
+      },
+      personalizedContent: {
+        welcomeMessage: `Welcome back, ${currentUser.name}!`,
+        roleContext: `You are signed in as a ${currentUser.role}`,
+        reputationStatus: currentUser.reputation > 1000 ? 'high-reputation user' : 'building reputation'
+      }
+    };
+    
+    console.log('=== Personalized Experience ===');
+    console.log(experience.personalizedContent.welcomeMessage);
+    console.log(experience.personalizedContent.roleContext);
+    console.log(`Status: ${experience.personalizedContent.reputationStatus}`);
+    
+    console.log('\n--- Available Features ---');
+    console.log(`User Management: ${experience.capabilities.canManageUsers ? 'Available' : 'Not Available'}`);
+    console.log(`Team Access: ${experience.capabilities.canAccessTeam ? 'Available' : 'Not Available'}`);
+    console.log(`Profile Enhancement: ${experience.capabilities.hasFullProfile ? 'Complete' : 'Needs Attention'}`);
+    
+    if (currentUser.communities && currentUser.communities.length > 0) {
+      console.log('\n--- Quick Community Access ---');
+      currentUser.communities.slice(0, 3).forEach(community => {
+        console.log(`- ${community.name}: ${community.memberCount} members`);
+      });
+    }
+    
+    return experience;
+  } catch (error) {
+    console.error('Failed to create user experience:', error.message);
+    return null;
+  }
+}
+
+const userExperience = await createContextualUserExperience('team-123');
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Token does not represent a valid user |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { AuthenticationError, TokenExpiredError, ForbiddenError } from 'stack-overflow-sdk';
+
+async function safeGetCurrentUser(): Promise<UserDetailsResponseModel | null> {
+  try {
+    const currentUser = await sdk.users.getCurrentUser();
+    console.log(`Authenticated as: ${currentUser.name}`);
+    return currentUser;
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      console.error('Authentication required - please provide a valid access token');
+    } else if (error instanceof TokenExpiredError) {
+      console.error('Access token has expired - please refresh your token');
+    } else if (error instanceof ForbiddenError) {
+      console.error('Access token is invalid or does not represent a user');
+    } else {
+      console.error('Failed to get current user:', error.message);
+    }
+    return null;
+  }
+}
+
+const currentUser = await safeGetCurrentUser();
+if (currentUser) {
+  console.log('User authentication successful');
+} else {
+  console.log('Please check your authentication credentials');
+}
+```
+
+### Authentication Status Check
+
+```typescript
+async function checkAuthenticationStatus() {
+  const status = {
+    isAuthenticated: false,
+    user: null,
+    tokenValid: false,
+    permissions: []
+  };
+  
+  try {
+    status.user = await sdk.users.getCurrentUser();
+    status.isAuthenticated = true;
+    status.tokenValid = true;
+    
+    // Check permissions based on role
+    if (status.user.role === 'admin') {
+      status.permissions = ['read', 'write', 'admin', 'manage_users', 'manage_teams'];
+    } else if (status.user.role === 'moderator') {
+      status.permissions = ['read', 'write', 'moderate'];
+    } else {
+      status.permissions = ['read', 'write'];
+    }
+    
+    console.log(`Authentication Status: Authenticated as ${status.user.name}`);
+    console.log(`Role: ${status.user.role}`);
+    console.log(`Permissions: ${status.permissions.join(', ')}`);
+    
+  } catch (error) {
+    console.log('Authentication Status: Not authenticated');
+    console.log(`Reason: ${error.message}`);
+  }
+  
+  return status;
+}
+
+const authStatus = await checkAuthenticationStatus();
+```
+
+## Notes
+
+- **Always Available**: This method returns the authenticated user's information and is always accessible with a valid token.
+- **Email Visibility**: Unlike other user lookup methods, the current user's email is always visible in the response.
+- **Identity Context**: Use this method to establish user identity and permissions in your application.
+- **Profile Management**: This is the primary method for users to view their own profile information.
+- **Token Validation**: This method effectively validates that the provided access token is valid and represents an active user.
+- **Community Access**: The communities array shows which collaborative spaces the user has access to.
+- **Role-Based Features**: Use the role field to determine what features and permissions to show in your UI.
+- **External Integration**: Check for externalId, department, and jobTitle to understand if enterprise integration is configured.
+- **Real-time Data**: Information returned reflects the current state and may change between API calls.
+- **Context Independence**: This method works consistently across both team and enterprise API contexts.

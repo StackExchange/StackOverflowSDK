@@ -1,0 +1,629 @@
+---
+title: setSubjectMatterExperts()
+description: Replace all Subject Matter Experts for a tag with a new set of individual users and user groups in a single atomic operation.
+---
+
+# setSubjectMatterExperts()
+
+Replace all Subject Matter Experts for a tag with a new set of individual users and user groups in a single atomic operation.
+
+## Syntax
+
+```typescript
+async setSubjectMatterExperts(tagId: number, options: SetSubjectMatterExpertsOptions): Promise<SubjectMatterExpertResponseModel>
+async replaceAllSubjectMatterExperts(tagId: number, userIds: number[] = [], userGroupIds: number[] = []): Promise<SubjectMatterExpertResponseModel>
+async clearAllSubjectMatterExperts(tagId: number): Promise<SubjectMatterExpertResponseModel>
+```
+
+## Parameters
+
+### setSubjectMatterExperts()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `options` | `SetSubjectMatterExpertsOptions` | Yes | SME configuration options |
+
+### SetSubjectMatterExpertsOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `userIds` | `number[]` | No | Array of user IDs to assign as individual SMEs |
+| `userGroupIds` | `number[]` | No | Array of user group IDs to assign as SME groups |
+
+## Return Value
+
+Returns a `Promise<SubjectMatterExpertResponseModel>` containing the updated SME configuration:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `users` | `UserSummaryResponseModel[]` | Individual users now assigned as SMEs |
+| `userGroups` | `UserGroupResponseModel[]` | User groups now assigned as SMEs |
+
+## Examples
+
+### Complete SME Replacement
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Replace all SMEs with a new configuration
+const newSmes = await sdk.tags.setSubjectMatterExperts(12345, {
+  userIds: [1001, 1002, 1003],
+  userGroupIds: [501, 502]
+});
+
+console.log('SME Replacement Complete:');
+console.log(`Individual SMEs: ${newSmes.users?.length || 0}`);
+console.log(`SME Groups: ${newSmes.userGroups?.length || 0}`);
+
+// Display the new SME configuration
+if (newSmes.users && newSmes.users.length > 0) {
+  console.log('\nNew Individual SMEs:');
+  newSmes.users.forEach(user => {
+    console.log(`- ${user.displayName} (Reputation: ${user.reputation?.toLocaleString()})`);
+  });
+}
+
+if (newSmes.userGroups && newSmes.userGroups.length > 0) {
+  console.log('\nNew SME Groups:');
+  newSmes.userGroups.forEach(group => {
+    console.log(`- ${group.name} (${group.memberCount} members)`);
+  });
+}
+
+// Calculate total reach
+const totalReach = (newSmes.users?.length || 0) + 
+  (newSmes.userGroups?.reduce((sum, group) => sum + (group.memberCount || 0), 0) || 0);
+console.log(`\nTotal SME Reach: ${totalReach} experts`);
+```
+
+### Using Convenience Methods
+
+```typescript
+// Using the convenience method for clearer syntax
+const updatedSmes = await sdk.tags.replaceAllSubjectMatterExperts(
+  12345,
+  [1001, 1002, 1003],  // User IDs
+  [501, 502]           // Group IDs
+);
+
+console.log(`Replaced SMEs: ${updatedSmes.users?.length} users, ${updatedSmes.userGroups?.length} groups`);
+
+// Clear all SMEs from a tag
+const clearedSmes = await sdk.tags.clearAllSubjectMatterExperts(12345);
+console.log('All SMEs cleared from tag');
+console.log(`Remaining SMEs: ${clearedSmes.users?.length || 0} users, ${clearedSmes.userGroups?.length || 0} groups`);
+```
+
+### Strategic SME Reorganization
+
+```typescript
+async function reorganizeSmeStructure(tagId: number, strategy: 'consolidate' | 'expand' | 'balance') {
+  try {
+    // Get current SME configuration
+    const currentSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    const tag = await sdk.tags.get(tagId);
+    
+    console.log(`Reorganizing SMEs for tag: ${tag.name}`);
+    console.log(`Current: ${currentSmes.users?.length || 0} users, ${currentSmes.userGroups?.length || 0} groups`);
+    
+    let newConfiguration: SetSubjectMatterExpertsOptions = {};
+    
+    switch (strategy) {
+      case 'consolidate':
+        // Keep only the highest reputation individual SMEs and largest groups
+        const topUsers = currentSmes.users?.sort((a, b) => (b.reputation || 0) - (a.reputation || 0)).slice(0, 2);
+        const largestGroups = currentSmes.userGroups?.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0)).slice(0, 1);
+        
+        newConfiguration = {
+          userIds: topUsers?.map(u => u.userId) || [],
+          userGroupIds: largestGroups?.map(g => g.id) || []
+        };
+        console.log(`Consolidation: Keeping top ${topUsers?.length || 0} users and ${largestGroups?.length || 0} groups`);
+        break;
+        
+      case 'expand':
+        // Add suggested users and groups (this would typically come from analysis)
+        const suggestedUsers = [2001, 2002, 2003]; // Example additional users
+        const suggestedGroups = [601, 602]; // Example additional groups
+        
+        newConfiguration = {
+          userIds: [...(currentSmes.users?.map(u => u.userId) || []), ...suggestedUsers],
+          userGroupIds: [...(currentSmes.userGroups?.map(g => g.id) || []), ...suggestedGroups]
+        };
+        console.log(`Expansion: Adding ${suggestedUsers.length} users and ${suggestedGroups.length} groups`);
+        break;
+        
+      case 'balance':
+        // Ensure balanced mix of individuals and groups
+        const maxIndividuals = 3;
+        const maxGroups = 2;
+        
+        const balancedUsers = currentSmes.users?.slice(0, maxIndividuals);
+        const balancedGroups = currentSmes.userGroups?.slice(0, maxGroups);
+        
+        // If we don't have enough, this is where we'd add more (example IDs)
+        const additionalUsers = balancedUsers?.length < maxIndividuals ? [3001] : [];
+        const additionalGroups = balancedGroups?.length < maxGroups ? [701] : [];
+        
+        newConfiguration = {
+          userIds: [...(balancedUsers?.map(u => u.userId) || []), ...additionalUsers],
+          userGroupIds: [...(balancedGroups?.map(g => g.id) || []), ...additionalGroups]
+        };
+        console.log(`Balance: Aiming for ${maxIndividuals} users and ${maxGroups} groups`);
+        break;
+    }
+    
+    // Apply the new configuration
+    const result = await sdk.tags.setSubjectMatterExperts(tagId, newConfiguration);
+    
+    const newTotalReach = (result.users?.length || 0) + 
+      (result.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0);
+    
+    console.log(`\nReorganization complete:`);
+    console.log(`- New individual SMEs: ${result.users?.length || 0}`);
+    console.log(`- New SME groups: ${result.userGroups?.length || 0}`);
+    console.log(`- Total reach: ${newTotalReach} experts`);
+    
+    return {
+      strategy,
+      before: {
+        users: currentSmes.users?.length || 0,
+        groups: currentSmes.userGroups?.length || 0
+      },
+      after: {
+        users: result.users?.length || 0,
+        groups: result.userGroups?.length || 0,
+        totalReach: newTotalReach
+      },
+      result
+    };
+  } catch (error) {
+    console.error(`SME reorganization failed for tag ${tagId}:`, error.message);
+    throw error;
+  }
+}
+
+// Apply different reorganization strategies
+const consolidationResult = await reorganizeSmeStructure(12345, 'consolidate');
+const expansionResult = await reorganizeSmeStructure(12346, 'expand');
+const balanceResult = await reorganizeSmeStructure(12347, 'balance');
+```
+
+### Batch SME Management
+
+```typescript
+async function batchUpdateSmes(updates: Array<{tagId: number, userIds?: number[], userGroupIds?: number[]}>) {
+  console.log(`Starting batch SME update for ${updates.length} tags...`);
+  
+  const results = [];
+  
+  for (const update of updates) {
+    try {
+      console.log(`Updating SMEs for tag ${update.tagId}...`);
+      
+      const result = await sdk.tags.setSubjectMatterExperts(update.tagId, {
+        userIds: update.userIds || [],
+        userGroupIds: update.userGroupIds || []
+      });
+      
+      results.push({
+        tagId: update.tagId,
+        success: true,
+        users: result.users?.length || 0,
+        groups: result.userGroups?.length || 0,
+        totalReach: (result.users?.length || 0) + 
+          (result.userGroups?.reduce((sum, g) => sum + (g.memberCount || 0), 0) || 0)
+      });
+      
+      console.log(`✓ Tag ${update.tagId}: ${result.users?.length || 0} users, ${result.userGroups?.length || 0} groups`);
+      
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (error) {
+      console.error(`✗ Tag ${update.tagId} failed:`, error.message);
+      
+      results.push({
+        tagId: update.tagId,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+  
+  const successful = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
+  
+  console.log(`\nBatch update complete:`);
+  console.log(`- Successful: ${successful}/${updates.length}`);
+  console.log(`- Failed: ${failed}/${updates.length}`);
+  
+  if (successful > 0) {
+    const totalReach = results
+      .filter(r => r.success)
+      .reduce((sum, r) => sum + (r.totalReach || 0), 0);
+    console.log(`- Total SME reach across all tags: ${totalReach}`);
+  }
+  
+  return results;
+}
+
+// Example batch update
+const batchUpdates = [
+  { tagId: 12345, userIds: [1001, 1002], userGroupIds: [501] },
+  { tagId: 12346, userIds: [1003, 1004], userGroupIds: [502, 503] },
+  { tagId: 12347, userIds: [], userGroupIds: [504] }, // Groups only
+  { tagId: 12348, userIds: [1005], userGroupIds: [] }, // Users only
+  { tagId: 12349, userIds: [], userGroupIds: [] }     // Clear all
+];
+
+const batchResults = await batchUpdateSmes(batchUpdates);
+```
+
+### SME Migration and Backup
+
+```typescript
+async function backupAndMigrateSmes(sourceTagId: number, targetTagId: number, options: {
+  preserveSource?: boolean;
+  mergeWithExisting?: boolean;
+} = {}) {
+  try {
+    console.log(`Migrating SMEs from tag ${sourceTagId} to tag ${targetTagId}...`);
+    
+    // Get source SME configuration
+    const sourceSmes = await sdk.tags.getSubjectMatterExperts(sourceTagId);
+    const sourceTag = await sdk.tags.get(sourceTagId);
+    
+    console.log(`Source (${sourceTag.name}): ${sourceSmes.users?.length || 0} users, ${sourceSmes.userGroups?.length || 0} groups`);
+    
+    // Create backup
+    const backup = {
+      timestamp: new Date().toISOString(),
+      sourceTagId,
+      sourceTagName: sourceTag.name,
+      smes: {
+        userIds: sourceSmes.users?.map(u => u.userId) || [],
+        userGroupIds: sourceSmes.userGroups?.map(g => g.id) || []
+      }
+    };
+    
+    console.log('Backup created:', JSON.stringify(backup, null, 2));
+    
+    // Determine target configuration
+    let targetConfiguration: SetSubjectMatterExpertsOptions;
+    
+    if (options.mergeWithExisting) {
+      // Get existing target SMEs and merge
+      const targetSmes = await sdk.tags.getSubjectMatterExperts(targetTagId);
+      const existingUserIds = targetSmes.users?.map(u => u.userId) || [];
+      const existingGroupIds = targetSmes.userGroups?.map(g => g.id) || [];
+      
+      // Combine and deduplicate
+      const allUserIds = [...new Set([...existingUserIds, ...backup.smes.userIds])];
+      const allGroupIds = [...new Set([...existingGroupIds, ...backup.smes.userGroupIds])];
+      
+      targetConfiguration = {
+        userIds: allUserIds,
+        userGroupIds: allGroupIds
+      };
+      
+      console.log(`Merging with existing: ${existingUserIds.length} existing users, ${existingGroupIds.length} existing groups`);
+    } else {
+      // Replace entirely
+      targetConfiguration = backup.smes;
+    }
+    
+    // Apply to target
+    const targetResult = await sdk.tags.setSubjectMatterExperts(targetTagId, targetConfiguration);
+    const targetTag = await sdk.tags.get(targetTagId);
+    
+    console.log(`Target (${targetTag.name}) updated: ${targetResult.users?.length || 0} users, ${targetResult.userGroups?.length || 0} groups`);
+    
+    // Clear source if not preserving
+    if (!options.preserveSource) {
+      await sdk.tags.clearAllSubjectMatterExperts(sourceTagId);
+      console.log(`Source tag ${sourceTagId} SMEs cleared`);
+    }
+    
+    return {
+      backup,
+      migration: {
+        sourceTagId,
+        targetTagId,
+        preservedSource: options.preserveSource || false,
+        merged: options.mergeWithExisting || false,
+        result: targetResult
+      }
+    };
+    
+  } catch (error) {
+    console.error(`SME migration failed:`, error.message);
+    throw error;
+  }
+}
+
+// Migrate SMEs between tags
+const migrationResult = await backupAndMigrateSmes(12345, 12346, {
+  preserveSource: true,
+  mergeWithExisting: true
+});
+```
+
+### SME Configuration Validation
+
+```typescript
+async function validateSmeConfiguration(tagId: number, proposedConfig: SetSubjectMatterExpertsOptions) {
+  try {
+    const validation = {
+      tagId,
+      isValid: true,
+      warnings: [],
+      errors: [],
+      recommendations: [],
+      proposedConfig
+    };
+    
+    // Get tag context for validation
+    const tag = await sdk.tags.get(tagId);
+    const currentSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    // Validate user IDs
+    if (proposedConfig.userIds && proposedConfig.userIds.length > 0) {
+      if (proposedConfig.userIds.some(id => id <= 0)) {
+        validation.errors.push('Invalid user IDs detected (must be positive integers)');
+        validation.isValid = false;
+      }
+      
+      if (proposedConfig.userIds.length > 10) {
+        validation.warnings.push(`High number of individual SMEs (${proposedConfig.userIds.length}) - consider using groups`);
+      }
+      
+      // Check for duplicates
+      const uniqueUserIds = new Set(proposedConfig.userIds);
+      if (uniqueUserIds.size !== proposedConfig.userIds.length) {
+        validation.warnings.push('Duplicate user IDs will be ignored');
+      }
+    }
+    
+    // Validate group IDs
+    if (proposedConfig.userGroupIds && proposedConfig.userGroupIds.length > 0) {
+      if (proposedConfig.userGroupIds.some(id => id <= 0)) {
+        validation.errors.push('Invalid group IDs detected (must be positive integers)');
+        validation.isValid = false;
+      }
+      
+      // Check for duplicates
+      const uniqueGroupIds = new Set(proposedConfig.userGroupIds);
+      if (uniqueGroupIds.size !== proposedConfig.userGroupIds.length) {
+        validation.warnings.push('Duplicate group IDs will be ignored');
+      }
+    }
+    
+    // Context-based validation
+    if ((!proposedConfig.userIds || proposedConfig.userIds.length === 0) && 
+        (!proposedConfig.userGroupIds || proposedConfig.userGroupIds.length === 0)) {
+      if ((tag.postCount || 0) > 50) {
+        validation.warnings.push('Removing all SMEs from an active tag - consider maintaining expert coverage');
+      }
+    }
+    
+    // Check for major changes
+    const currentUserCount = currentSmes.users?.length || 0;
+    const currentGroupCount = currentSmes.userGroups?.length || 0;
+    const proposedUserCount = proposedConfig.userIds?.length || 0;
+    const proposedGroupCount = proposedConfig.userGroupIds?.length || 0;
+    
+    if (Math.abs(currentUserCount - proposedUserCount) > 5) {
+      validation.warnings.push(`Significant change in individual SMEs: ${currentUserCount} → ${proposedUserCount}`);
+    }
+    
+    if (Math.abs(currentGroupCount - proposedGroupCount) > 3) {
+      validation.warnings.push(`Significant change in SME groups: ${currentGroupCount} → ${proposedGroupCount}`);
+    }
+    
+    // Generate recommendations
+    if (proposedUserCount > 0 && proposedGroupCount === 0) {
+      validation.recommendations.push('Consider adding user groups for broader knowledge coverage');
+    }
+    
+    if (proposedUserCount === 0 && proposedGroupCount > 0) {
+      validation.recommendations.push('Consider adding individual experts for specific guidance');
+    }
+    
+    if (proposedUserCount + proposedGroupCount > 8) {
+      validation.recommendations.push('High number of SME sources - ensure coordination between experts');
+    }
+    
+    console.log(`\n=== SME Configuration Validation ===`);
+    console.log(`Tag: ${tag.name} (ID: ${tagId})`);
+    console.log(`Proposed: ${proposedUserCount} users, ${proposedGroupCount} groups`);
+    console.log(`Valid: ${validation.isValid ? 'Yes' : 'No'}`);
+    
+    if (validation.errors.length > 0) {
+      console.log('\nErrors:');
+      validation.errors.forEach(error => console.log(`- ${error}`));
+    }
+    
+    if (validation.warnings.length > 0) {
+      console.log('\nWarnings:');
+      validation.warnings.forEach(warning => console.log(`- ${warning}`));
+    }
+    
+    if (validation.recommendations.length > 0) {
+      console.log('\nRecommendations:');
+      validation.recommendations.forEach(rec => console.log(`- ${rec}`));
+    }
+    
+    return validation;
+    
+  } catch (error) {
+    console.error(`Validation failed for tag ${tagId}:`, error.message);
+    return {
+      tagId,
+      isValid: false,
+      errors: [`Validation error: ${error.message}`],
+      warnings: [],
+      recommendations: []
+    };
+  }
+}
+
+// Validate before applying configuration
+const configValidation = await validateSmeConfiguration(12345, {
+  userIds: [1001, 1002, 1003],
+  userGroupIds: [501, 502]
+});
+
+if (configValidation.isValid) {
+  console.log('Configuration is valid, applying...');
+  const result = await sdk.tags.setSubjectMatterExperts(12345, configValidation.proposedConfig);
+  console.log('SME configuration applied successfully');
+} else {
+  console.log('Configuration has errors, please fix before applying');
+}
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to modify SME assignments |
+| `NotFoundError` | 404 | Tag, user, or group with specified ID does not exist |
+| `ValidationError` | 400 | Invalid user IDs, group IDs, or configuration |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.tags.setSubjectMatterExperts(12345, {
+    userIds: [1001, 1002],
+    userGroupIds: [501]
+  });
+  
+  console.log('SME configuration updated successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag, user, or group not found - check IDs are correct');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot modify SME assignments - insufficient permissions');
+  } else if (error instanceof ValidationError) {
+    console.error('Invalid configuration - check user and group IDs');
+  } else {
+    console.error('Failed to set SMEs:', error.message);
+  }
+}
+```
+
+### Safe SME Configuration with Rollback
+
+```typescript
+async function safeSetSmes(tagId: number, newConfig: SetSubjectMatterExpertsOptions, options: {
+  createBackup?: boolean;
+  validateFirst?: boolean;
+} = {}) {
+  let backup = null;
+  
+  try {
+    // Create backup if requested
+    if (options.createBackup) {
+      backup = await sdk.tags.getSubjectMatterExperts(tagId);
+      console.log('Backup created');
+    }
+    
+    // Validate configuration if requested
+    if (options.validateFirst) {
+      const validation = await validateSmeConfiguration(tagId, newConfig);
+      if (!validation.isValid) {
+        throw new Error(`Configuration invalid: ${validation.errors.join(', ')}`);
+      }
+    }
+    
+    // Apply new configuration
+    const result = await sdk.tags.setSubjectMatterExperts(tagId, newConfig);
+    
+    return {
+      success: true,
+      result,
+      backup,
+      message: 'SME configuration updated successfully'
+    };
+    
+  } catch (error) {
+    console.error(`SME configuration failed: ${error.message}`);
+    
+    // Attempt rollback if backup exists
+    if (backup && options.createBackup) {
+      try {
+        console.log('Attempting rollback...');
+        await sdk.tags.setSubjectMatterExperts(tagId, {
+          userIds: backup.users?.map(u => u.userId) || [],
+          userGroupIds: backup.userGroups?.map(g => g.id) || []
+        });
+        console.log('Rollback successful');
+        
+        return {
+          success: false,
+          error: error.message,
+          rolledBack: true,
+          message: 'Configuration failed but rollback successful'
+        };
+      } catch (rollbackError) {
+        console.error('Rollback also failed:', rollbackError.message);
+        return {
+          success: false,
+          error: error.message,
+          rollbackError: rollbackError.message,
+          message: 'Configuration and rollback both failed'
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      error: error.message,
+      message: 'SME configuration failed'
+    };
+  }
+}
+
+// Use safe configuration with backup and validation
+const safeResult = await safeSetSmes(12345, {
+  userIds: [1001, 1002, 1003],
+  userGroupIds: [501, 502]
+}, {
+  createBackup: true,
+  validateFirst: true
+});
+
+console.log(safeResult.message);
+```
+
+## Notes
+
+- **Atomic Operation**: This method replaces ALL existing SMEs with the new configuration in a single operation.
+- **Complete Replacement**: Any existing SMEs not included in the new configuration will be removed.
+- **Empty Arrays**: Passing empty arrays for both `userIds` and `userGroupIds` will remove all SMEs from the tag.
+- **Validation**: Invalid user or group IDs will cause the entire operation to fail without partial updates.
+- **Permission Requirements**: Requires appropriate permissions to modify SME assignments for the tag.
+- **Rate Limiting**: Be mindful of API limits when performing bulk SME updates across multiple tags.
+- **Team Context**: SME assignments are context-specific and operate within the current team or public environment.
+- **Convenience Methods**: Use `replaceAllSubjectMatterExperts()` and `clearAllSubjectMatterExperts()` for cleaner, more explicit code.

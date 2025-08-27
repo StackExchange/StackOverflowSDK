@@ -1,10 +1,7 @@
 import { createConfiguration, ConfigurationParameters } from '../generated/configuration.js';
 import { AuthMethodsConfiguration } from '../generated/auth/auth.js';
 import { ServerConfiguration } from '../generated/servers.js';
-import { HttpLibrary } from '../generated/http/http.js';
-// Import the fixed HTTP library helper
 import { FixedIsomorphicFetchHttpLibrary } from '../helper/fixedHttpLibrary.js';
-// Import your client modules
 import { AnswerClient } from './answers.js';
 import { QuestionClient } from './questions.js';
 import { CollectionClient } from './collections.js';
@@ -17,9 +14,9 @@ import { ArticleClient } from './articles.js';
 import { CommunityClient } from './communities.js';
 
 export interface SDKConfig {
-  accessToken?: string;
+  accessToken: string;
   baseUrl: string; 
-  httpApi?: HttpLibrary; // defaults to FixedIsomorphicFetchHttpLibrary
+  // httpApi?: HttpLibrary; // defaults to FixedIsomorphicFetchHttpLibrary
 }
 
 export class StackOverflowSDK {
@@ -50,7 +47,7 @@ export class StackOverflowSDK {
     // Create configuration parameters
     const configParams: ConfigurationParameters = {
       authMethods: authConfig,
-      httpApi: config.httpApi || new FixedIsomorphicFetchHttpLibrary(),
+      httpApi: new FixedIsomorphicFetchHttpLibrary(),
       baseServer: new ServerConfiguration(config.baseUrl, {})
     };
 
@@ -87,7 +84,6 @@ export class TeamContext {
   }
 }
 
-// Export the main SDK and types
 export { AnswerClient } from './answers.js';
 export { QuestionClient } from './questions.js';
 export { ArticleClient } from './articles.js';
@@ -99,8 +95,6 @@ export { UserClient } from './users.js';
 export { TagClient } from './tags.js';
 export { UserGroupClient } from './userGroups.js';
 
-// Export the helper for advanced users who want to customize
 export { FixedIsomorphicFetchHttpLibrary } from '../helper/fixedHttpLibrary.js';
 
-// Default export for convenience
 export default StackOverflowSDK;

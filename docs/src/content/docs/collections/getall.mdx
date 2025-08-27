@@ -1,0 +1,382 @@
+---
+title: getAll()
+description: Retrieves a paginated list of collections with comprehensive filtering, sorting, and permission-based access control.
+---
+
+# getAll()
+
+Retrieves a paginated list of collections with comprehensive filtering, sorting, and permission-based access control.
+
+## Syntax
+
+```typescript
+async getAll(options?: GetCollectionsOptions): Promise<PaginatedCollections>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `GetCollectionsOptions` | No | Configuration options for pagination, filtering, and sorting |
+
+### GetCollectionsOptions
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of collections to return per page |
+| `sort` | `CollectionsSortParameter` | No | | Sort collections by: `"creation"` or `"lastEdit"` |
+| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| `authorIds` | `number[]` | No | | Filter collections by specific author/owner IDs |
+| `partialTitle` | `string` | No | | Filter collections by partial title match (search) |
+| `permissions` | `CollectionsPermissionsFilter` | No | | Filter by permission level: `"all"`, `"owned"`, or `"editable"` |
+| `from` | `Date` | No | | Filter collections created after this date |
+| `to` | `Date` | No | | Filter collections created before this date |
+
+## Return Value
+
+Returns a `Promise<PaginatedCollections>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of collections matching the criteria |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `CollectionsSortParameter` | Sort parameter used |
+| `order` | `SortOrder` | Sort order used |
+| `items` | `CollectionsResponseModel[]` | Array of collection objects |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all collections with default settings
+const collections = await sdk.collections.getAll();
+console.log(`Found ${collections.totalCount} collections`);
+
+// Display collections
+collections.items.forEach(collection => {
+  console.log(`- ${collection.title} (${collection.content?.length || 0} items)`);
+});
+```
+
+### With Pagination
+
+```typescript
+// Get the second page with 50 collections per page
+const collections = await sdk.collections.getAll({
+  page: 2,
+  pageSize: 50
+});
+
+console.log(`Page ${collections.page} of ${collections.totalPages}`);
+console.log(`Showing ${collections.items.length} of ${collections.totalCount} collections`);
+```
+
+### With Sorting
+
+```typescript
+// Get newest collections first
+const newestCollections = await sdk.collections.getAll({
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 15
+});
+
+// Get recently modified collections
+const recentlyModified = await sdk.collections.getAll({
+  sort: 'lastEdit',
+  order: 'desc'
+});
+```
+
+### Filter by Author
+
+```typescript
+// Get collections by a specific author
+const authorCollections = await sdk.collections.getAll({
+  authorIds: [123],
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Get collections by multiple authors
+const multiAuthorCollections = await sdk.collections.getAll({
+  authorIds: [123, 456, 789],
+  pageSize: 25
+});
+
+console.log(`Found ${authorCollections.totalCount} collections by this author`);
+```
+
+### Search Collections
+
+```typescript
+// Search collections by partial title
+const searchResults = await sdk.collections.getAll({
+  partialTitle: 'typescript',
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Search with additional filters
+const filteredSearch = await sdk.collections.getAll({
+  partialTitle: 'guide',
+  authorIds: [123],
+  permissions: 'editable'
+});
+
+console.log(`Found ${searchResults.totalCount} collections matching "typescript"`);
+```
+
+### Permission-Based Filtering
+
+```typescript
+// Get only collections I own
+const ownedCollections = await sdk.collections.getAll({
+  permissions: 'owned',
+  sort: 'lastEdit',
+  order: 'desc'
+});
+
+// Get collections I can edit
+const editableCollections = await sdk.collections.getAll({
+  permissions: 'editable',
+  pageSize: 50
+});
+
+// Get all accessible collections
+const allCollections = await sdk.collections.getAll({
+  permissions: 'all'
+});
+
+console.log(`Owned: ${ownedCollections.totalCount}, Editable: ${editableCollections.totalCount}, All: ${allCollections.totalCount}`);
+```
+
+### Filter by Date Range
+
+```typescript
+// Get collections from the last month
+const lastMonth = new Date();
+lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+const recentCollections = await sdk.collections.getAll({
+  from: lastMonth,
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Get collections from a specific period
+const periodCollections = await sdk.collections.getAll({
+  from: new Date('2024-01-01'),
+  to: new Date('2024-12-31'),
+  sort: 'creation',
+  order: 'desc'
+});
+
+console.log(`${recentCollections.totalCount} collections created in the last month`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamCollections = await teamSDK.collections.getAll({
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Or with direct client initialization
+import { CollectionClient } from 'stack-overflow-sdk';
+const teamCollectionClient = new CollectionClient(config, 'team-123');
+const collections = await teamCollectionClient.getAll();
+```
+
+### Complex Filtering
+
+```typescript
+// Advanced search with multiple filters
+const advancedSearch = await sdk.collections.getAll({
+  partialTitle: 'best practices',
+  authorIds: [123, 456],
+  permissions: 'editable',
+  sort: 'lastEdit',
+  order: 'desc',
+  pageSize: 25
+});
+
+// Date range with author and search
+const quarterStart = new Date();
+quarterStart.setMonth(quarterStart.getMonth() - 3);
+
+const quarterlyCollections = await sdk.collections.getAll({
+  from: quarterStart,
+  authorIds: [123],
+  partialTitle: 'tutorial',
+  sort: 'creation',
+  order: 'desc'
+});
+
+console.log(`Found ${advancedSearch.totalCount} matching collections`);
+```
+
+### Collection Analytics
+
+```typescript
+async function analyzeCollections() {
+  try {
+    // Get all collections for analysis
+    const allCollections = await sdk.collections.getAll({
+      pageSize: 100,
+      sort: 'creation',
+      order: 'desc'
+    });
+    
+    // Analyze collection metrics
+    const analytics = {
+      total: allCollections.totalCount,
+      averageContentItems: allCollections.items.reduce((sum, c) => sum + (c.content?.length || 0), 0) / allCollections.items.length,
+      collectionsWithContent: allCollections.items.filter(c => (c.content?.length || 0) > 0).length,
+      emptyCollections: allCollections.items.filter(c => (c.content?.length || 0) === 0).length,
+      deletedCollections: allCollections.items.filter(c => c.isDeleted).length,
+      uniqueOwners: new Set(allCollections.items.map(c => c.owner?.id).filter(Boolean)).size,
+      collectionsWithEditors: allCollections.items.filter(c => 
+        (c.editorUsers?.length || 0) > 0 || (c.editorUserGroups?.length || 0) > 0
+      ).length
+    };
+    
+    // Analyze tags
+    const allTags = allCollections.items.flatMap(c => c.tags || []);
+    const tagFrequency = allTags.reduce((freq, tag) => {
+      const tagName = tag.name || 'unknown';
+      freq[tagName] = (freq[tagName] || 0) + 1;
+      return freq;
+    }, {} as Record<string, number>);
+    
+    const topTags = Object.entries(tagFrequency)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([tag, count]) => ({ tag, count }));
+    
+    // Analyze creation patterns
+    const creationDates = allCollections.items.map(c => new Date(c.creationDate));
+    const oldestCollection = new Date(Math.min(...creationDates.map(d => d.getTime())));
+    const newestCollection = new Date(Math.max(...creationDates.map(d => d.getTime())));
+    
+    const result = {
+      metrics: analytics,
+      topTags,
+      dateRange: {
+        oldest: oldestCollection,
+        newest: newestCollection,
+        timespan: `${Math.ceil((newestCollection.getTime() - oldestCollection.getTime()) / (1000 * 60 * 60 * 24))} days`
+      }
+    };
+    
+    console.log('Collection Analytics:', result);
+    return result;
+  } catch (error) {
+    console.error('Failed to analyze collections:', error.message);
+    throw error;
+  }
+}
+
+const analytics = await analyzeCollections();
+```
+
+### Pagination Loop
+
+```typescript
+async function getAllCollectionsByAuthor(authorId: number): Promise<CollectionsResponseModel[]> {
+  const allCollections: CollectionsResponseModel[] = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  while (hasMorePages) {
+    const result = await sdk.collections.getAll({
+      authorIds: [authorId],
+      page: currentPage,
+      pageSize: 100, // Maximum page size for efficiency
+      sort: 'creation',
+      order: 'desc'
+    });
+
+    allCollections.push(...result.items);
+    
+    hasMorePages = currentPage < result.totalPages;
+    currentPage++;
+    
+    console.log(`Loaded page ${currentPage - 1} of ${result.totalPages}`);
+  }
+
+  return allCollections;
+}
+
+const authorCollections = await getAllCollectionsByAuthor(123);
+console.log(`Total collections loaded: ${authorCollections.length}`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access collections |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const collections = await sdk.collections.getAll({
+    permissions: 'editable',
+    pageSize: 50
+  });
+  
+  console.log(`Successfully retrieved ${collections.items.length} collections`);
+  collections.items.forEach(collection => {
+    console.log(`- ${collection.title} (Content: ${collection.content?.length || 0} items)`);
+  });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access collections');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to collections');
+  } else {
+    console.error('Failed to retrieve collections:', error.message);
+  }
+}
+```
+
+## Notes
+
+- All filter parameters are optional and can be combined for precise filtering
+- The `partialTitle` parameter performs case-insensitive substring matching
+- Permission filtering (`owned`, `editable`, `all`) respects the user's access rights
+- Date filtering uses the collection's creation date
+- When no sorting options are provided, the API uses its default sorting behavior
+- Page numbers are 1-based (first page is `page: 1`)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Empty results are returned as an array with `totalCount: 0` rather than throwing an error
+- Collections include metadata about their content, editors, and associated tags
+- The `permissions` filter is particularly useful for building user-specific collection views

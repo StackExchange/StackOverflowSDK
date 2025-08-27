@@ -1,0 +1,563 @@
+---
+title: getByExternalId()
+description: Retrieve users by their external identifier from SCIM or SAML integration systems.
+---
+
+# getByExternalId()
+
+Retrieve users by their external identifier from SCIM or SAML integration systems.
+
+## Syntax
+
+```typescript
+async getByExternalId(externalId: string): Promise<Array<UserResponseModel>>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `externalId` | `string` | Yes | The external identifier from SCIM or SAML systems |
+
+## Return Value
+
+Returns a `Promise<Array<UserResponseModel>>` containing an array of user objects:
+
+### UserResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `accountId` | `number \| null` | User's Stack Overflow network account ID |
+| `name` | `string` | User's display name |
+| `email` | `string \| null` | Email address (visible to admins only) |
+| `avatarUrl` | `string` | URL to user's profile picture |
+| `webUrl` | `string` | URL to user's profile page |
+| `reputation` | `number` | User's reputation score |
+| `role` | `string` | User's role on the site |
+| `externalId` | `string \| null` | External ID from SCIM or SAML (matches lookup parameter) |
+| `department` | `string \| null` | Organizational department from SAML |
+| `jobTitle` | `string \| null` | Job title from SAML |
+
+## Examples
+
+### Basic External ID Lookup
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function findUserByExternalId(externalId: string) {
+  try {
+    const users = await sdk.users.getByExternalId(externalId);
+    
+    if (users.length === 0) {
+      console.log(`No users found with external ID: ${externalId}`);
+      return null;
+    }
+    
+    console.log(`Found ${users.length} user(s) with external ID: ${externalId}`);
+    
+    users.forEach((user, index) => {
+      console.log(`\nUser ${index + 1}:`);
+      console.log(`Name: ${user.name}`);
+      console.log(`ID: ${user.id}`);
+      console.log(`Email: ${user.email}`);
+      console.log(`Role: ${user.role}`);
+      console.log(`Department: ${user.department || 'Not specified'}`);
+      console.log(`Job Title: ${user.jobTitle || 'Not specified'}`);
+    });
+    
+    return users;
+  } catch (error) {
+    console.error(`Failed to lookup external ID ${externalId}:`, error.message);
+    return null;
+  }
+}
+
+const users = await findUserByExternalId('emp-12345');
+```
+
+### SCIM Integration Validation
+
+```typescript
+async function validateScimIntegration(externalIds: string[]) {
+  const validation = {
+    totalChecked: externalIds.length,
+    found: 0,
+    notFound: 0,
+    duplicates: 0,
+    users: [],
+    issues: []
+  };
+  
+  console.log(`Validating SCIM integration for ${externalIds.length} external IDs...`);
+  
+  for (const externalId of externalIds) {
+    try {
+      const users = await sdk.users.getByExternalId(externalId);
+      
+      if (users.length === 0) {
+        validation.notFound++;
+        validation.issues.push(`External ID ${externalId}: No users found`);
+      } else if (users.length === 1) {
+        validation.found++;
+        validation.users.push({
+          externalId,
+          user: users[0],
+          status: 'valid'
+        });
+      } else {
+        validation.duplicates++;
+        validation.issues.push(`External ID ${externalId}: Multiple users found (${users.length})`);
+        validation.users.push({
+          externalId,
+          user: users,
+          status: 'duplicate'
+        });
+      }
+    } catch (error) {
+      validation.issues.push(`External ID ${externalId}: Lookup failed - ${error.message}`);
+    }
+    
+    // Rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  console.log('\n=== SCIM Integration Validation ===');
+  console.log(`Total External IDs: ${validation.totalChecked}`);
+  console.log(`Found (1:1 mapping): ${validation.found}`);
+  console.log(`Not Found: ${validation.notFound}`);
+  console.log(`Duplicates: ${validation.duplicates}`);
+  
+  if (validation.issues.length > 0) {
+    console.log('\n--- Issues Found ---');
+    validation.issues.forEach(issue => console.log(`- ${issue}`));
+  }
+  
+  // Calculate integration health
+  const healthScore = ((validation.found / validation.totalChecked) * 100).toFixed(1);
+  console.log(`\nIntegration Health Score: ${healthScore}%`);
+  
+  if (parseFloat(healthScore) < 95) {
+    console.log('Recommendation: Review SCIM provisioning configuration');
+  }
+  
+  return validation;
+}
+
+const scimValidation = await validateScimIntegration([
+  'emp-001',
+  'emp-002',
+  'emp-003',
+  'contractor-001',
+  'temp-001'
+]);
+```
+
+### User Provisioning Verification
+
+```typescript
+async function verifyUserProvisioning(expectedUsers: Array<{externalId: string, expectedEmail: string, expectedName: string}>) {
+  const verification = {
+    totalExpected: expectedUsers.length,
+    provisioned: 0,
+    notProvisioned: 0,
+    dataInconsistencies: 0,
+    results: []
+  };
+  
+  console.log(`Verifying provisioning for ${expectedUsers.length} users...`);
+  
+  for (const expected of expectedUsers) {
+    try {
+      const users = await sdk.users.getByExternalId(expected.externalId);
+      
+      if (users.length === 0) {
+        verification.notProvisioned++;
+        verification.results.push({
+          externalId: expected.externalId,
+          status: 'not_provisioned',
+          expected,
+          actual: null,
+          issues: ['User not found in system']
+        });
+      } else {
+        const user = users[0]; // Take first user if multiple found
+        verification.provisioned++;
+        
+        const issues = [];
+        
+        // Check data consistency
+        if (user.email !== expected.expectedEmail) {
+          issues.push(`Email mismatch: expected ${expected.expectedEmail}, got ${user.email}`);
+          verification.dataInconsistencies++;
+        }
+        
+        if (user.name !== expected.expectedName) {
+          issues.push(`Name mismatch: expected ${expected.expectedName}, got ${user.name}`);
+          verification.dataInconsistencies++;
+        }
+        
+        if (users.length > 1) {
+          issues.push(`Multiple users found (${users.length}) - possible duplicate external IDs`);
+        }
+        
+        verification.results.push({
+          externalId: expected.externalId,
+          status: issues.length > 0 ? 'provisioned_with_issues' : 'provisioned_correctly',
+          expected,
+          actual: user,
+          issues
+        });
+      }
+    } catch (error) {
+      verification.results.push({
+        externalId: expected.externalId,
+        status: 'error',
+        expected,
+        actual: null,
+        issues: [`Lookup failed: ${error.message}`]
+      });
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  
+  console.log('\n=== User Provisioning Verification ===');
+  console.log(`Expected Users: ${verification.totalExpected}`);
+  console.log(`Successfully Provisioned: ${verification.provisioned}`);
+  console.log(`Not Provisioned: ${verification.notProvisioned}`);
+  console.log(`Data Inconsistencies: ${verification.dataInconsistencies}`);
+  
+  // Show detailed results
+  verification.results.forEach(result => {
+    console.log(`\n${result.externalId}: ${result.status.toUpperCase()}`);
+    if (result.actual) {
+      console.log(`  Name: ${result.actual.name} | Email: ${result.actual.email}`);
+      console.log(`  Role: ${result.actual.role} | ID: ${result.actual.id}`);
+    }
+    if (result.issues.length > 0) {
+      console.log(`  Issues: ${result.issues.join(', ')}`);
+    }
+  });
+  
+  return verification;
+}
+
+const provisioningCheck = await verifyUserProvisioning([
+  { externalId: 'emp-001', expectedEmail: 'john@company.com', expectedName: 'John Doe' },
+  { externalId: 'emp-002', expectedEmail: 'jane@company.com', expectedName: 'Jane Smith' },
+  { externalId: 'emp-003', expectedEmail: 'bob@company.com', expectedName: 'Bob Johnson' }
+]);
+```
+
+### External ID Migration Tool
+
+```typescript
+async function migrateExternalIds(migrationMap: Array<{oldId: string, newId: string}>) {
+  const migration = {
+    total: migrationMap.length,
+    oldIdsFound: 0,
+    newIdsConflict: 0,
+    readyToMigrate: 0,
+    results: []
+  };
+  
+  console.log(`Analyzing migration for ${migrationMap.length} external ID changes...`);
+  
+  for (const mapping of migrationMap) {
+    const result = {
+      oldId: mapping.oldId,
+      newId: mapping.newId,
+      oldUsers: [],
+      newUsers: [],
+      status: 'unknown',
+      recommendations: []
+    };
+    
+    try {
+      // Check old external ID
+      result.oldUsers = await sdk.users.getByExternalId(mapping.oldId);
+      
+      // Check new external ID for conflicts
+      result.newUsers = await sdk.users.getByExternalId(mapping.newId);
+      
+      if (result.oldUsers.length === 0) {
+        result.status = 'old_id_not_found';
+        result.recommendations.push('Old external ID not found - may have already been migrated or user deleted');
+      } else if (result.newUsers.length > 0) {
+        migration.newIdsConflict++;
+        result.status = 'new_id_conflict';
+        result.recommendations.push('New external ID already exists - resolve conflict before migration');
+      } else if (result.oldUsers.length === 1) {
+        migration.readyToMigrate++;
+        migration.oldIdsFound++;
+        result.status = 'ready_to_migrate';
+        result.recommendations.push('Ready for migration - old ID exists, new ID available');
+      } else {
+        result.status = 'old_id_duplicate';
+        result.recommendations.push(`Multiple users found with old ID (${result.oldUsers.length}) - resolve duplicates first`);
+      }
+      
+      migration.results.push(result);
+      
+    } catch (error) {
+      result.status = 'error';
+      result.recommendations.push(`Lookup failed: ${error.message}`);
+      migration.results.push(result);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 400));
+  }
+  
+  console.log('\n=== External ID Migration Analysis ===');
+  console.log(`Total Mappings: ${migration.total}`);
+  console.log(`Old IDs Found: ${migration.oldIdsFound}`);
+  console.log(`New ID Conflicts: ${migration.newIdsConflict}`);
+  console.log(`Ready to Migrate: ${migration.readyToMigrate}`);
+  
+  console.log('\n--- Migration Status ---');
+  migration.results.forEach(result => {
+    console.log(`${result.oldId} -> ${result.newId}: ${result.status.toUpperCase()}`);
+    if (result.oldUsers.length > 0) {
+      console.log(`  User: ${result.oldUsers[0].name} (${result.oldUsers[0].email})`);
+    }
+    result.recommendations.forEach(rec => console.log(`  - ${rec}`));
+  });
+  
+  return migration;
+}
+
+const migrationAnalysis = await migrateExternalIds([
+  { oldId: 'legacy-001', newId: 'emp-001' },
+  { oldId: 'legacy-002', newId: 'emp-002' },
+  { oldId: 'temp-001', newId: 'contractor-001' }
+]);
+```
+
+### External ID Audit Report
+
+```typescript
+async function generateExternalIdAuditReport(sampleExternalIds: string[]) {
+  const audit = {
+    timestamp: new Date(),
+    totalChecked: sampleExternalIds.length,
+    found: 0,
+    notFound: 0,
+    duplicates: 0,
+    usersByDepartment: new Map(),
+    usersByRole: new Map(),
+    integrationPatterns: {
+      hasEmail: 0,
+      hasDepartment: 0,
+      hasJobTitle: 0,
+      complete: 0
+    },
+    findings: []
+  };
+  
+  console.log(`Generating external ID audit report for ${sampleExternalIds.length} IDs...`);
+  
+  for (const externalId of sampleExternalIds) {
+    try {
+      const users = await sdk.users.getByExternalId(externalId);
+      
+      if (users.length === 0) {
+        audit.notFound++;
+      } else if (users.length === 1) {
+        audit.found++;
+        const user = users[0];
+        
+        // Track integration completeness
+        if (user.email) audit.integrationPatterns.hasEmail++;
+        if (user.department) audit.integrationPatterns.hasDepartment++;
+        if (user.jobTitle) audit.integrationPatterns.hasJobTitle++;
+        
+        if (user.email && user.department && user.jobTitle) {
+          audit.integrationPatterns.complete++;
+        }
+        
+        // Track department distribution
+        const dept = user.department || 'Unknown';
+        audit.usersByDepartment.set(dept, (audit.usersByDepartment.get(dept) || 0) + 1);
+        
+        // Track role distribution
+        audit.usersByRole.set(user.role, (audit.usersByRole.get(user.role) || 0) + 1);
+        
+      } else {
+        audit.duplicates++;
+        audit.findings.push(`External ID ${externalId} has ${users.length} duplicate users`);
+      }
+    } catch (error) {
+      audit.findings.push(`Failed to lookup ${externalId}: ${error.message}`);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  
+  // Calculate percentages
+  const foundRate = ((audit.found / audit.totalChecked) * 100).toFixed(1);
+  const completenessRate = ((audit.integrationPatterns.complete / Math.max(audit.found, 1)) * 100).toFixed(1);
+  
+  console.log('\n=== External ID Audit Report ===');
+  console.log(`Report Date: ${audit.timestamp.toLocaleString()}`);
+  console.log(`External IDs Checked: ${audit.totalChecked}`);
+  console.log(`Found: ${audit.found} (${foundRate}%)`);
+  console.log(`Not Found: ${audit.notFound}`);
+  console.log(`Duplicates: ${audit.duplicates}`);
+  
+  console.log('\n--- Integration Data Quality ---');
+  console.log(`Users with Email: ${audit.integrationPatterns.hasEmail}`);
+  console.log(`Users with Department: ${audit.integrationPatterns.hasDepartment}`);
+  console.log(`Users with Job Title: ${audit.integrationPatterns.hasJobTitle}`);
+  console.log(`Complete Integration: ${audit.integrationPatterns.complete} (${completenessRate}%)`);
+  
+  if (audit.usersByDepartment.size > 0) {
+    console.log('\n--- Department Distribution ---');
+    Array.from(audit.usersByDepartment.entries())
+      .sort(([,a], [,b]) => b - a)
+      .forEach(([dept, count]) => console.log(`${dept}: ${count}`));
+  }
+  
+  if (audit.usersByRole.size > 0) {
+    console.log('\n--- Role Distribution ---');
+    Array.from(audit.usersByRole.entries())
+      .sort(([,a], [,b]) => b - a)
+      .forEach(([role, count]) => console.log(`${role}: ${count}`));
+  }
+  
+  if (audit.findings.length > 0) {
+    console.log('\n--- Issues Found ---');
+    audit.findings.forEach(finding => console.log(`- ${finding}`));
+  }
+  
+  return audit;
+}
+
+const auditReport = await generateExternalIdAuditReport([
+  'emp-001', 'emp-002', 'emp-003', 'emp-004', 'emp-005',
+  'contractor-001', 'temp-001', 'vendor-001'
+]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to lookup users by external ID |
+| `ValidationError` | 400 | Invalid external ID format |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ValidationError, ForbiddenError } from 'stack-overflow-sdk';
+
+async function safeExternalIdLookup(externalId: string): Promise<Array<UserResponseModel> | null> {
+  try {
+    const users = await sdk.users.getByExternalId(externalId);
+    
+    if (users.length === 0) {
+      console.log(`No users found with external ID: ${externalId}`);
+    } else if (users.length === 1) {
+      console.log(`Found user: ${users[0].name} (${externalId})`);
+    } else {
+      console.warn(`Multiple users found with external ID: ${externalId} (${users.length} users)`);
+    }
+    
+    return users;
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.error(`Invalid external ID format: ${externalId}`);
+    } else if (error instanceof ForbiddenError) {
+      console.error('Insufficient permissions to lookup users by external ID');
+    } else {
+      console.error(`External ID lookup failed for ${externalId}:`, error.message);
+    }
+    return null;
+  }
+}
+
+const users = await safeExternalIdLookup('emp-12345');
+```
+
+### Bulk Processing with Error Recovery
+
+```typescript
+async function processExternalIds(externalIds: string[]) {
+  const results = {
+    processed: 0,
+    successful: 0,
+    empty: 0,
+    duplicates: 0,
+    errors: 0,
+    users: [],
+    issues: []
+  };
+  
+  for (const externalId of externalIds) {
+    try {
+      results.processed++;
+      const users = await sdk.users.getByExternalId(externalId);
+      
+      if (users.length === 0) {
+        results.empty++;
+      } else if (users.length === 1) {
+        results.successful++;
+        results.users.push({ externalId, user: users[0] });
+      } else {
+        results.duplicates++;
+        results.users.push({ externalId, user: users }); // Store all duplicates
+        results.issues.push(`${externalId}: ${users.length} duplicate users found`);
+      }
+    } catch (error) {
+      results.errors++;
+      results.issues.push(`${externalId}: ${error.message}`);
+    }
+    
+    // Progress indicator
+    if (results.processed % 10 === 0) {
+      console.log(`Processed ${results.processed}/${externalIds.length} external IDs...`);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  console.log('\n=== Bulk External ID Processing Results ===');
+  console.log(`Total Processed: ${results.processed}`);
+  console.log(`Successful (1:1): ${results.successful}`);
+  console.log(`Empty Results: ${results.empty}`);
+  console.log(`Duplicates: ${results.duplicates}`);
+  console.log(`Errors: ${results.errors}`);
+  
+  if (results.issues.length > 0) {
+    console.log('\nIssues:');
+    results.issues.forEach(issue => console.log(`- ${issue}`));
+  }
+  
+  return results;
+}
+
+const bulkResults = await processExternalIds(['emp-001', 'emp-002', 'emp-003']);
+```
+
+## Notes
+
+- **Array Return Type**: Unlike other user lookup methods, this returns an array since multiple users could theoretically have the same external ID.
+- **SCIM/SAML Integration**: This method is primarily used with enterprise identity management systems that provision users with external identifiers.
+- **Duplicate Detection**: The array return type helps identify duplicate external ID assignments, which may indicate provisioning issues.
+- **Admin Permissions**: Typically requires administrative permissions to lookup users by external identifiers.
+- **Integration Validation**: Commonly used to verify SCIM provisioning, validate user migrations, and audit external identity mappings.
+- **Empty Results**: An empty array indicates no users found with the specified external ID, which is normal for non-existent or deprovisioned users.
+- **Performance**: Individual lookups are efficient, but bulk operations should include rate limiting to avoid API throttling.
+- **Data Consistency**: Use this method to verify external ID uniqueness and detect potential provisioning conflicts.
+- **Migration Support**: Useful for external ID migration projects and identity system transitions.

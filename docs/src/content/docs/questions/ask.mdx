@@ -1,0 +1,621 @@
+---
+title: ask()
+description: Creates a new question with title, body content, and associated tags. Works in both public and team contexts.
+---
+
+# ask()
+
+Creates a new question with title, body content, and associated tags. Works in both public and team contexts.
+
+## Syntax
+
+```typescript
+async ask(options: CreateQuestionOptions): Promise<QuestionResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `CreateQuestionOptions` | Yes | Question creation configuration |
+
+### CreateQuestionOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `title` | `string` | Yes | Question title - the actual question stated briefly in one sentence |
+| `body` | `string` | Yes | Question body - main content in Markdown format |
+| `tags` | `string[]` | Yes | Array of tag names associated with the question |
+
+## Return Value
+
+Returns a `Promise<QuestionResponseModel>` containing the newly created question information including ID, metadata, and current state.
+
+## Examples
+
+### Basic Question Creation
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Create a basic question
+const question = await sdk.questions.ask({
+  title: "How do I implement async/await in TypeScript?",
+  body: `I'm trying to understand the proper way to use async/await in TypeScript. 
+
+Here's what I'm currently doing:
+
+\`\`\`typescript
+async function fetchData() {
+  const response = await fetch('/api/data');
+  return response.json();
+}
+\`\`\`
+
+Is this the correct approach? Are there any TypeScript-specific considerations I should be aware of?`,
+  tags: ["typescript", "async-await", "javascript"]
+});
+
+console.log(`Question created: ${question.title}`);
+console.log(`Question ID: ${question.id}`);
+console.log(`Score: ${question.score}`);
+```
+
+### Technical Question with Code Examples
+
+```typescript
+const technicalQuestion = await sdk.questions.ask({
+  title: "React component re-rendering unexpectedly with useEffect",
+  body: `I have a React component that's re-rendering more than expected when using useEffect. Here's my current setup:
+
+## Current Implementation
+
+\`\`\`jsx
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUser(userId).then(userData => {
+      setUser(userData);
+      setLoading(false);
+    });
+  }, [userId]);
+
+  if (loading) return <div>Loading...</div>;
+  return <div>{user.name}</div>;
+}
+\`\`\`
+
+## Problem
+The component re-renders every time the parent component updates, even when \`userId\` hasn't changed.
+
+## What I've Tried
+- Added userId to the dependency array
+- Used React.memo() wrapper
+- Checked if userId is actually changing
+
+## Expected Behavior
+Component should only re-render when userId changes.
+
+## Environment
+- React 18.2.0
+- TypeScript 4.9.0
+- Next.js 13.1.0
+
+What am I missing here?`,
+  tags: ["react", "useeffect", "typescript", "performance", "hooks"]
+});
+
+console.log(`Technical question posted: ${technicalQuestion.id}`);
+```
+
+### Question with Rich Markdown Content
+
+```typescript
+async function askDetailedQuestion() {
+  try {
+    const question = await sdk.questions.ask({
+      title: "Best practices for error handling in microservices architecture",
+      body: `# Context
+
+I'm designing error handling for a microservices architecture and need guidance on best practices.
+
+## Current Architecture
+
+- **API Gateway**: Kong
+- **Services**: Node.js with Express
+- **Database**: PostgreSQL
+- **Message Queue**: RabbitMQ
+- **Monitoring**: DataDog
+
+## Specific Questions
+
+### 1. Error Propagation
+How should errors propagate between services? Should each service:
+- Transform errors before passing them up?
+- Pass through original error details?
+- Add contextual information?
+
+### 2. Error Response Format
+What's the best format for error responses?
+
+\`\`\`json
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "User input validation failed",
+    "details": [
+      {
+        "field": "email",
+        "message": "Invalid email format"
+      }
+    ],
+    "requestId": "req-123-456",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+\`\`\`
+
+### 3. Circuit Breaker Implementation
+Should circuit breakers be implemented at:
+- [ ] API Gateway level
+- [ ] Individual service level  
+- [ ] Both levels
+
+## Constraints
+- Must maintain backwards compatibility
+- Response time should stay under 200ms
+- Need to support both REST and GraphQL APIs
+
+## Research Done
+- Reviewed Netflix's error handling patterns
+- Studied Microsoft's cloud design patterns
+- Analyzed current system error logs
+
+Any insights or resources would be greatly appreciated!`,
+      tags: ["microservices", "error-handling", "architecture", "nodejs", "best-practices"]
+    });
+    
+    return question;
+  } catch (error) {
+    console.error('Failed to create detailed question:', error.message);
+    throw error;
+  }
+}
+
+const detailedQuestion = await askDetailedQuestion();
+console.log(`Detailed question created with ${detailedQuestion.tags?.length} tags`);
+```
+
+### Team Context Question
+
+```typescript
+// Using team-specific client
+const teamSDK = sdk.forTeam('team-123');
+
+const teamQuestion = await teamSDK.questions.ask({
+  title: "Internal API documentation - where should we host it?",
+  body: `Our team is looking for recommendations on where to host our internal API documentation.
+
+## Requirements
+- Must be searchable
+- Support for code examples
+- Integration with our CI/CD pipeline
+- Team member authentication
+- Version control
+
+## Options Considered
+1. **Confluence** - Current wiki solution
+2. **GitBook** - Dedicated documentation platform  
+3. **GitHub Pages** - Part of our existing workflow
+4. **Internal Stack Overflow** - This platform
+
+## Current Pain Points
+- Documentation gets outdated quickly
+- Hard to find relevant information
+- No standardized format across teams
+- Limited collaboration features
+
+What has worked well for other teams here?`,
+  tags: ["documentation", "internal-tools", "api", "team-process"]
+});
+
+console.log(`Team question created: ${teamQuestion.id}`);
+```
+
+### Question Creation Workflow
+
+```typescript
+async function createQuestionWorkflow(questionData: {
+  title: string,
+  body: string,
+  tags: string[],
+  isDraft?: boolean
+}) {
+  try {
+    // Validate question data
+    if (!questionData.title.trim()) {
+      throw new Error('Question title is required');
+    }
+    
+    if (!questionData.body.trim()) {
+      throw new Error('Question body is required');
+    }
+    
+    if (!questionData.tags.length) {
+      throw new Error('At least one tag is required');
+    }
+    
+    // Tag validation
+    const validatedTags = questionData.tags
+      .map(tag => tag.trim().toLowerCase())
+      .filter(tag => tag.length > 0)
+      .slice(0, 5); // Limit to 5 tags
+    
+    if (validatedTags.length === 0) {
+      throw new Error('At least one valid tag is required');
+    }
+    
+    console.log('Creating question...');
+    console.log(`Title: ${questionData.title}`);
+    console.log(`Body length: ${questionData.body.length} characters`);
+    console.log(`Tags: ${validatedTags.join(', ')}`);
+    
+    const question = await sdk.questions.ask({
+      title: questionData.title,
+      body: questionData.body,
+      tags: validatedTags
+    });
+    
+    console.log('Question created successfully!');
+    console.log(`- ID: ${question.id}`);
+    console.log(`- URL: ${question.link || 'N/A'}`);
+    console.log(`- Created: ${question.creationDate}`);
+    console.log(`- Tags: ${question.tags?.map(t => t.name).join(', ')}`);
+    
+    return {
+      success: true,
+      question,
+      metadata: {
+        titleLength: questionData.title.length,
+        bodyLength: questionData.body.length,
+        tagCount: validatedTags.length,
+        createdAt: new Date().toISOString()
+      }
+    };
+    
+  } catch (error) {
+    console.error('Question creation failed:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      questionData
+    };
+  }
+}
+
+const questionResult = await createQuestionWorkflow({
+  title: "How to optimize database queries in Node.js?",
+  body: "I'm experiencing slow database queries in my Node.js application...",
+  tags: ["nodejs", "database", "performance", "optimization"]
+});
+
+if (questionResult.success) {
+  console.log(`Question ${questionResult.question.id} created successfully`);
+} else {
+  console.log(`Failed to create question: ${questionResult.error}`);
+}
+```
+
+### Batch Question Creation
+
+```typescript
+async function createMultipleQuestions(questionsData: Array<{
+  title: string,
+  body: string,
+  tags: string[]
+}>) {
+  console.log(`Creating ${questionsData.length} questions...`);
+  
+  const results = [];
+  
+  for (let i = 0; i < questionsData.length; i++) {
+    const questionData = questionsData[i];
+    
+    try {
+      console.log(`\nCreating question ${i + 1}/${questionsData.length}`);
+      
+      const question = await sdk.questions.ask(questionData);
+      
+      results.push({
+        index: i,
+        success: true,
+        question,
+        originalData: questionData
+      });
+      
+      console.log(`✓ Created: ${question.title} (ID: ${question.id})`);
+      
+      // Add delay between requests to avoid rate limiting
+      if (i < questionsData.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+    } catch (error) {
+      console.error(`✗ Failed to create question ${i + 1}:`, error.message);
+      
+      results.push({
+        index: i,
+        success: false,
+        error: error.message,
+        originalData: questionData
+      });
+    }
+  }
+  
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`\nBatch creation summary:`);
+  console.log(`- Total questions: ${questionsData.length}`);
+  console.log(`- Successfully created: ${successful.length}`);
+  console.log(`- Failed: ${failed.length}`);
+  
+  if (failed.length > 0) {
+    console.log(`Failed questions:`);
+    failed.forEach(f => {
+      console.log(`  - "${f.originalData.title}": ${f.error}`);
+    });
+  }
+  
+  return { successful, failed, total: questionsData.length };
+}
+
+const batchQuestions = [
+  {
+    title: "TypeScript generic constraints best practices",
+    body: "What are the best practices for using generic constraints in TypeScript?",
+    tags: ["typescript", "generics", "best-practices"]
+  },
+  {
+    title: "React performance optimization techniques",
+    body: "Looking for modern React performance optimization techniques for 2024.",
+    tags: ["react", "performance", "optimization"]
+  },
+  {
+    title: "Docker multi-stage build optimization",
+    body: "How can I optimize Docker multi-stage builds for faster CI/CD?",
+    tags: ["docker", "ci-cd", "optimization", "devops"]
+  }
+];
+
+const batchResults = await createMultipleQuestions(batchQuestions);
+```
+
+### Question Template System
+
+```typescript
+interface QuestionTemplate {
+  name: string;
+  titleTemplate: string;
+  bodyTemplate: string;
+  defaultTags: string[];
+  placeholders: string[];
+}
+
+const questionTemplates: QuestionTemplate[] = [
+  {
+    name: "bug-report",
+    titleTemplate: "Bug: {summary} in {component}",
+    bodyTemplate: `## Bug Description
+{description}
+
+## Steps to Reproduce
+1. {step1}
+2. {step2}
+3. {step3}
+
+## Expected Behavior
+{expected}
+
+## Actual Behavior
+{actual}
+
+## Environment
+- OS: {os}
+- Browser: {browser}
+- Version: {version}
+
+## Additional Context
+{context}`,
+    defaultTags: ["bug", "help-needed"],
+    placeholders: ["summary", "component", "description", "step1", "step2", "step3", "expected", "actual", "os", "browser", "version", "context"]
+  },
+  {
+    name: "feature-request",
+    titleTemplate: "Feature Request: {feature} for {area}",
+    bodyTemplate: `## Feature Description
+{description}
+
+## Use Case
+{usecase}
+
+## Proposed Solution
+{solution}
+
+## Alternatives Considered
+{alternatives}
+
+## Additional Context
+{context}`,
+    defaultTags: ["feature-request", "enhancement"],
+    placeholders: ["feature", "area", "description", "usecase", "solution", "alternatives", "context"]
+  }
+];
+
+async function createQuestionFromTemplate(
+  templateName: string,
+  values: Record<string, string>,
+  additionalTags: string[] = []
+) {
+  const template = questionTemplates.find(t => t.name === templateName);
+  if (!template) {
+    throw new Error(`Template "${templateName}" not found`);
+  }
+  
+  // Replace placeholders in title
+  let title = template.titleTemplate;
+  template.placeholders.forEach(placeholder => {
+    const value = values[placeholder] || `[${placeholder}]`;
+    title = title.replace(`{${placeholder}}`, value);
+  });
+  
+  // Replace placeholders in body
+  let body = template.bodyTemplate;
+  template.placeholders.forEach(placeholder => {
+    const value = values[placeholder] || `[Please specify ${placeholder}]`;
+    body = body.replace(new RegExp(`{${placeholder}}`, 'g'), value);
+  });
+  
+  // Combine default tags with additional tags
+  const tags = [...template.defaultTags, ...additionalTags];
+  
+  const question = await sdk.questions.ask({
+    title,
+    body,
+    tags
+  });
+  
+  console.log(`Question created from template "${templateName}"`);
+  console.log(`- Title: ${question.title}`);
+  console.log(`- ID: ${question.id}`);
+  
+  return question;
+}
+
+// Use bug report template
+const bugQuestion = await createQuestionFromTemplate("bug-report", {
+  summary: "Navigation menu not responsive",
+  component: "Header component",
+  description: "The navigation menu doesn't collapse properly on mobile devices",
+  step1: "Open the application on mobile device",
+  step2: "Navigate to any page",
+  step3: "Try to use the hamburger menu",
+  expected: "Menu should collapse and expand smoothly",
+  actual: "Menu items overlap and are not clickable",
+  os: "iOS 17.1",
+  browser: "Safari 17",
+  version: "2.4.1",
+  context: "This affects all mobile users"
+}, ["mobile", "ui"]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ValidationError` | 400 | Invalid question data (empty title, body, or tags) |
+| `ForbiddenError` | 403 | Insufficient permissions to create questions |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ValidationError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const question = await sdk.questions.ask({
+    title: "How do I handle async operations in React?",
+    body: "I need help understanding the best practices for handling asynchronous operations in React components.",
+    tags: ["react", "async", "javascript"]
+  });
+  
+  console.log('Question created successfully:', question.id);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Invalid question data:', error.message);
+    console.error('Please check that title, body, and tags are properly filled');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot create question - insufficient permissions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to create questions');
+  } else {
+    console.error('Failed to create question:', error.message);
+  }
+}
+```
+
+### Safe Question Creation
+
+```typescript
+async function safeCreateQuestion(questionData: CreateQuestionOptions) {
+  try {
+    const question = await sdk.questions.ask(questionData);
+    
+    return {
+      success: true,
+      question,
+      message: 'Question created successfully'
+    };
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return {
+        success: false,
+        reason: 'validation_error',
+        message: 'Question data is invalid - check title, body, and tags'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'insufficient_permissions',
+        message: 'You do not have permission to create questions'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const createResult = await safeCreateQuestion({
+  title: "Best practices for React state management",
+  body: "Looking for recommendations on state management solutions for a large React application.",
+  tags: ["react", "state-management", "redux", "context-api"]
+});
+
+if (createResult.success) {
+  console.log(`Question created: ${createResult.question.id}`);
+} else {
+  console.log(`Creation failed: ${createResult.message}`);
+}
+```
+
+## Notes
+
+- **Team Context**: When using a team-specific client (`sdk.forTeam()`), questions are created within that team's context
+- **Markdown Support**: The `body` field supports full Markdown formatting including code blocks, headers, lists, and links
+- **Tag Requirements**: At least one tag is required; tags should be relevant to the question content
+- **Title Guidelines**: Keep titles concise and specific - they should clearly state the question being asked
+- **Content Quality**: Well-formatted questions with code examples, clear problem descriptions, and specific details get better responses
+- **Rate Limiting**: Consider adding delays between multiple question creations to avoid rate limiting
+- **Validation**: The API validates that title, body, and tags are provided and non-empty
+- **Response Data**: The returned `QuestionResponseModel` includes the question ID, creation date, current score, and other metadata
+- **Permissions**: Users must have appropriate permissions to create questions in the target context (public or team)

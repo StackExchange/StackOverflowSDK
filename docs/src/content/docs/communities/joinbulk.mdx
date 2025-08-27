@@ -1,0 +1,423 @@
+---
+title: joinBulk()
+description: Adds multiple users to a community in a single operation for efficient bulk membership management.
+---
+
+# joinBulk()
+
+Adds multiple users to a community in a single operation for efficient bulk membership management.
+
+## Syntax
+
+```typescript
+async joinBulk(communityId: number, options: JoinCommunityBulkOptions): Promise<CommunityResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to add users to |
+| `options` | `JoinCommunityBulkOptions` | Yes | The bulk join options containing user IDs |
+
+### JoinCommunityBulkOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `memberUserIds` | `number[]` | Yes | Array of user IDs to add to the community |
+
+## Return Value
+
+Returns a `Promise<CommunityResponseModel>` containing the updated community information with the new members added. See the [get() method documentation](./get) for details on the `CommunityResponseModel` structure.
+
+## Examples
+
+### Basic Bulk Join
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Add multiple users to a community
+const userIds = [123, 456, 789, 101, 234];
+const community = await sdk.communities.joinBulk(999, {
+  memberUserIds: userIds
+});
+
+console.log(`Added ${userIds.length} users to "${community.name}"`);
+console.log(`Community now has ${community.memberCount} members`);
+```
+
+### Team Onboarding
+
+```typescript
+async function onboardNewTeamMembers(communityId: number, newEmployeeIds: number[]) {
+  try {
+    console.log(`Onboarding ${newEmployeeIds.length} new team members...`);
+    
+    // Get community info first
+    const communityInfo = await sdk.communities.get(communityId);
+    console.log(`Target community: "${communityInfo.name}"`);
+    console.log(`Current members: ${communityInfo.memberCount}`);
+    
+    // Add all new employees to the community
+    const updatedCommunity = await sdk.communities.joinBulk(communityId, {
+      memberUserIds: newEmployeeIds
+    });
+    
+    const newMemberCount = updatedCommunity.memberCount || 0;
+    const previousMemberCount = communityInfo.memberCount || 0;
+    const actualAdded = newMemberCount - previousMemberCount;
+    
+    console.log(`✅ Onboarding completed successfully`);
+    console.log(`Added: ${actualAdded} new members`);
+    console.log(`Total members: ${newMemberCount}`);
+    
+    // Log onboarding details
+    const onboardingRecord = {
+      communityId: updatedCommunity.id,
+      communityName: updatedCommunity.name,
+      newMemberIds: newEmployeeIds,
+      addedCount: actualAdded,
+      totalMembers: newMemberCount,
+      onboardingDate: new Date().toISOString()
+    };
+    
+    console.log('Onboarding record:', onboardingRecord);
+    return { community: updatedCommunity, record: onboardingRecord };
+  } catch (error) {
+    console.error('Failed to onboard team members:', error.message);
+    throw error;
+  }
+}
+
+const newEmployees = [301, 302, 303, 304, 305];
+const onboardingResult = await onboardNewTeamMembers(123, newEmployees);
+```
+
+### Departmental Community Setup
+
+```typescript
+async function setupDepartmentalCommunities(departments: { communityId: number; employeeIds: number[] }[]) {
+  const setupResults = [];
+  
+  for (const department of departments) {
+    try {
+      console.log(`Setting up community ${department.communityId} with ${department.employeeIds.length} members...`);
+      
+      const community = await sdk.communities.joinBulk(department.communityId, {
+        memberUserIds: department.employeeIds
+      });
+      
+      setupResults.push({
+        communityId: community.id,
+        communityName: community.name,
+        targetEmployees: department.employeeIds.length,
+        finalMemberCount: community.memberCount,
+        status: 'success'
+      });
+      
+      console.log(`✅ ${community.name}: ${community.memberCount} total members`);
+    } catch (error) {
+      setupResults.push({
+        communityId: department.communityId,
+        targetEmployees: department.employeeIds.length,
+        status: 'failed',
+        error: error.message
+      });
+      
+      console.error(`❌ Failed to setup community ${department.communityId}:`, error.message);
+    }
+  }
+  
+  const successful = setupResults.filter(r => r.status === 'success');
+  const failed = setupResults.filter(r => r.status === 'failed');
+  
+  console.log(`\nSetup Summary: ${successful.length} successful, ${failed.length} failed`);
+  
+  return setupResults;
+}
+
+const departmentSetup = [
+  { communityId: 101, employeeIds: [201, 202, 203, 204] }, // Engineering
+  { communityId: 102, employeeIds: [301, 302, 303] },      // Marketing
+  { communityId: 103, employeeIds: [401, 402, 403, 404, 405] } // Sales
+];
+
+const setupResults = await setupDepartmentalCommunities(departmentSetup);
+```
+
+### Batch Processing with Validation
+
+```typescript
+async function batchAddUsersWithValidation(communityId: number, userIds: number[], batchSize: number = 50) {
+  try {
+    // Validate inputs
+    if (userIds.length === 0) {
+      throw new Error('No user IDs provided');
+    }
+    
+    if (userIds.length > 1000) {
+      console.warn('Large batch detected - consider breaking into smaller chunks');
+    }
+    
+    // Get initial community state
+    const initialCommunity = await sdk.communities.get(communityId);
+    const initialMemberCount = initialCommunity.memberCount || 0;
+    
+    console.log(`Starting batch add: ${userIds.length} users to "${initialCommunity.name}"`);
+    console.log(`Initial member count: ${initialMemberCount}`);
+    
+    // Process in batches if needed
+    const batches = [];
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      batches.push(userIds.slice(i, i + batchSize));
+    }
+    
+    console.log(`Processing ${batches.length} batches of up to ${batchSize} users each`);
+    
+    let finalCommunity = initialCommunity;
+    const batchResults = [];
+    
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      const batchNumber = i + 1;
+      
+      try {
+        console.log(`Processing batch ${batchNumber}/${batches.length} (${batch.length} users)...`);
+        
+        finalCommunity = await sdk.communities.joinBulk(communityId, {
+          memberUserIds: batch
+        });
+        
+        batchResults.push({
+          batchNumber,
+          userIds: batch,
+          status: 'success',
+          memberCount: finalCommunity.memberCount
+        });
+        
+        console.log(`✅ Batch ${batchNumber} completed - Total members: ${finalCommunity.memberCount}`);
+        
+        // Add delay between batches to avoid rate limiting
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        batchResults.push({
+          batchNumber,
+          userIds: batch,
+          status: 'failed',
+          error: error.message
+        });
+        
+        console.error(`❌ Batch ${batchNumber} failed:`, error.message);
+      }
+    }
+    
+    const successfulBatches = batchResults.filter(b => b.status === 'success');
+    const failedBatches = batchResults.filter(b => b.status === 'failed');
+    
+    const summary = {
+      initialMemberCount,
+      finalMemberCount: finalCommunity.memberCount || 0,
+      targetUsers: userIds.length,
+      actualAdded: (finalCommunity.memberCount || 0) - initialMemberCount,
+      batchesProcessed: batches.length,
+      successfulBatches: successfulBatches.length,
+      failedBatches: failedBatches.length,
+      batchResults
+    };
+    
+    console.log('\nBatch Processing Summary:', summary);
+    
+    return {
+      community: finalCommunity,
+      summary,
+      success: failedBatches.length === 0
+    };
+  } catch (error) {
+    console.error('Failed to batch add users:', error.message);
+    throw error;
+  }
+}
+
+const largeBatchUserIds = Array.from({ length: 150 }, (_, i) => 1000 + i);
+const batchResult = await batchAddUsersWithValidation(123, largeBatchUserIds, 25);
+```
+
+### Project Team Assembly
+
+```typescript
+async function assembleProjectTeam(projectCommunityId: number, teamComposition: {
+  leads: number[];
+  developers: number[];
+  designers: number[];
+  qa: number[];
+}) {
+  try {
+    // Combine all team members
+    const allTeamMembers = [
+      ...teamComposition.leads,
+      ...teamComposition.developers,
+      ...teamComposition.designers,
+      ...teamComposition.qa
+    ];
+    
+    console.log(`Assembling project team of ${allTeamMembers.length} members...`);
+    console.log(`- ${teamComposition.leads.length} leads`);
+    console.log(`- ${teamComposition.developers.length} developers`);
+    console.log(`- ${teamComposition.designers.length} designers`);
+    console.log(`- ${teamComposition.qa.length} QA engineers`);
+    
+    // Add all team members to project community
+    const projectCommunity = await sdk.communities.joinBulk(projectCommunityId, {
+      memberUserIds: allTeamMembers
+    });
+    
+    const teamRecord = {
+      projectCommunityId: projectCommunity.id,
+      projectName: projectCommunity.name,
+      teamComposition: {
+        ...teamComposition,
+        totalMembers: allTeamMembers.length
+      },
+      assemblyDate: new Date().toISOString(),
+      finalMemberCount: projectCommunity.memberCount
+    };
+    
+    console.log(`✅ Project team assembled successfully`);
+    console.log(`Project: "${projectCommunity.name}"`);
+    console.log(`Total community members: ${projectCommunity.memberCount}`);
+    
+    return {
+      community: projectCommunity,
+      teamRecord,
+      allTeamMembers
+    };
+  } catch (error) {
+    console.error('Failed to assemble project team:', error.message);
+    throw error;
+  }
+}
+
+const projectTeam = {
+  leads: [501, 502],
+  developers: [601, 602, 603, 604, 605],
+  designers: [701, 702],
+  qa: [801, 802, 803]
+};
+
+const assemblyResult = await assembleProjectTeam(456, projectTeam);
+```
+
+### Migration from Legacy System
+
+```typescript
+async function migrateLegacyUsers(targetCommunityId: number, legacyUserMappings: { legacyId: string; newUserId: number }[]) {
+  try {
+    const newUserIds = legacyUserMappings.map(mapping => mapping.newUserId);
+    
+    console.log(`Migrating ${legacyUserMappings.length} users from legacy system...`);
+    
+    // Create migration log
+    const migrationLog = {
+      targetCommunityId,
+      migratedUsers: legacyUserMappings,
+      migrationDate: new Date().toISOString(),
+      status: 'in_progress'
+    };
+    
+    console.log('Migration mappings:', legacyUserMappings.slice(0, 5)); // Show first 5
+    
+    // Perform bulk addition
+    const community = await sdk.communities.joinBulk(targetCommunityId, {
+      memberUserIds: newUserIds
+    });
+    
+    migrationLog.status = 'completed';
+    migrationLog.finalMemberCount = community.memberCount;
+    
+    console.log(`✅ Migration completed successfully`);
+    console.log(`Migrated ${newUserIds.length} users to "${community.name}"`);
+    console.log(`Final member count: ${community.memberCount}`);
+    
+    return {
+      community,
+      migrationLog,
+      migratedCount: newUserIds.length
+    };
+  } catch (error) {
+    console.error('Failed to migrate legacy users:', error.message);
+    throw error;
+  }
+}
+
+const legacyMappings = [
+  { legacyId: 'user001', newUserId: 1001 },
+  { legacyId: 'user002', newUserId: 1002 },
+  { legacyId: 'user003', newUserId: 1003 },
+  // ... more mappings
+];
+
+const migrationResult = await migrateLegacyUsers(789, legacyMappings);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to add users to community |
+| `NotFoundError` | 404 | Community with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors (e.g., invalid user IDs) |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const userIds = [123, 456, 789];
+  const community = await sdk.communities.joinBulk(999, {
+    memberUserIds: userIds
+  });
+  
+  console.log(`Successfully added ${userIds.length} users to "${community.name}"`);
+  console.log(`Community now has ${community.memberCount} members`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Community not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Insufficient permissions to add users to this community');
+  } else if (error.message.includes('user')) {
+    console.error('Some user IDs may be invalid or users already members');
+  } else {
+    console.error('Failed to add users to community:', error.message);
+  }
+}
+```
+
+## Notes
+
+- This method efficiently adds multiple users to a community in a single API call
+- All specified users will be added as members if the operation succeeds
+- Users who are already members of the community may be silently ignored or cause errors (implementation dependent)
+- The operation is atomic - either all users are added successfully or the operation fails
+- Large batches should be broken into smaller chunks to avoid request timeouts
+- The method requires appropriate permissions to manage community membership
+- Consider using the convenience method `addUsers()` for cleaner code semantics
+- The returned community object includes updated membership information
+- Some platforms may have limits on the maximum number of users that can be added in a single operation

@@ -1,0 +1,576 @@
+---
+title: addSubjectMatterExpertUsers() & removeSubjectMatterExpertUser()
+description: Add and remove individual users as Subject Matter Experts for specific tags without affecting existing SME assignments.
+---
+
+# addSubjectMatterExpertUsers() & removeSubjectMatterExpertUser()
+
+Add and remove individual users as Subject Matter Experts for specific tags without affecting existing SME assignments.
+
+## Syntax
+
+```typescript
+async addSubjectMatterExpertUsers(tagId: number, userIds: number[]): Promise<SubjectMatterExpertResponseModel>
+async removeSubjectMatterExpertUser(tagId: number, userId: number): Promise<void>
+async addSubjectMatterExpertUser(tagId: number, userId: number): Promise<SubjectMatterExpertResponseModel>
+```
+
+## Parameters
+
+### addSubjectMatterExpertUsers()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `userIds` | `number[]` | Yes | Array of user IDs to add as SMEs |
+
+### removeSubjectMatterExpertUser()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `userId` | `number` | Yes | The user ID to remove from SMEs |
+
+### addSubjectMatterExpertUser()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tagId` | `number` | Yes | The unique identifier of the tag |
+| `userId` | `number` | Yes | The user ID to add as SME |
+
+## Return Value
+
+`addSubjectMatterExpertUsers()` and `addSubjectMatterExpertUser()` return a `Promise<SubjectMatterExpertResponseModel>` containing the updated SME configuration.
+
+`removeSubjectMatterExpertUser()` returns `Promise<void>` (no response body).
+
+## Examples
+
+### Adding Individual SME Users
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Add multiple users as SMEs
+const updatedSmes = await sdk.tags.addSubjectMatterExpertUsers(12345, [1001, 1002, 1003]);
+
+console.log('Added new SME users:');
+console.log(`Total individual SMEs: ${updatedSmes.users?.length || 0}`);
+console.log(`Total SME groups: ${updatedSmes.userGroups?.length || 0}`);
+
+// Display all current individual SMEs
+if (updatedSmes.users && updatedSmes.users.length > 0) {
+  console.log('\nCurrent Individual SMEs:');
+  updatedSmes.users.forEach((user, index) => {
+    console.log(`${index + 1}. ${user.displayName}`);
+    console.log(`   Reputation: ${user.reputation?.toLocaleString()}`);
+    console.log(`   Profile: ${user.profileUrl}`);
+  });
+}
+
+// Add a single user (convenience method)
+const singleUserResult = await sdk.tags.addSubjectMatterExpertUser(12345, 1004);
+console.log(`\nAdded single user. New total: ${singleUserResult.users?.length || 0} individual SMEs`);
+```
+
+### Removing SME Users
+
+```typescript
+// Remove a specific user from SMEs
+await sdk.tags.removeSubjectMatterExpertUser(12345, 1001);
+console.log('User 1001 removed from SME list');
+
+// Verify removal by checking current SMEs
+const currentSmes = await sdk.tags.getSubjectMatterExperts(12345);
+const removedUserStillPresent = currentSmes.users?.some(user => user.userId === 1001);
+
+if (removedUserStillPresent) {
+  console.log('Warning: User still appears in SME list');
+} else {
+  console.log('Confirmation: User successfully removed from SME list');
+}
+
+console.log(`Remaining individual SMEs: ${currentSmes.users?.length || 0}`);
+```
+
+### SME User Rotation System
+
+```typescript
+async function rotateSmeUsers(tagId: number, outgoingUserIds: number[], incomingUserIds: number[]) {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    console.log(`Starting SME user rotation for tag: ${tag.name}`);
+    
+    // Get current state for logging
+    const beforeRotation = await sdk.tags.getSubjectMatterExperts(tagId);
+    console.log(`Before rotation: ${beforeRotation.users?.length || 0} individual SMEs`);
+    
+    const rotationLog = {
+      tagId,
+      tagName: tag.name,
+      timestamp: new Date().toISOString(),
+      operations: [],
+      errors: []
+    };
+    
+    // Remove outgoing users
+    for (const userId of outgoingUserIds) {
+      try {
+        await sdk.tags.removeSubjectMatterExpertUser(tagId, userId);
+        rotationLog.operations.push({ action: 'remove', userId, success: true });
+        console.log(`- Removed user ${userId}`);
+      } catch (error) {
+        console.warn(`- Failed to remove user ${userId}: ${error.message}`);
+        rotationLog.operations.push({ action: 'remove', userId, success: false, error: error.message });
+        rotationLog.errors.push(`Remove ${userId}: ${error.message}`);
+      }
+      
+      // Small delay between operations
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // Add incoming users
+    if (incomingUserIds.length > 0) {
+      try {
+        const addResult = await sdk.tags.addSubjectMatterExpertUsers(tagId, incomingUserIds);
+        rotationLog.operations.push({ 
+          action: 'add', 
+          userIds: incomingUserIds, 
+          success: true,
+          newTotal: addResult.users?.length || 0
+        });
+        console.log(`- Added ${incomingUserIds.length} new users`);
+      } catch (error) {
+        console.warn(`- Failed to add new users: ${error.message}`);
+        rotationLog.operations.push({ 
+          action: 'add', 
+          userIds: incomingUserIds, 
+          success: false, 
+          error: error.message 
+        });
+        rotationLog.errors.push(`Add users: ${error.message}`);
+      }
+    }
+    
+    // Get final state
+    const afterRotation = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`\nRotation complete:`);
+    console.log(`- Before: ${beforeRotation.users?.length || 0} SMEs`);
+    console.log(`- After: ${afterRotation.users?.length || 0} SMEs`);
+    console.log(`- Removed: ${outgoingUserIds.length} users`);
+    console.log(`- Added: ${incomingUserIds.length} users`);
+    
+    if (rotationLog.errors.length > 0) {
+      console.log(`- Errors: ${rotationLog.errors.length}`);
+    }
+    
+    return {
+      rotationLog,
+      before: beforeRotation,
+      after: afterRotation,
+      successful: rotationLog.errors.length === 0
+    };
+    
+  } catch (error) {
+    console.error(`SME rotation failed for tag ${tagId}: ${error.message}`);
+    throw error;
+  }
+}
+
+// Example rotation
+const rotationResult = await rotateSmeUsers(
+  12345,
+  [1001, 1002], // Users to remove
+  [2001, 2002, 2003] // Users to add
+);
+
+console.log(`Rotation ${rotationResult.successful ? 'succeeded' : 'had errors'}`);
+```
+
+### Intelligent SME User Management
+
+```typescript
+async function manageSmeUsersIntelligently(tagId: number, candidateUserIds: number[], maxSmes: number = 5) {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    const currentSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`Managing SME users for ${tag.name} (max ${maxSmes} individual SMEs)`);
+    console.log(`Current: ${currentSmes.users?.length || 0} SMEs`);
+    console.log(`Candidates: ${candidateUserIds.length} users`);
+    
+    // In a real implementation, you would fetch user details to make informed decisions
+    // For this example, we'll simulate reputation scores
+    const candidateUsers = candidateUserIds.map(id => ({
+      userId: id,
+      reputation: Math.floor(Math.random() * 20000) + 1000 // Simulated reputation
+    }));
+    
+    // Sort candidates by reputation (highest first)
+    candidateUsers.sort((a, b) => b.reputation - a.reputation);
+    
+    const currentUserIds = currentSmes.users?.map(u => u.userId) || [];
+    const management = {
+      current: currentUserIds,
+      toAdd: [],
+      toRemove: [],
+      recommendations: []
+    };
+    
+    // Determine actions based on current state and limits
+    const availableSlots = Math.max(0, maxSmes - currentUserIds.length);
+    
+    if (availableSlots > 0) {
+      // Add top candidates that aren't already SMEs
+      const newCandidates = candidateUsers
+        .filter(candidate => !currentUserIds.includes(candidate.userId))
+        .slice(0, availableSlots);
+      
+      management.toAdd = newCandidates.map(c => c.userId);
+      
+      if (newCandidates.length > 0) {
+        management.recommendations.push(`Add ${newCandidates.length} high-reputation users`);
+      }
+    } else if (currentUserIds.length >= maxSmes) {
+      // Consider replacing lower-performing SMEs with better candidates
+      const topCandidates = candidateUsers
+        .filter(candidate => !currentUserIds.includes(candidate.userId))
+        .slice(0, 3); // Top 3 non-SME candidates
+      
+      // In a real implementation, you'd compare current SME performance
+      // For now, simulate by potentially replacing some existing SMEs
+      if (topCandidates.length > 0 && topCandidates[0].reputation > 15000) {
+        // Simulate removing one lower-performing SME and adding top candidate
+        management.toRemove = [currentUserIds[currentUserIds.length - 1]]; // Remove last (simulated lowest performer)
+        management.toAdd = [topCandidates[0].userId];
+        management.recommendations.push('Replace lower-performing SME with high-reputation candidate');
+      }
+    }
+    
+    console.log(`\nRecommended actions:`);
+    console.log(`- Add: ${management.toAdd.length} users`);
+    console.log(`- Remove: ${management.toRemove.length} users`);
+    
+    // Execute recommendations with confirmation
+    const results = {
+      addResults: null,
+      removeResults: []
+    };
+    
+    // Remove users first
+    for (const userId of management.toRemove) {
+      try {
+        await sdk.tags.removeSubjectMatterExpertUser(tagId, userId);
+        results.removeResults.push({ userId, success: true });
+        console.log(`- Removed user ${userId}`);
+      } catch (error) {
+        results.removeResults.push({ userId, success: false, error: error.message });
+        console.warn(`- Failed to remove user ${userId}: ${error.message}`);
+      }
+    }
+    
+    // Add new users
+    if (management.toAdd.length > 0) {
+      try {
+        results.addResults = await sdk.tags.addSubjectMatterExpertUsers(tagId, management.toAdd);
+        console.log(`- Added ${management.toAdd.length} users`);
+      } catch (error) {
+        console.warn(`- Failed to add users: ${error.message}`);
+      }
+    }
+    
+    // Final status
+    const finalSmes = await sdk.tags.getSubjectMatterExperts(tagId);
+    console.log(`\nFinal result: ${finalSmes.users?.length || 0}/${maxSmes} individual SMEs`);
+    
+    return {
+      management,
+      results,
+      finalCount: finalSmes.users?.length || 0
+    };
+    
+  } catch (error) {
+    console.error(`Intelligent SME management failed: ${error.message}`);
+    throw error;
+  }
+}
+
+// Example intelligent management
+const managementResult = await manageSmeUsersIntelligently(12345, [2001, 2002, 2003, 2004, 2005], 4);
+```
+
+### Bulk User Operations
+
+```typescript
+async function bulkManageSmeUsers(operations: Array<{
+  tagId: number;
+  action: 'add' | 'remove';
+  userIds?: number[];
+  userId?: number;
+}>) {
+  console.log(`Processing ${operations.length} SME user operations...`);
+  
+  const results = [];
+  
+  for (const operation of operations) {
+    try {
+      console.log(`Processing: ${operation.action} for tag ${operation.tagId}`);
+      
+      let result;
+      
+      switch (operation.action) {
+        case 'add':
+          if (operation.userIds && operation.userIds.length > 0) {
+            result = await sdk.tags.addSubjectMatterExpertUsers(operation.tagId, operation.userIds);
+            results.push({
+              ...operation,
+              success: true,
+              newUserCount: result.users?.length || 0
+            });
+          } else if (operation.userId) {
+            result = await sdk.tags.addSubjectMatterExpertUser(operation.tagId, operation.userId);
+            results.push({
+              ...operation,
+              success: true,
+              newUserCount: result.users?.length || 0
+            });
+          }
+          break;
+          
+        case 'remove':
+          if (operation.userId) {
+            await sdk.tags.removeSubjectMatterExpertUser(operation.tagId, operation.userId);
+            results.push({
+              ...operation,
+              success: true
+            });
+          }
+          break;
+          
+        default:
+          results.push({
+            ...operation,
+            success: false,
+            error: `Unknown action: ${operation.action}`
+          });
+      }
+      
+      console.log(`- ${operation.action} operation completed for tag ${operation.tagId}`);
+      
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 750));
+      
+    } catch (error) {
+      console.error(`- ${operation.action} operation failed for tag ${operation.tagId}: ${error.message}`);
+      
+      results.push({
+        ...operation,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+  
+  // Summary
+  const successful = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
+  
+  console.log(`\nBulk operations complete:`);
+  console.log(`- Successful: ${successful}/${operations.length}`);
+  console.log(`- Failed: ${failed}/${operations.length}`);
+  
+  return results;
+}
+
+// Example bulk operations
+const bulkOperations = [
+  { tagId: 12345, action: 'add', userIds: [3001, 3002] },
+  { tagId: 12346, action: 'add', userId: 3003 },
+  { tagId: 12347, action: 'remove', userId: 1001 },
+  { tagId: 12348, action: 'add', userIds: [3004, 3005, 3006] }
+];
+
+const bulkResults = await bulkManageSmeUsers(bulkOperations);
+```
+
+### SME User Performance Tracking
+
+```typescript
+async function trackSmeUserPerformance(tagId: number, trackingPeriodDays: number = 30) {
+  try {
+    const tag = await sdk.tags.get(tagId);
+    const smes = await sdk.tags.getSubjectMatterExperts(tagId);
+    
+    console.log(`Tracking SME performance for ${tag.name} over ${trackingPeriodDays} days`);
+    
+    // In a real implementation, you would fetch actual user activity data
+    // For this example, we'll simulate performance metrics
+    const performanceData = smes.users?.map(user => {
+      const simulatedMetrics = {
+        userId: user.userId,
+        displayName: user.displayName,
+        reputation: user.reputation || 0,
+        // Simulated metrics (in real implementation, fetch from activity APIs)
+        answersProvided: Math.floor(Math.random() * 20),
+        questionsAnswered: Math.floor(Math.random() * 15),
+        upvotesReceived: Math.floor(Math.random() * 50),
+        acceptedAnswers: Math.floor(Math.random() * 8),
+        lastActivityDays: Math.floor(Math.random() * trackingPeriodDays),
+        engagement: 0, // Will be calculated
+        effectiveness: 0 // Will be calculated
+      };
+      
+      // Calculate engagement (activity frequency)
+      simulatedMetrics.engagement = Math.max(0, 100 - (simulatedMetrics.lastActivityDays * 2));
+      
+      // Calculate effectiveness (quality of contributions)
+      const answerRate = simulatedMetrics.answersProvided > 0 ? 
+        (simulatedMetrics.acceptedAnswers / simulatedMetrics.answersProvided) * 100 : 0;
+      const upvoteRate = simulatedMetrics.answersProvided > 0 ? 
+        (simulatedMetrics.upvotesReceived / simulatedMetrics.answersProvided) : 0;
+      
+      simulatedMetrics.effectiveness = Math.min(100, (answerRate * 0.6) + (upvoteRate * 0.4));
+      
+      return simulatedMetrics;
+    }) || [];
+    
+    // Sort by combined performance score
+    performanceData.forEach(sme => {
+      sme.overallScore = (sme.engagement * 0.4) + (sme.effectiveness * 0.6);
+    });
+    
+    performanceData.sort((a, b) => b.overallScore - a.overallScore);
+    
+    console.log(`\n=== SME Performance Report ===`);
+    console.log(`Period: Last ${trackingPeriodDays} days`);
+    console.log(`SMEs evaluated: ${performanceData.length}`);
+    
+    console.log(`\nTop Performers:`);
+    performanceData.slice(0, 3).forEach((sme, index) => {
+      console.log(`${index + 1}. ${sme.displayName}`);
+      console.log(`   Overall Score: ${sme.overallScore.toFixed(1)}/100`);
+      console.log(`   Engagement: ${sme.engagement.toFixed(1)}/100`);
+      console.log(`   Effectiveness: ${sme.effectiveness.toFixed(1)}/100`);
+      console.log(`   Answers: ${sme.answersProvided} (${sme.acceptedAnswers} accepted)`);
+      console.log(`   Last Active: ${sme.lastActivityDays} days ago`);
+      console.log('');
+    });
+    
+    // Identify underperformers
+    const underperformers = performanceData.filter(sme => 
+      sme.overallScore < 40 || sme.lastActivityDays > 21
+    );
+    
+    if (underperformers.length > 0) {
+      console.log(`Underperforming SMEs (${underperformers.length}):`);
+      underperformers.forEach(sme => {
+        const issues = [];
+        if (sme.engagement < 30) issues.push('low engagement');
+        if (sme.effectiveness < 30) issues.push('low effectiveness');
+        if (sme.lastActivityDays > 21) issues.push('inactive');
+        
+        console.log(`- ${sme.displayName}: ${issues.join(', ')}`);
+      });
+      
+      console.log(`\nRecommendation: Consider rotating out ${underperformers.length} underperforming SMEs`);
+    }
+    
+    return {
+      tagId,
+      tagName: tag.name,
+      trackingPeriod: trackingPeriodDays,
+      performanceData,
+      underperformers,
+      averageScore: performanceData.reduce((sum, sme) => sum + sme.overallScore, 0) / performanceData.length
+    };
+    
+  } catch (error) {
+    console.error(`Performance tracking failed for tag ${tagId}: ${error.message}`);
+    throw error;
+  }
+}
+
+// Track SME performance
+const performanceReport = await trackSmeUserPerformance(12345, 30);
+
+// Act on underperformers if needed
+if (performanceReport.underperformers.length > 0) {
+  console.log('\nConsidering SME rotation based on performance...');
+  
+  const underperformerIds = performanceReport.underperformers.map(sme => sme.userId);
+  
+  // This would typically involve finding replacement candidates and using the rotation system
+  console.log(`Would rotate out users: ${underperformerIds.join(', ')}`);
+}
+```
+
+## Error Handling
+
+These methods can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to modify SME assignments |
+| `NotFoundError` | 404 | Tag or user with specified ID does not exist |
+| `ValidationError` | 400 | Invalid user IDs or user already/not assigned |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Safe add operation
+try {
+  const result = await sdk.tags.addSubjectMatterExpertUsers(12345, [1001, 1002]);
+  console.log(`Added ${result.users?.length || 0} SME users`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag or one of the users not found');
+  } else if (error instanceof ValidationError) {
+    console.error('Invalid user IDs or users may already be SMEs');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot modify SME assignments - insufficient permissions');
+  } else {
+    console.error('Failed to add SME users:', error.message);
+  }
+}
+
+// Safe remove operation
+try {
+  await sdk.tags.removeSubjectMatterExpertUser(12345, 1001);
+  console.log('SME user removed successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Tag or user not found, or user was not an SME');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot remove SME - insufficient permissions');
+  } else {
+    console.error('Failed to remove SME user:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **Incremental Changes**: These methods modify existing SME assignments without affecting other users or groups.
+- **Duplicate Prevention**: Adding a user who is already an SME may result in a validation error or be ignored.
+- **Non-existent Users**: Adding non-existent user IDs will cause the operation to fail.
+- **Batch Operations**: `addSubjectMatterExpertUsers()` is more efficient than multiple calls to the single-user method.
+- **No Response Body**: `removeSubjectMatterExpertUser()` returns void, so check for exceptions to confirm success.
+- **Permission Requirements**: Requires appropriate permissions to modify SME assignments for the tag.
+- **Team Context**: SME assignments are context-specific and operate within the current team or public environment.
+- **Rate Limiting**: Be mindful of API limits when performing multiple user management operations in succession.

@@ -1,0 +1,440 @@
+---
+title: leave()
+description: Removes the authenticated user from a specified community.
+---
+
+# leave()
+
+Removes the authenticated user from a specified community.
+
+## Syntax
+
+```typescript
+async leave(communityId: number): Promise<CommunityResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to leave |
+
+## Return Value
+
+Returns a `Promise<CommunityResponseModel>` containing the updated community information with the user removed from membership. See the [get() method documentation](./get) for details on the `CommunityResponseModel` structure.
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Leave a community
+const community = await sdk.communities.leave(123);
+console.log(`Successfully left "${community.name}"`);
+console.log(`Community now has ${community.memberCount} members`);
+```
+
+### Leave with Confirmation
+
+```typescript
+async function leaveCommunityWithConfirmation(communityId: number) {
+  try {
+    // Get community details first
+    const communityInfo = await sdk.communities.get(communityId);
+    
+    console.log(`About to leave: "${communityInfo.name}"`);
+    console.log(`Current members: ${communityInfo.memberCount}`);
+    console.log(`Your membership will be removed`);
+    
+    // Confirm leaving (in a real app, you'd show a dialog)
+    const confirmed = true; // Replace with actual confirmation logic
+    
+    if (confirmed) {
+      const leftCommunity = await sdk.communities.leave(communityId);
+      console.log(`✅ Successfully left "${leftCommunity.name}"`);
+      console.log(`Community now has ${leftCommunity.memberCount} members`);
+      return leftCommunity;
+    } else {
+      console.log('Leave cancelled');
+      return null;
+    }
+  } catch (error) {
+    console.error('Failed to leave community:', error.message);
+    throw error;
+  }
+}
+
+const leaveResult = await leaveCommunityWithConfirmation(123);
+```
+
+### Strategic Community Cleanup
+
+```typescript
+async function cleanupCommunityMemberships() {
+  try {
+    // Get all communities to analyze current memberships
+    const allCommunities = await sdk.communities.getAll({
+      pageSize: 100
+    });
+    
+    // Identify communities to leave based on criteria
+    const communitiesToLeave = [];
+    
+    for (const community of allCommunities.items) {
+      try {
+        // Get detailed info for each community
+        const detailedCommunity = await sdk.communities.get(community.id);
+        
+        // Define leaving criteria
+        const shouldLeave = evaluateLeavingCriteria(detailedCommunity);
+        
+        if (shouldLeave.leave) {
+          communitiesToLeave.push({
+            id: detailedCommunity.id,
+            name: detailedCommunity.name,
+            reason: shouldLeave.reason,
+            memberCount: detailedCommunity.memberCount
+          });
+        }
+      } catch (error) {
+        console.warn(`Could not analyze community ${community.id}:`, error.message);
+      }
+    }
+    
+    console.log(`Found ${communitiesToLeave.length} communities to leave`);
+    
+    // Leave identified communities
+    const leaveResults = [];
+    for (const community of communitiesToLeave) {
+      try {
+        const leftCommunity = await sdk.communities.leave(community.id);
+        leaveResults.push({
+          ...community,
+          status: 'left',
+          finalMemberCount: leftCommunity.memberCount
+        });
+        console.log(`✅ Left: ${community.name} (${community.reason})`);
+      } catch (error) {
+        leaveResults.push({
+          ...community,
+          status: 'failed',
+          error: error.message
+        });
+        console.error(`❌ Failed to leave ${community.name}:`, error.message);
+      }
+    }
+    
+    return {
+      analyzed: allCommunities.items.length,
+      identified: communitiesToLeave.length,
+      results: leaveResults
+    };
+  } catch (error) {
+    console.error('Failed to cleanup community memberships:', error.message);
+    throw error;
+  }
+}
+
+function evaluateLeavingCriteria(community: any): { leave: boolean; reason: string } {
+  const memberCount = community.memberCount || 0;
+  
+  // Leave if community is too large and impersonal
+  if (memberCount > 5000) {
+    return { leave: true, reason: 'too large - over 5000 members' };
+  }
+  
+  // Leave if community is inactive (very small)
+  if (memberCount < 3) {
+    return { leave: true, reason: 'inactive - less than 3 members' };
+  }
+  
+  // Leave if no description (poor maintenance)
+  if (!community.description || community.description.length < 10) {
+    return { leave: true, reason: 'poorly maintained - no description' };
+  }
+  
+  // Leave if no relevant tags
+  const hasRelevantTags = community.tags?.some((tag: any) => 
+    ['javascript', 'typescript', 'react', 'development', 'programming'].includes(tag.name?.toLowerCase())
+  );
+  
+  if (!hasRelevantTags && (community.tags?.length || 0) > 0) {
+    return { leave: true, reason: 'not relevant - no matching interests' };
+  }
+  
+  return { leave: false, reason: 'keeping - meets criteria' };
+}
+
+const cleanupResults = await cleanupCommunityMemberships();
+console.log(`Cleanup completed: Left ${cleanupResults.results.filter(r => r.status === 'left').length} communities`);
+```
+
+### Leave Multiple Communities
+
+```typescript
+async function leaveMultipleCommunities(communityIds: number[]) {
+  const results = [];
+  
+  for (const communityId of communityIds) {
+    try {
+      const community = await sdk.communities.leave(communityId);
+      results.push({
+        communityId,
+        name: community.name,
+        status: 'left',
+        remainingMembers: community.memberCount
+      });
+      console.log(`✅ Left: ${community.name}`);
+      
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      results.push({
+        communityId,
+        status: 'failed',
+        error: error.message
+      });
+      console.error(`❌ Failed to leave community ${communityId}:`, error.message);
+    }
+  }
+  
+  const successful = results.filter(r => r.status === 'left');
+  const failed = results.filter(r => r.status === 'failed');
+  
+  console.log(`\nSummary: Left ${successful.length} communities, ${failed.length} failed`);
+  
+  return results;
+}
+
+const multiLeaveResults = await leaveMultipleCommunities([123, 456, 789]);
+```
+
+### Leave with Data Backup
+
+```typescript
+async function leaveCommunityWithBackup(communityId: number) {
+  try {
+    // Create backup of community information before leaving
+    const communityInfo = await sdk.communities.get(communityId);
+    
+    const membershipBackup = {
+      communityId: communityInfo.id,
+      communityName: communityInfo.name,
+      description: communityInfo.description,
+      memberCount: communityInfo.memberCount,
+      tags: communityInfo.tags?.map(tag => tag.name) || [],
+      leftDate: new Date().toISOString(),
+      reason: 'user_initiated'
+    };
+    
+    // Store backup (replace with your backup mechanism)
+    console.log('Membership backup created:', JSON.stringify(membershipBackup, null, 2));
+    
+    // Leave the community
+    const leftCommunity = await sdk.communities.leave(communityId);
+    
+    return {
+      success: true,
+      backup: membershipBackup,
+      community: leftCommunity,
+      message: `Left "${leftCommunity.name}" and created backup`
+    };
+  } catch (error) {
+    console.error('Failed to leave community with backup:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+const leaveWithBackup = await leaveCommunityWithBackup(123);
+if (leaveWithBackup.success) {
+  console.log(leaveWithBackup.message);
+}
+```
+
+### Conditional Leave Based on Activity
+
+```typescript
+async function leaveInactiveCommunities(inactivityThreshold: number = 1000) {
+  try {
+    // Get all communities
+    const allCommunities = await sdk.communities.getAll({
+      pageSize: 100,
+      sort: 'size',
+      order: 'asc' // Start with smallest communities
+    });
+    
+    const inactiveCommunities = allCommunities.items.filter(community => 
+      (community.memberCount || 0) < inactivityThreshold
+    );
+    
+    console.log(`Found ${inactiveCommunities.length} communities with less than ${inactivityThreshold} members`);
+    
+    const leaveResults = [];
+    
+    for (const community of inactiveCommunities) {
+      try {
+        // Get additional details
+        const detailedCommunity = await sdk.communities.get(community.id);
+        
+        // Additional checks for inactivity
+        const isReallyInactive = (
+          (detailedCommunity.memberCount || 0) < inactivityThreshold &&
+          (!detailedCommunity.description || detailedCommunity.description.length < 20)
+        );
+        
+        if (isReallyInactive) {
+          const leftCommunity = await sdk.communities.leave(community.id);
+          leaveResults.push({
+            id: community.id,
+            name: leftCommunity.name,
+            status: 'left',
+            finalMemberCount: leftCommunity.memberCount,
+            reason: 'inactive'
+          });
+          console.log(`✅ Left inactive community: ${leftCommunity.name}`);
+        } else {
+          leaveResults.push({
+            id: community.id,
+            name: detailedCommunity.name,
+            status: 'kept',
+            reason: 'has_description'
+          });
+        }
+      } catch (error) {
+        leaveResults.push({
+          id: community.id,
+          status: 'failed',
+          error: error.message
+        });
+        console.error(`❌ Failed to process community ${community.id}:`, error.message);
+      }
+    }
+    
+    return {
+      threshold: inactivityThreshold,
+      candidatesFound: inactiveCommunities.length,
+      results: leaveResults,
+      leftCount: leaveResults.filter(r => r.status === 'left').length
+    };
+  } catch (error) {
+    console.error('Failed to leave inactive communities:', error.message);
+    throw error;
+  }
+}
+
+const inactiveCleanup = await leaveInactiveCommunities(50);
+console.log(`Left ${inactiveCleanup.leftCount} inactive communities`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot leave community (not a member, restricted leaving, etc.) |
+| `NotFoundError` | 404 | Community with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const community = await sdk.communities.leave(123);
+  console.log(`Successfully left "${community.name}"`);
+  console.log(`Community now has ${community.memberCount} members`);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Community not found - it may have been deleted');
+  } else if (error instanceof ForbiddenError) {
+    if (error.message.includes('not a member')) {
+      console.error('You are not a member of this community');
+    } else {
+      console.error('Cannot leave community - leaving may be restricted');
+    }
+  } else {
+    console.error('Failed to leave community:', error.message);
+  }
+}
+```
+
+### Safe Leave with Status Check
+
+```typescript
+async function safeLeaveCommunity(communityId: number) {
+  try {
+    const community = await sdk.communities.leave(communityId);
+    return {
+      success: true,
+      community,
+      message: `Successfully left "${community.name}"`
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      if (error.message.includes('not a member')) {
+        return {
+          success: false,
+          reason: 'not_member',
+          message: 'You are not a member of this community'
+        };
+      } else {
+        return {
+          success: false,
+          reason: 'cannot_leave',
+          message: 'Cannot leave community - leaving may be restricted'
+        };
+      }
+    } else if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Community not found'
+      };
+    }
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const leaveResult = await safeLeaveCommunity(123);
+if (leaveResult.success) {
+  console.log('✅', leaveResult.message);
+} else {
+  console.log('❌', leaveResult.message);
+}
+```
+
+## Notes
+
+- This method removes the authenticated user from the specified community
+- The returned community object reflects updated member information
+- Attempting to leave a community you're not a member of will result in a `ForbiddenError`
+- Some communities may have restrictions on leaving (e.g., required membership)
+- The method operates on the main/public level (no team-specific variant)
+- Member count is automatically decremented when users leave
+- The user will lose access to community-specific content and discussions
+- Consider using `leaveAsMember()` for clearer semantic meaning in your code
+- Leaving a community is typically irreversible through the API - rejoining would require a separate `join()` call
+- The updated community response excludes the leaving user from the `members` array if detailed member data is available

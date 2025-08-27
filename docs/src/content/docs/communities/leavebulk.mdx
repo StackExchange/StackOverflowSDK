@@ -1,0 +1,464 @@
+---
+title: leaveBulk()
+description: Removes multiple users from a community in a single operation. Users can remove themselves and others they have permission to manage.
+---
+
+# leaveBulk()
+
+Removes multiple users from a community in a single operation. Users can remove themselves and others they have permission to manage.
+
+## Syntax
+
+```typescript
+async leaveBulk(communityId: number, options: LeaveCommunityBulkOptions): Promise<CommunityResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to remove users from |
+| `options` | `LeaveCommunityBulkOptions` | Yes | Configuration object containing user IDs to remove |
+
+### LeaveCommunityBulkOptions
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `memberUserIds` | `number[]` | Yes | Array of user IDs to remove from the community |
+
+## Return Value
+
+Returns a `Promise<CommunityResponseModel>` containing updated community information after the bulk removal operation.
+
+## Examples
+
+### Basic Bulk Removal
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Remove multiple users from a community
+const result = await sdk.communities.leaveBulk(123, {
+  memberUserIds: [456, 789, 101, 202]
+});
+
+console.log(`Removed users from community: ${result.name}`);
+console.log(`New member count: ${result.memberCount}`);
+```
+
+### Admin Cleanup Operation
+
+```typescript
+async function cleanupInactiveMembers(communityId: number, inactiveUserIds: number[]) {
+  try {
+    // Get community info before cleanup
+    const community = await sdk.communities.get(communityId);
+    console.log(`Cleaning up ${inactiveUserIds.length} inactive members from "${community.name}"`);
+    console.log(`Current member count: ${community.memberCount}`);
+    
+    // Perform bulk removal
+    const result = await sdk.communities.leaveBulk(communityId, {
+      memberUserIds: inactiveUserIds
+    });
+    
+    const removedCount = community.memberCount - result.memberCount;
+    console.log(`Successfully removed ${removedCount} inactive members`);
+    console.log(`New member count: ${result.memberCount}`);
+    
+    return {
+      success: true,
+      removedCount,
+      newMemberCount: result.memberCount
+    };
+  } catch (error) {
+    console.error('Failed to cleanup inactive members:', error.message);
+    throw error;
+  }
+}
+
+// Remove inactive users
+const cleanup = await cleanupInactiveMembers(123, [456, 789, 101]);
+```
+
+### Batch Processing with Validation
+
+```typescript
+async function removeUsersWithValidation(communityId: number, userIds: number[]) {
+  try {
+    // Validate community exists
+    const community = await sdk.communities.get(communityId);
+    
+    // Check if we have users to remove
+    if (userIds.length === 0) {
+      return {
+        success: false,
+        message: 'No users specified for removal'
+      };
+    }
+    
+    // Log operation details
+    console.log(`Removing ${userIds.length} users from "${community.name}"`);
+    console.log(`Target users: ${userIds.join(', ')}`);
+    
+    // Perform bulk removal
+    const result = await sdk.communities.leaveBulk(communityId, {
+      memberUserIds: userIds
+    });
+    
+    const expectedNewCount = Math.max(0, community.memberCount - userIds.length);
+    const actualChange = community.memberCount - result.memberCount;
+    
+    return {
+      success: true,
+      community: result,
+      operation: {
+        attempted: userIds.length,
+        actuallyRemoved: actualChange,
+        previousCount: community.memberCount,
+        newCount: result.memberCount
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+const removalResult = await removeUsersWithValidation(123, [456, 789, 101]);
+if (removalResult.success) {
+  console.log('Removal completed:', removalResult.operation);
+} else {
+  console.log('Removal failed:', removalResult.message || removalResult.error);
+}
+```
+
+### Team Restructuring
+
+```typescript
+async function restructureTeamMembership(changes: {
+  communityId: number,
+  removeUsers: number[],
+  reason: string
+}[]) {
+  const results = [];
+  
+  for (const change of changes) {
+    try {
+      console.log(`Processing community ${change.communityId}: ${change.reason}`);
+      
+      if (change.removeUsers.length > 0) {
+        const result = await sdk.communities.leaveBulk(change.communityId, {
+          memberUserIds: change.removeUsers
+        });
+        
+        results.push({
+          communityId: change.communityId,
+          operation: 'removal',
+          success: true,
+          usersAffected: change.removeUsers.length,
+          newMemberCount: result.memberCount,
+          reason: change.reason
+        });
+      }
+    } catch (error) {
+      results.push({
+        communityId: change.communityId,
+        operation: 'removal',
+        success: false,
+        error: error.message,
+        reason: change.reason
+      });
+    }
+  }
+  
+  // Summary
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`Team restructuring completed:`);
+  console.log(`- Successful operations: ${successful.length}`);
+  console.log(`- Failed operations: ${failed.length}`);
+  
+  if (failed.length > 0) {
+    console.log('Failed operations:');
+    failed.forEach(f => {
+      console.log(`  Community ${f.communityId}: ${f.error}`);
+    });
+  }
+  
+  return { successful, failed, summary: { successful: successful.length, failed: failed.length } };
+}
+
+const restructureChanges = [
+  {
+    communityId: 123,
+    removeUsers: [456, 789],
+    reason: 'Moving to specialized community'
+  },
+  {
+    communityId: 456,
+    removeUsers: [101, 202, 303],
+    reason: 'Consolidating duplicate memberships'
+  }
+];
+
+const restructureResults = await restructureTeamMembership(restructureChanges);
+```
+
+### Self-Removal with Others
+
+```typescript
+async function leaveWithTeam(communityId: number, teamMateIds: number[], currentUserId: number) {
+  try {
+    // Include current user in the removal list
+    const allUserIds = [currentUserId, ...teamMateIds];
+    
+    console.log(`Leaving community ${communityId} with ${teamMateIds.length} team members`);
+    
+    const result = await sdk.communities.leaveBulk(communityId, {
+      memberUserIds: allUserIds
+    });
+    
+    console.log(`Successfully left community: ${result.name}`);
+    console.log(`Remaining members: ${result.memberCount}`);
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to leave with team:', error.message);
+    throw error;
+  }
+}
+
+// Current user (789) leaves with team members
+const leaveResult = await leaveWithTeam(123, [456, 101], 789);
+```
+
+### Large Scale Removal with Progress
+
+```typescript
+async function bulkRemoveWithProgress(communityId: number, userIds: number[], batchSize: number = 50) {
+  console.log(`Removing ${userIds.length} users in batches of ${batchSize}`);
+  
+  const results = [];
+  let processedCount = 0;
+  
+  // Process in batches
+  for (let i = 0; i < userIds.length; i += batchSize) {
+    const batch = userIds.slice(i, i + batchSize);
+    
+    try {
+      console.log(`Processing batch ${Math.floor(i / batchSize) + 1}: removing ${batch.length} users`);
+      
+      const result = await sdk.communities.leaveBulk(communityId, {
+        memberUserIds: batch
+      });
+      
+      processedCount += batch.length;
+      const progress = ((processedCount / userIds.length) * 100).toFixed(1);
+      
+      console.log(`Batch completed. Progress: ${progress}% (${processedCount}/${userIds.length})`);
+      
+      results.push({
+        batch: Math.floor(i / batchSize) + 1,
+        success: true,
+        userIds: batch,
+        newMemberCount: result.memberCount
+      });
+      
+      // Brief pause between batches to avoid rate limiting
+      if (i + batchSize < userIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } catch (error) {
+      console.error(`Batch ${Math.floor(i / batchSize) + 1} failed:`, error.message);
+      results.push({
+        batch: Math.floor(i / batchSize) + 1,
+        success: false,
+        userIds: batch,
+        error: error.message
+      });
+    }
+  }
+  
+  const successfulBatches = results.filter(r => r.success);
+  const failedBatches = results.filter(r => !r.success);
+  const successfulRemovals = successfulBatches.reduce((sum, batch) => sum + batch.userIds.length, 0);
+  
+  console.log(`Bulk removal completed:`);
+  console.log(`- Successful removals: ${successfulRemovals}/${userIds.length}`);
+  console.log(`- Failed batches: ${failedBatches.length}/${results.length}`);
+  
+  return {
+    totalRequested: userIds.length,
+    successfulRemovals,
+    failedBatches: failedBatches.length,
+    results
+  };
+}
+
+// Remove 500 users in batches of 25
+const largeRemoval = await bulkRemoveWithProgress(123, Array.from({length: 500}, (_, i) => i + 1000), 25);
+```
+
+### Community Migration Cleanup
+
+```typescript
+async function cleanupAfterMigration(oldCommunityId: number, userIdsToRemove: number[], newCommunityId?: number) {
+  try {
+    const [oldCommunity, newCommunity] = await Promise.all([
+      sdk.communities.get(oldCommunityId),
+      newCommunityId ? sdk.communities.get(newCommunityId) : null
+    ]);
+    
+    console.log(`Cleaning up "${oldCommunity.name}" after migration`);
+    if (newCommunity) {
+      console.log(`Users have been migrated to "${newCommunity.name}"`);
+    }
+    
+    // Remove users from old community
+    const result = await sdk.communities.leaveBulk(oldCommunityId, {
+      memberUserIds: userIdsToRemove
+    });
+    
+    const removedCount = oldCommunity.memberCount - result.memberCount;
+    
+    const cleanupSummary = {
+      oldCommunity: {
+        id: oldCommunityId,
+        name: oldCommunity.name,
+        previousMemberCount: oldCommunity.memberCount,
+        currentMemberCount: result.memberCount,
+        removedCount
+      },
+      newCommunity: newCommunity ? {
+        id: newCommunity.id,
+        name: newCommunity.name,
+        memberCount: newCommunity.memberCount
+      } : null,
+      migration: {
+        usersProcessed: userIdsToRemove.length,
+        actuallyRemoved: removedCount,
+        completed: true
+      }
+    };
+    
+    console.log('Migration cleanup completed:');
+    console.log(`- Removed ${removedCount} users from "${oldCommunity.name}"`);
+    console.log(`- "${oldCommunity.name}" now has ${result.memberCount} members`);
+    
+    return cleanupSummary;
+  } catch (error) {
+    console.error('Migration cleanup failed:', error.message);
+    throw error;
+  }
+}
+
+const migrationCleanup = await cleanupAfterMigration(123, [456, 789, 101], 456);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to remove users from community |
+| `NotFoundError` | 404 | Community with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.communities.leaveBulk(123, {
+    memberUserIds: [456, 789, 101]
+  });
+  console.log('Users removed successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Community not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot remove users - insufficient permissions');
+    console.error('You can only remove yourself or users you have permission to manage');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required for bulk removal operations');
+  } else {
+    console.error('Failed to remove users:', error.message);
+  }
+}
+```
+
+### Safe Bulk Removal
+
+```typescript
+async function safeRemoveUsers(communityId: number, userIds: number[]) {
+  try {
+    const result = await sdk.communities.leaveBulk(communityId, {
+      memberUserIds: userIds
+    });
+    
+    return {
+      success: true,
+      community: result,
+      removedUsers: userIds.length,
+      message: 'Users removed successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'insufficient_permissions',
+        message: 'Cannot remove some or all users - insufficient permissions'
+      };
+    } else if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'community_not_found',
+        message: 'Community does not exist'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const removalResult = await safeRemoveUsers(123, [456, 789]);
+if (removalResult.success) {
+  console.log(`Removed ${removalResult.removedUsers} users successfully`);
+} else {
+  console.log(`Removal failed: ${removalResult.message}`);
+}
+```
+
+## Notes
+
+- **Permission Requirements**: Users can remove themselves and others they have permission to manage
+- No special admin/moderator permissions required for bulk operations
+- The operation processes all user IDs in the `memberUserIds` array in a single API call
+- If some users in the list are not members of the community, they are silently skipped
+- If some users cannot be removed due to permissions, the operation may partially succeed for users that can be removed
+- The returned `CommunityResponseModel` reflects the community state after all successful removals
+- For large-scale operations, consider processing in batches to avoid potential API limits
+- The method is more efficient than multiple individual `leave()` calls for bulk operations
+- Users who are not community members are ignored rather than causing errors
+- Community member count is automatically updated to reflect the removals

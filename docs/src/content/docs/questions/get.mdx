@@ -1,0 +1,679 @@
+---
+title: get()
+description: Retrieves a single question by its unique identifier, including complete content, metadata, and current user interaction status.
+---
+
+# get()
+
+Retrieves a single question by its unique identifier, including complete content, metadata, and current user interaction status.
+
+## Syntax
+
+```typescript
+async get(questionId: number): Promise<QuestionResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to retrieve |
+
+## Return Value
+
+Returns a `Promise<QuestionResponseModel>` containing complete question information:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The question's unique identifier |
+| `title` | `string` | The actual question, stated briefly in one sentence |
+| `body` | `string` | Question body content in HTML format |
+| `bodyMarkdown` | `string` | Question body content in Markdown format |
+| `tags` | `TagSummaryResponseModel[]` | Tags associated with the question |
+| `owner` | `UserSummaryResponseModel` | Question author information |
+| `lastEditor` | `UserSummaryResponseModel` | Last user to edit the question |
+| `creationDate` | `Date` | When the question was created |
+| `lastActivityDate` | `Date` | Last significant activity (edit, answer, vote, etc.) |
+| `score` | `number` | Net score (upvotes minus downvotes) |
+| `isAnswered` | `boolean` | True if question has at least one upvoted answer |
+| `answerCount` | `number` | Total number of answers |
+| `viewCount` | `number` | Number of times the question has been viewed |
+| `webUrl` | `string` | Direct URL to the question |
+| `shareUrl` | `string` | Shareable URL for the question |
+| `isDeleted` | `boolean` | True if the question was deleted |
+| `isObsolete` | `boolean` | True if marked obsolete by moderator |
+| `isClosed` | `boolean` | True if closed by moderator |
+| `bounty` | `BountyResponseModel` | Bounty information if active |
+| `communities` | `CommunitySummaryResponseModel[]` | Associated communities |
+| `mentionedUsers` | `MentionedUserResponseModel[]` | Users mentioned in the question |
+| `mentionedUserGroups` | `MentionedUserGroupResponseModel[]` | User groups mentioned |
+| `userIsFollowing` | `boolean` | True if current user follows this question |
+| `userHasUpvoted` | `boolean` | True if current user upvoted |
+| `userHasDownvoted` | `boolean` | True if current user downvoted |
+| `userHasBookmarked` | `boolean` | True if current user bookmarked |
+
+## Examples
+
+### Basic Question Retrieval
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get a specific question
+const question = await sdk.questions.get(12345);
+
+console.log('Question Details:');
+console.log(`Title: ${question.title}`);
+console.log(`Author: ${question.owner?.displayName}`);
+console.log(`Score: ${question.score}`);
+console.log(`Views: ${question.viewCount}`);
+console.log(`Answers: ${question.answerCount}`);
+console.log(`Created: ${question.creationDate}`);
+console.log(`Tags: ${question.tags?.map(t => t.name).join(', ')}`);
+console.log(`URL: ${question.webUrl}`);
+
+// Display content (HTML format)
+console.log('\nContent (HTML):');
+console.log(question.body);
+
+// Display content (Markdown format)
+console.log('\nContent (Markdown):');
+console.log(question.bodyMarkdown);
+```
+
+### Question Analysis and Interaction Status
+
+```typescript
+async function analyzeQuestion(questionId: number) {
+  try {
+    const question = await sdk.questions.get(questionId);
+    
+    // Analyze question metrics
+    const metrics = {
+      engagement: {
+        score: question.score || 0,
+        views: question.viewCount || 0,
+        answers: question.answerCount || 0,
+        engagementRatio: (question.score || 0) / Math.max(question.viewCount || 1, 1) * 100
+      },
+      status: {
+        isAnswered: question.isAnswered || false,
+        isClosed: question.isClosed || false,
+        isDeleted: question.isDeleted || false,
+        isObsolete: question.isObsolete || false,
+        hasBounty: !!question.bounty
+      },
+      userInteraction: {
+        isFollowing: question.userIsFollowing || false,
+        hasUpvoted: question.userHasUpvoted || false,
+        hasDownvoted: question.userHasDownvoted || false,
+        hasBookmarked: question.userHasBookmarked || false
+      },
+      timeline: {
+        age: Math.floor((Date.now() - new Date(question.creationDate).getTime()) / (1000 * 60 * 60 * 24)),
+        lastActivity: question.lastActivityDate ? 
+          Math.floor((Date.now() - new Date(question.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24)) : 
+          null,
+        wasEdited: question.lastEditor && question.lastEditor.userId !== question.owner?.userId
+      }
+    };
+    
+    console.log(`Question Analysis: ${question.title}`);
+    console.log(`- Score: ${metrics.engagement.score} (${metrics.engagement.engagementRatio.toFixed(2)}% engagement ratio)`);
+    console.log(`- Views: ${metrics.engagement.views}`);
+    console.log(`- Answers: ${metrics.engagement.answers}`);
+    console.log(`- Age: ${metrics.timeline.age} days`);
+    console.log(`- Last activity: ${metrics.timeline.lastActivity} days ago`);
+    console.log(`- Status: ${metrics.status.isAnswered ? 'Answered' : 'Unanswered'}`);
+    
+    if (metrics.status.isClosed) console.log('- CLOSED by moderator');
+    if (metrics.status.hasBounty) console.log('- Has active bounty');
+    if (metrics.timeline.wasEdited) console.log('- Has been edited');
+    
+    console.log('\nUser Interactions:');
+    if (metrics.userInteraction.hasUpvoted) console.log('- You upvoted this question');
+    if (metrics.userInteraction.hasDownvoted) console.log('- You downvoted this question');
+    if (metrics.userInteraction.hasBookmarked) console.log('- You bookmarked this question');
+    if (metrics.userInteraction.isFollowing) console.log('- You are following this question');
+    
+    return { question, metrics };
+  } catch (error) {
+    console.error('Failed to analyze question:', error.message);
+    throw error;
+  }
+}
+
+const analysis = await analyzeQuestion(12345);
+```
+
+### Question Content Processing
+
+```typescript
+async function processQuestionContent(questionId: number) {
+  const question = await sdk.questions.get(questionId);
+  
+  // Extract and analyze content
+  const contentAnalysis = {
+    basic: {
+      titleLength: question.title?.length || 0,
+      bodyLength: question.body?.length || 0,
+      markdownLength: question.bodyMarkdown?.length || 0,
+      tagCount: question.tags?.length || 0
+    },
+    structure: {
+      hasCodeBlocks: (question.bodyMarkdown || '').includes('```'),
+      hasLinks: (question.bodyMarkdown || '').includes('['),
+      hasLists: (question.bodyMarkdown || '').includes('- ') || (question.bodyMarkdown || '').includes('1. '),
+      hasImages: (question.bodyMarkdown || '').includes('!['),
+      paragraphCount: (question.bodyMarkdown || '').split('\n\n').length
+    },
+    mentions: {
+      userCount: question.mentionedUsers?.length || 0,
+      groupCount: question.mentionedUserGroups?.length || 0,
+      users: question.mentionedUsers?.map(u => u.displayName) || [],
+      groups: question.mentionedUserGroups?.map(g => g.name) || []
+    },
+    tags: question.tags?.map(tag => ({
+      name: tag.name,
+      id: tag.id,
+      questionCount: tag.count
+    })) || []
+  };
+  
+  console.log(`Content Analysis for: ${question.title}`);
+  console.log(`\nBasic Metrics:`);
+  console.log(`- Title: ${contentAnalysis.basic.titleLength} characters`);
+  console.log(`- Body: ${contentAnalysis.basic.bodyLength} characters (HTML)`);
+  console.log(`- Markdown: ${contentAnalysis.basic.markdownLength} characters`);
+  console.log(`- Tags: ${contentAnalysis.basic.tagCount}`);
+  
+  console.log(`\nContent Structure:`);
+  console.log(`- Code blocks: ${contentAnalysis.structure.hasCodeBlocks ? 'Yes' : 'No'}`);
+  console.log(`- Links: ${contentAnalysis.structure.hasLinks ? 'Yes' : 'No'}`);
+  console.log(`- Lists: ${contentAnalysis.structure.hasLists ? 'Yes' : 'No'}`);
+  console.log(`- Images: ${contentAnalysis.structure.hasImages ? 'Yes' : 'No'}`);
+  console.log(`- Paragraphs: ${contentAnalysis.structure.paragraphCount}`);
+  
+  if (contentAnalysis.mentions.userCount > 0) {
+    console.log(`\nMentioned Users: ${contentAnalysis.mentions.users.join(', ')}`);
+  }
+  
+  if (contentAnalysis.mentions.groupCount > 0) {
+    console.log(`Mentioned Groups: ${contentAnalysis.mentions.groups.join(', ')}`);
+  }
+  
+  console.log(`\nTags:`);
+  contentAnalysis.tags.forEach(tag => {
+    console.log(`- ${tag.name} (used in ${tag.questionCount} questions)`);
+  });
+  
+  return contentAnalysis;
+}
+
+const contentAnalysis = await processQuestionContent(12345);
+```
+
+### Team Context Comparison
+
+```typescript
+async function compareQuestionAcrossContexts(questionId: number, teamId: string) {
+  try {
+    // Get question from both public and team contexts
+    const [publicQuestion, teamQuestion] = await Promise.all([
+      sdk.questions.get(questionId),
+      sdk.forTeam(teamId).questions.get(questionId)
+    ]);
+    
+    const comparison = {
+      basic: {
+        sameQuestion: publicQuestion.id === teamQuestion.id,
+        titleMatch: publicQuestion.title === teamQuestion.title,
+        contentMatch: publicQuestion.body === teamQuestion.body
+      },
+      metrics: {
+        public: {
+          score: publicQuestion.score,
+          views: publicQuestion.viewCount,
+          answers: publicQuestion.answerCount
+        },
+        team: {
+          score: teamQuestion.score,
+          views: teamQuestion.viewCount,
+          answers: teamQuestion.answerCount
+        }
+      },
+      userInteractions: {
+        public: {
+          upvoted: publicQuestion.userHasUpvoted,
+          downvoted: publicQuestion.userHasDownvoted,
+          bookmarked: publicQuestion.userHasBookmarked,
+          following: publicQuestion.userIsFollowing
+        },
+        team: {
+          upvoted: teamQuestion.userHasUpvoted,
+          downvoted: teamQuestion.userHasDownvoted,
+          bookmarked: teamQuestion.userHasBookmarked,
+          following: teamQuestion.userIsFollowing
+        }
+      }
+    };
+    
+    console.log('Question Context Comparison:');
+    console.log(`- Same question: ${comparison.basic.sameQuestion}`);
+    console.log(`- Public score: ${comparison.metrics.public.score}`);
+    console.log(`- Team score: ${comparison.metrics.team.score}`);
+    console.log(`- Public views: ${comparison.metrics.public.views}`);
+    console.log(`- Team views: ${comparison.metrics.team.views}`);
+    
+    return comparison;
+  } catch (error) {
+    console.error('Context comparison failed:', error.message);
+    return null;
+  }
+}
+
+const contextComparison = await compareQuestionAcrossContexts(12345, 'team-123');
+```
+
+### Question Workflow Integration
+
+```typescript
+async function getQuestionForWorkflow(questionId: number, workflow: 'review' | 'answer' | 'moderate') {
+  try {
+    const question = await sdk.questions.get(questionId);
+    
+    // Prepare workflow-specific data
+    const workflowData = {
+      question,
+      workflow,
+      metadata: {
+        retrieved: new Date().toISOString(),
+        questionAge: Math.floor((Date.now() - new Date(question.creationDate).getTime()) / (1000 * 60 * 60 * 24)),
+        lastActivityAge: question.lastActivityDate ? 
+          Math.floor((Date.now() - new Date(question.lastActivityDate).getTime()) / (1000 * 60 * 60)) : null
+      }
+    };
+    
+    switch (workflow) {
+      case 'review':
+        return {
+          ...workflowData,
+          reviewChecklist: {
+            hasTitle: !!question.title && question.title.length > 10,
+            hasContent: !!question.body && question.body.length > 50,
+            hasTags: question.tags && question.tags.length > 0,
+            isNotDeleted: !question.isDeleted,
+            isNotObsolete: !question.isObsolete,
+            needsAttention: !question.isAnswered && question.score < 0
+          }
+        };
+        
+      case 'answer':
+        return {
+          ...workflowData,
+          answerContext: {
+            canAnswer: !question.isClosed && !question.isDeleted,
+            hasExistingAnswers: question.answerCount > 0,
+            isAnswered: question.isAnswered,
+            difficulty: question.score > 5 ? 'advanced' : question.score > 0 ? 'intermediate' : 'beginner',
+            tags: question.tags?.map(t => t.name) || []
+          }
+        };
+        
+      case 'moderate':
+        return {
+          ...workflowData,
+          moderationContext: {
+            requiresModeration: question.score < -2 || question.viewCount > 1000,
+            isClosed: question.isClosed,
+            isDeleted: question.isDeleted,
+            isObsolete: question.isObsolete,
+            hasBounty: !!question.bounty,
+            flagCount: 0, // Would need separate API call
+            reportedIssues: []
+          }
+        };
+        
+      default:
+        return workflowData;
+    }
+  } catch (error) {
+    console.error(`Failed to get question for ${workflow} workflow:`, error.message);
+    throw error;
+  }
+}
+
+// Usage examples
+const reviewData = await getQuestionForWorkflow(12345, 'review');
+const answerData = await getQuestionForWorkflow(12345, 'answer');
+const moderationData = await getQuestionForWorkflow(12345, 'moderate');
+
+console.log('Review checklist:', reviewData.reviewChecklist);
+console.log('Answer context:', answerData.answerContext);
+console.log('Moderation context:', moderationData.moderationContext);
+```
+
+### Bulk Question Retrieval
+
+```typescript
+async function getBulkQuestions(questionIds: number[]) {
+  console.log(`Retrieving ${questionIds.length} questions...`);
+  
+  const results = {
+    successful: [],
+    failed: [],
+    summary: {
+      retrieved: 0,
+      errors: 0,
+      totalRequested: questionIds.length
+    }
+  };
+  
+  for (let i = 0; i < questionIds.length; i++) {
+    const questionId = questionIds[i];
+    
+    try {
+      console.log(`Loading question ${i + 1}/${questionIds.length}: ${questionId}`);
+      
+      const question = await sdk.questions.get(questionId);
+      
+      results.successful.push({
+        questionId,
+        question,
+        index: i
+      });
+      
+      results.summary.retrieved++;
+      
+      // Add delay to avoid rate limiting
+      if (i < questionIds.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+    } catch (error) {
+      console.error(`Failed to load question ${questionId}:`, error.message);
+      
+      results.failed.push({
+        questionId,
+        error: error.message,
+        index: i
+      });
+      
+      results.summary.errors++;
+    }
+  }
+  
+  console.log(`\nBulk retrieval completed:`);
+  console.log(`- Successfully retrieved: ${results.summary.retrieved}/${results.summary.totalRequested}`);
+  console.log(`- Errors: ${results.summary.errors}`);
+  
+  return results;
+}
+
+const bulkResults = await getBulkQuestions([12345, 12346, 12347, 12348]);
+
+// Process successful retrievals
+bulkResults.successful.forEach(result => {
+  console.log(`${result.question.title} - Score: ${result.question.score}`);
+});
+
+// Handle failed retrievals
+if (bulkResults.failed.length > 0) {
+  console.log('Failed to retrieve:');
+  bulkResults.failed.forEach(failure => {
+    console.log(`- Question ${failure.questionId}: ${failure.error}`);
+  });
+}
+```
+
+### Question State Monitoring
+
+```typescript
+async function monitorQuestionState(questionId: number, checkInterval: number = 5000) {
+  console.log(`Starting monitoring for question ${questionId}`);
+  
+  let previousState = await sdk.questions.get(questionId);
+  console.log(`Initial state: Score ${previousState.score}, Answers ${previousState.answerCount}`);
+  
+  const monitor = setInterval(async () => {
+    try {
+      const currentState = await sdk.questions.get(questionId);
+      
+      // Check for changes
+      const changes = [];
+      
+      if (currentState.score !== previousState.score) {
+        changes.push(`Score: ${previousState.score} → ${currentState.score}`);
+      }
+      
+      if (currentState.answerCount !== previousState.answerCount) {
+        changes.push(`Answers: ${previousState.answerCount} → ${currentState.answerCount}`);
+      }
+      
+      if (currentState.viewCount !== previousState.viewCount) {
+        changes.push(`Views: ${previousState.viewCount} → ${currentState.viewCount}`);
+      }
+      
+      if (currentState.isAnswered !== previousState.isAnswered) {
+        changes.push(`Answered: ${previousState.isAnswered} → ${currentState.isAnswered}`);
+      }
+      
+      if (currentState.isClosed !== previousState.isClosed) {
+        changes.push(`Closed: ${previousState.isClosed} → ${currentState.isClosed}`);
+      }
+      
+      if (changes.length > 0) {
+        console.log(`\n[${new Date().toLocaleTimeString()}] Question ${questionId} changes:`);
+        changes.forEach(change => console.log(`- ${change}`));
+      }
+      
+      previousState = currentState;
+    } catch (error) {
+      console.error('Monitoring error:', error.message);
+    }
+  }, checkInterval);
+  
+  // Return a function to stop monitoring
+  return () => {
+    clearInterval(monitor);
+    console.log(`Stopped monitoring question ${questionId}`);
+  };
+}
+
+// Start monitoring (returns stop function)
+const stopMonitoring = await monitorQuestionState(12345, 10000); // Check every 10 seconds
+
+// Stop after 1 minute
+setTimeout(() => {
+  stopMonitoring();
+}, 60000);
+```
+
+### Question Data Export
+
+```typescript
+async function exportQuestionData(questionId: number, format: 'json' | 'markdown' | 'summary' = 'json') {
+  try {
+    const question = await sdk.questions.get(questionId);
+    
+    switch (format) {
+      case 'json':
+        return {
+          exportFormat: 'json',
+          exportedAt: new Date().toISOString(),
+          data: question
+        };
+        
+      case 'markdown':
+        const markdownContent = `# ${question.title}
+
+**Author:** ${question.owner?.displayName || 'Unknown'}  
+**Created:** ${question.creationDate}  
+**Score:** ${question.score}  
+**Views:** ${question.viewCount}  
+**Answers:** ${question.answerCount}  
+
+**Tags:** ${question.tags?.map(t => `\`${t.name}\``).join(', ') || 'None'}
+
+## Question
+
+${question.bodyMarkdown || question.body || 'No content available'}
+
+---
+
+**URL:** ${question.webUrl}  
+**Share:** ${question.shareUrl}`;
+
+        return {
+          exportFormat: 'markdown',
+          exportedAt: new Date().toISOString(),
+          content: markdownContent
+        };
+        
+      case 'summary':
+        return {
+          exportFormat: 'summary',
+          exportedAt: new Date().toISOString(),
+          summary: {
+            id: question.id,
+            title: question.title,
+            author: question.owner?.displayName,
+            metrics: {
+              score: question.score,
+              views: question.viewCount,
+              answers: question.answerCount
+            },
+            dates: {
+              created: question.creationDate,
+              lastActivity: question.lastActivityDate
+            },
+            status: {
+              answered: question.isAnswered,
+              closed: question.isClosed,
+              deleted: question.isDeleted
+            },
+            tags: question.tags?.map(t => t.name) || [],
+            urls: {
+              web: question.webUrl,
+              share: question.shareUrl
+            }
+          }
+        };
+        
+      default:
+        throw new Error(`Unsupported export format: ${format}`);
+    }
+  } catch (error) {
+    console.error('Question export failed:', error.message);
+    throw error;
+  }
+}
+
+// Export in different formats
+const jsonExport = await exportQuestionData(12345, 'json');
+const markdownExport = await exportQuestionData(12345, 'markdown');
+const summaryExport = await exportQuestionData(12345, 'summary');
+
+console.log('Markdown Export:');
+console.log(markdownExport.content);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the question |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const question = await sdk.questions.get(12345);
+  console.log('Question retrieved successfully:', question.title);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Question not found - it may have been deleted or the ID is incorrect');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot access question - insufficient permissions or private content');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access this question');
+  } else {
+    console.error('Failed to retrieve question:', error.message);
+  }
+}
+```
+
+### Safe Question Retrieval
+
+```typescript
+async function safeGetQuestion(questionId: number) {
+  try {
+    const question = await sdk.questions.get(questionId);
+    
+    return {
+      success: true,
+      question,
+      message: 'Question retrieved successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return {
+        success: false,
+        reason: 'not_found',
+        message: 'Question does not exist or has been deleted'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return {
+        success: false,
+        reason: 'forbidden',
+        message: 'Insufficient permissions to access this question'
+      };
+    }
+    
+    return {
+      success: false,
+      reason: 'error',
+      message: error.message
+    };
+  }
+}
+
+const result = await safeGetQuestion(12345);
+if (result.success) {
+  console.log(`Retrieved: ${result.question.title}`);
+} else {
+  console.log(`Failed to retrieve question: ${result.message}`);
+}
+```
+
+## Notes
+
+- **Team vs Public Context**: Question content and metrics may differ between team and public contexts
+- **User Interaction Status**: Properties like `userHasUpvoted`, `userHasBookmarked` reflect the current authenticated user's interactions
+- **Content Formats**: Both HTML (`body`) and Markdown (`bodyMarkdown`) versions are provided
+- **Status Flags**: Multiple boolean flags indicate question state (closed, deleted, obsolete, answered)
+- **Activity Tracking**: `lastActivityDate` includes any significant activity (edits, answers, votes, bounties)
+- **View Counting**: `viewCount` tracks unique question views across all users
+- **URL Properties**: `webUrl` for direct access, `shareUrl` for sharing functionality
+- **Mention Detection**: Automatically identifies mentioned users and groups in question content
+- **Bounty Information**: Active bounties are included in the `bounty` property
+- **Tag Metadata**: Tags include usage statistics and identification information
+- **Performance**: Single question retrieval is faster than filtered queries but consider caching for repeated access

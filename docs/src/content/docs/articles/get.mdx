@@ -1,0 +1,273 @@
+---
+title: get()
+description: Retrieves a single article by its ID with complete article details, content, and metadata.
+---
+
+# get()
+
+Retrieves a single article by its ID with complete article details, content, and metadata.
+
+## Syntax
+
+```typescript
+async get(articleId: number): Promise<ArticleResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to retrieve |
+
+## Return Value
+
+Returns a `Promise<ArticleResponseModel>` containing the complete article object with properties including:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The article's unique identifier |
+| `title` | `string` | The article title |
+| `body` | `string` | The article content in HTML format |
+| `bodyMarkdown` | `string` | The article content in Markdown format |
+| `score` | `number` | Article score based on upvotes |
+| `type` | `ArticleType` | The type/category of the article |
+| `tags` | `string[]` | Array of tags associated with the article |
+| `creationDate` | `Date` | When the article was created |
+| `lastEditDate` | `Date` \| `null` | When the article was last edited |
+| `lastActivityDate` | `Date` \| `null` | When the article last had activity |
+| `owner` | `UserSummaryResponseModel` | Information about the article author |
+| `lastEditor` | `UserSummaryResponseModel` | Information about who last edited the article |
+| `viewCount` | `number` | Number of times the article has been viewed |
+| `upvoteCount` | `number` | Number of upvotes the article has received |
+| `isBookmarked` | `boolean` | Whether the logged-in user bookmarked the article |
+| `webUrl` | `string` \| `null` | Direct URL to the article |
+| `shareLink` | `string` \| `null` | Link for sharing the article |
+| `permissions` | `ArticlePermissionsRequestModel` | Article permission settings |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get a specific article
+const article = await sdk.articles.get(123);
+console.log(`Title: ${article.title}`);
+console.log(`Score: ${article.score}`);
+console.log(`Views: ${article.viewCount}`);
+```
+
+### Accessing Article Content
+
+```typescript
+const article = await sdk.articles.get(123);
+
+// Display article information
+console.log(`Article: ${article.title}`);
+console.log(`Author: ${article.owner?.displayName}`);
+console.log(`Created: ${article.creationDate}`);
+console.log(`Tags: ${article.tags.join(', ')}`);
+
+// Access content in different formats
+console.log('HTML content:', article.body);
+console.log('Markdown content:', article.bodyMarkdown);
+
+// Check engagement metrics
+console.log(`${article.upvoteCount} upvotes, ${article.viewCount} views`);
+```
+
+### Article Metadata and History
+
+```typescript
+const article = await sdk.articles.get(123);
+
+// Check edit history
+if (article.lastEditDate) {
+  console.log(`Last edited: ${article.lastEditDate}`);
+  console.log(`Edited by: ${article.lastEditor?.displayName}`);
+} else {
+  console.log('Article has not been edited since creation');
+}
+
+// Check article type and permissions
+console.log(`Article type: ${article.type}`);
+console.log(`Permissions:`, article.permissions);
+
+// User-specific information
+if (article.isBookmarked) {
+  console.log('You have bookmarked this article');
+}
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamArticle = await teamSDK.articles.get(123);
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const article = await teamArticleClient.get(123);
+```
+
+### Article Analysis
+
+```typescript
+async function analyzeArticle(articleId: number) {
+  try {
+    const article = await sdk.articles.get(articleId);
+    
+    const analysis = {
+      title: article.title,
+      author: article.owner?.displayName,
+      engagement: {
+        score: article.score,
+        upvotes: article.upvoteCount,
+        views: article.viewCount,
+        engagementRatio: article.upvoteCount / Math.max(article.viewCount, 1)
+      },
+      content: {
+        wordCount: article.bodyMarkdown?.split(' ').length || 0,
+        tagCount: article.tags.length,
+        tags: article.tags
+      },
+      history: {
+        created: article.creationDate,
+        lastEdited: article.lastEditDate,
+        hasBeenEdited: !!article.lastEditDate
+      }
+    };
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to analyze article:', error.message);
+    throw error;
+  }
+}
+
+const analysis = await analyzeArticle(123);
+console.log('Article Analysis:', analysis);
+```
+
+### Bulk Article Retrieval
+
+```typescript
+async function getMultipleArticles(articleIds: number[]) {
+  const articles = [];
+  const errors = [];
+  
+  for (const id of articleIds) {
+    try {
+      const article = await sdk.articles.get(id);
+      articles.push(article);
+      console.log(`✓ Loaded: ${article.title}`);
+    } catch (error) {
+      errors.push({ id, error: error.message });
+      console.error(`✗ Failed to load article ${id}:`, error.message);
+    }
+  }
+  
+  return { articles, errors };
+}
+
+const result = await getMultipleArticles([123, 456, 789]);
+console.log(`Successfully loaded ${result.articles.length} articles`);
+console.log(`Failed to load ${result.errors.length} articles`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the article |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const article = await sdk.articles.get(123);
+  console.log('Article retrieved:', article.title);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found or has been deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied - insufficient permissions to view this article');
+  } else {
+    console.error('Failed to retrieve article:', error.message);
+  }
+}
+```
+
+### Safe Article Retrieval
+
+```typescript
+async function safeGetArticle(articleId: number) {
+  try {
+    const article = await sdk.articles.get(articleId);
+    return { 
+      success: true, 
+      article,
+      message: 'Article retrieved successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Article not found'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'access_denied',
+        message: 'Access denied to this article'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeGetArticle(123);
+if (result.success) {
+  console.log('Article loaded:', result.article.title);
+} else {
+  console.log('Could not load article:', result.message);
+}
+```
+
+## Notes
+
+- This method returns the complete article object with all available fields
+- Both HTML and Markdown versions of the content are available in the response
+- The method automatically handles both public and team contexts based on how the client was initialized
+- User-specific fields like `isBookmarked` reflect the state for the authenticated user
+- View counts may be updated when the article is accessed through the web interface
+- Articles may have different permission levels that affect who can view them
+- The `permissions` field contains the article's access control settings
+- Deleted articles will result in a `NotFoundError` rather than returning deleted content
+- Article URLs can be used for direct browser navigation or sharing

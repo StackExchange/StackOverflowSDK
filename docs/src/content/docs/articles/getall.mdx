@@ -1,0 +1,263 @@
+---
+title: getAll()
+description: Retrieves a paginated list of articles with comprehensive filtering, sorting, and date range options.
+---
+
+# getAll()
+
+Retrieves a paginated list of articles with comprehensive filtering, sorting, and date range options.
+
+## Syntax
+
+```typescript
+async getAll(options?: GetArticlesOptions): Promise<PaginatedArticles>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `GetArticlesOptions` | No | Configuration options for pagination, filtering, and sorting |
+
+### GetArticlesOptions
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of articles to return per page |
+| `sort` | `ArticleSortParameter` | No | | Sort articles by: `"activity"`, `"creation"`, or `"score"` |
+| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| `tagId` | `number[]` | No | | Filter articles by specific tag IDs |
+| `authorId` | `number` | No | | Filter articles by specific author ID |
+| `from` | `Date` | No | | Filter articles created after this date |
+| `to` | `Date` | No | | Filter articles created before this date |
+
+## Return Value
+
+Returns a `Promise<PaginatedArticles>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of articles matching the criteria |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `ArticleSortParameter` | Sort parameter used |
+| `order` | `SortOrder` | Sort order used |
+| `items` | `ArticleResponseModel[]` | Array of article objects |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all articles with default settings
+const articles = await sdk.articles.getAll();
+console.log(`Found ${articles.totalCount} articles`);
+```
+
+### With Pagination
+
+```typescript
+// Get the second page with 50 articles per page
+const articles = await sdk.articles.getAll({
+  page: 2,
+  pageSize: 50
+});
+
+console.log(`Page ${articles.page} of ${articles.totalPages}`);
+```
+
+### With Sorting
+
+```typescript
+// Get newest articles first
+const newestArticles = await sdk.articles.getAll({
+  sort: 'creation',
+  order: 'desc',
+  pageSize: 15
+});
+
+// Get highest-scored articles
+const topArticles = await sdk.articles.getAll({
+  sort: 'score', 
+  order: 'desc'
+});
+```
+
+### Filter by Author
+
+```typescript
+// Get articles by a specific author
+const authorArticles = await sdk.articles.getAll({
+  authorId: 123,
+  sort: 'creation',
+  order: 'desc'
+});
+
+console.log(`Author has ${authorArticles.totalCount} articles`);
+```
+
+### Filter by Tags
+
+```typescript
+// Get articles with specific tags
+const taggedArticles = await sdk.articles.getAll({
+  tagId: [456, 789], // Articles with tag ID 456 OR 789
+  pageSize: 30
+});
+
+// Get articles with single tag
+const singleTagArticles = await sdk.articles.getAll({
+  tagId: [123]
+});
+```
+
+### Filter by Date Range
+
+```typescript
+// Get articles from the last month
+const lastMonth = new Date();
+lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+const recentArticles = await sdk.articles.getAll({
+  from: lastMonth,
+  to: new Date(),
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Get articles from a specific date range
+const articles2024 = await sdk.articles.getAll({
+  from: new Date('2024-01-01'),
+  to: new Date('2024-12-31')
+});
+```
+
+### Combined Filtering
+
+```typescript
+// Complex filtering: articles by specific author, with certain tags, from last quarter
+const quarterStart = new Date();
+quarterStart.setMonth(quarterStart.getMonth() - 3);
+
+const filteredArticles = await sdk.articles.getAll({
+  authorId: 123,
+  tagId: [456, 789],
+  from: quarterStart,
+  sort: 'score',
+  order: 'desc',
+  pageSize: 25
+});
+
+console.log(`Found ${filteredArticles.totalCount} articles matching all criteria`);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamArticles = await teamSDK.articles.getAll({
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const articles = await teamArticleClient.getAll();
+```
+
+### Pagination Loop
+
+```typescript
+async function getAllArticlesByAuthor(authorId: number): Promise<ArticleResponseModel[]> {
+  const allArticles: ArticleResponseModel[] = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  while (hasMorePages) {
+    const result = await sdk.articles.getAll({
+      authorId,
+      page: currentPage,
+      pageSize: 100, // Maximum page size for efficiency
+      sort: 'creation',
+      order: 'desc'
+    });
+
+    allArticles.push(...result.items);
+    
+    hasMorePages = currentPage < result.totalPages;
+    currentPage++;
+    
+    console.log(`Loaded page ${currentPage - 1} of ${result.totalPages}`);
+  }
+
+  return allArticles;
+}
+
+const authorArticles = await getAllArticlesByAuthor(123);
+console.log(`Total articles loaded: ${authorArticles.length}`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access articles |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const articles = await sdk.articles.getAll({
+    authorId: 123,
+    pageSize: 50
+  });
+  
+  console.log(`Successfully retrieved ${articles.items.length} articles`);
+  articles.items.forEach(article => {
+    console.log(`- ${article.title} (Score: ${article.score})`);
+  });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Authentication required to access articles');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to articles');
+  } else {
+    console.error('Failed to retrieve articles:', error.message);
+  }
+}
+```
+
+## Notes
+
+- All filter parameters are optional and can be combined for precise filtering
+- The `tagId` parameter accepts an array of tag IDs - articles matching ANY of the specified tags will be returned
+- Date filtering uses the article's creation date
+- When no sorting options are provided, the API uses its default sorting behavior  
+- Page numbers are 1-based (first page is `page: 1`)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Empty results are returned as an array with `totalCount: 0` rather than throwing an error
+- Large date ranges may return many results - consider using pagination for better performance
+- Tag and author filtering can significantly improve query performance compared to client-side filtering

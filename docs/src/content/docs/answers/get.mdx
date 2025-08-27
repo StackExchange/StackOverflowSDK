@@ -1,0 +1,149 @@
+---
+title: answers.get()
+description: Retrieves a single answer by its ID with complete answer details and metadata.
+---
+
+Retrieves a single answer by its ID with complete answer details and metadata.
+
+## Syntax
+
+```typescript
+async get(questionId: number, answerId: number): Promise<AnswerResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to retrieve |
+
+## Return Value
+
+Returns a `Promise<AnswerResponseModel>` containing the complete answer object with the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The answer's unique identifier |
+| `questionId` | `number` | The ID of the answered question |
+| `body` | `string` | The main content of the answer in HTML format |
+| `bodyMarkdown` | `string` | The main content of the answer in Markdown format |
+| `score` | `number` | Answer score (upvotes minus downvotes) |
+| `isAccepted` | `boolean` | Whether this is the accepted answer for the question |
+| `isDeleted` | `boolean` | Whether the answer was deleted |
+| `isBookmarked` | `boolean` | Whether the logged-in user bookmarked the answer |
+| `isFollowed` | `boolean` | Whether the logged-in user followed the answer |
+| `creationDate` | `Date` | When the answer was created |
+| `lastEditDate` | `Date` \| `null` | When the answer was last edited |
+| `lastActivityDate` | `Date` \| `null` | When the answer last had activity |
+| `lockedDate` | `Date` \| `null` | When the answer was locked |
+| `deletionDate` | `Date` \| `null` | When the answer was deleted |
+| `owner` | `UserSummaryResponseModel` | Information about the answer author |
+| `lastEditor` | `UserSummaryResponseModel` | Information about who last edited the answer |
+| `lastActivityUser` | `UserSummaryResponseModel` | Information about who performed the last activity |
+| `commentCount` | `number` | Number of comments on the answer |
+| `webUrl` | `string` \| `null` | Direct URL to the answer |
+| `shareLink` | `string` \| `null` | Link for sharing the answer |
+| `userCanFollow` | `boolean` | Whether the logged-in user can follow the answer |
+| `canBeFollowed` | `boolean` | Whether anyone can follow the answer |
+| `isSubjectMatterExpert` | `boolean` | Whether the answer is from a subject matter expert |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get a specific answer
+const answer = await sdk.answers.get(123, 456);
+console.log(answer.body);
+console.log(`Score: ${answer.score}`);
+console.log(`Accepted: ${answer.isAccepted}`);
+```
+
+### Accessing Answer Details
+
+```typescript
+const answer = await sdk.answers.get(123, 456);
+
+// Check answer metadata
+if (answer.isAccepted) {
+  console.log('This is the accepted answer!');
+}
+
+// Get author information
+console.log(`Answer by: ${answer.owner?.displayName}`);
+
+// Access both HTML and Markdown content
+console.log('HTML content:', answer.body);
+console.log('Markdown content:', answer.bodyMarkdown);
+
+// Check edit history
+if (answer.lastEditDate) {
+  console.log(`Last edited: ${answer.lastEditDate}`);
+  console.log(`Edited by: ${answer.lastEditor?.displayName}`);
+}
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamAnswer = await teamSDK.answers.get(123, 456);
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const answer = await teamAnswerClient.get(123, 456);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the answer |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const answer = await sdk.answers.get(123, 456);
+  console.log('Answer retrieved:', answer.body);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer or question not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to this answer');
+  } else {
+    console.error('Failed to retrieve answer:', error.message);
+  }
+}
+```
+
+## Notes
+
+- This method returns the complete answer object with all available fields, unlike `getAll()` which returns summary objects
+- Both HTML and Markdown versions of the content are available in the response
+- The method automatically handles both public and team contexts based on how the client was initialized
+- User-specific fields like `isBookmarked` and `isFollowed` reflect the state for the authenticated user
+- Deleted answers may still be retrievable depending on permissions, but will have `isDeleted: true`

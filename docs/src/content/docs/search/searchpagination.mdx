@@ -1,0 +1,634 @@
+---
+title: searchFirstPage() & searchNextPage()
+description: Pagination helper methods for navigating through search results efficiently with built-in page management.
+---
+
+# searchFirstPage() & searchNextPage()
+
+Pagination helper methods for navigating through search results efficiently with built-in page management.
+
+## Syntax
+
+```typescript
+async searchFirstPage(query: string, options: Omit<SearchOptions, 'query' | 'page'> = {}): Promise<PaginatedSearchResults>
+async searchNextPage(query: string, currentPage: number, options: Omit<SearchOptions, 'query' | 'page'> = {}): Promise<PaginatedSearchResults>
+```
+
+## Parameters
+
+### searchFirstPage()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | `string` | Yes | Search query string |
+| `options` | `Omit<SearchOptions, 'query' \| 'page'>` | No | Search options excluding query and page |
+
+### searchNextPage()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | `string` | Yes | Search query string (must match original search) |
+| `currentPage` | `number` | Yes | Current page number to increment from |
+| `options` | `Omit<SearchOptions, 'query' \| 'page'>` | No | Search options excluding query and page |
+
+### Available Options
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pageSize` | `15 \| 30 \| 50 \| 100` | Number of results per page |
+| `sort` | `SearchSortParameter` | Sort order: `'relevance'`, `'newest'`, `'active'`, or `'score'` |
+
+## Return Value
+
+Both methods return `Promise<PaginatedSearchResults>` with the same structure as the main search method.
+
+## Examples
+
+### Simple Pagination
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function basicPagination() {
+  const query = 'react testing library';
+  
+  // Start with first page
+  const firstPage = await sdk.search.searchFirstPage(query);
+  
+  console.log(`First page: ${firstPage.items?.length} of ${firstPage.totalCount} results`);
+  console.log(`Total pages available: ${firstPage.totalPages}`);
+  
+  // Get next page if available
+  if (firstPage.page! < firstPage.totalPages!) {
+    const secondPage = await sdk.search.searchNextPage(query, firstPage.page!);
+    
+    console.log(`Second page: ${secondPage.items?.length} results`);
+    console.log(`Now on page ${secondPage.page} of ${secondPage.totalPages}`);
+  }
+  
+  return { firstPage, secondPage };
+}
+
+const pages = await basicPagination();
+```
+
+### Advanced Pagination with Options
+
+```typescript
+async function paginationWithOptions() {
+  const query = 'kubernetes deployment strategies';
+  const searchOptions = {
+    pageSize: 50 as const,
+    sort: 'score' as const
+  };
+  
+  // Get first page with options
+  console.log(`Starting search: "${query}"`);
+  const firstPage = await sdk.search.searchFirstPage(query, searchOptions);
+  
+  console.log(`Page 1: Found ${firstPage.items?.length} results (${firstPage.totalCount} total)`);
+  console.log(`Sorted by: ${firstPage.sort}`);
+  console.log(`Page size: ${firstPage.pageSize}`);
+  
+  // Continue through multiple pages
+  let currentPage = firstPage;
+  const allResults = [...(firstPage.items || [])];
+  
+  while (currentPage.page! < currentPage.totalPages! && currentPage.page! < 5) {
+    console.log(`Loading page ${currentPage.page! + 1}...`);
+    
+    currentPage = await sdk.search.searchNextPage(query, currentPage.page!, searchOptions);
+    allResults.push(...(currentPage.items || []));
+    
+    console.log(`Page ${currentPage.page}: ${currentPage.items?.length} more results`);
+    console.log(`Total collected: ${allResults.length}`);
+    
+    // Add delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  return allResults;
+}
+
+const allResults = await paginationWithOptions();
+console.log(`Final collection: ${allResults.length} results`);
+```
+
+### Pagination Navigator Class
+
+```typescript
+class SearchPaginator {
+  private sdk: StackOverflowSDK;
+  private query: string;
+  private options: Omit<SearchOptions, 'query' | 'page'>;
+  private currentResults: PaginatedSearchResults | null = null;
+  
+  constructor(sdk: StackOverflowSDK, query: string, options: Omit<SearchOptions, 'query' | 'page'> = {}) {
+    this.sdk = sdk;
+    this.query = query;
+    this.options = options;
+  }
+  
+  async first(): Promise<PaginatedSearchResults> {
+    console.log(`Starting pagination for: "${this.query}"`);
+    this.currentResults = await this.sdk.search.searchFirstPage(this.query, this.options);
+    
+    console.log(`First page loaded: ${this.currentResults.items?.length} results`);
+    this.logStatus();
+    
+    return this.currentResults;
+  }
+  
+  async next(): Promise<PaginatedSearchResults | null> {
+    if (!this.currentResults) {
+      throw new Error('Must call first() before next()');
+    }
+    
+    if (!this.hasNext()) {
+      console.log('No more pages available');
+      return null;
+    }
+    
+    console.log(`Loading next page (${this.currentResults.page! + 1})...`);
+    this.currentResults = await this.sdk.search.searchNextPage(this.query, this.currentResults.page!, this.options);
+    
+    console.log(`Page ${this.currentResults.page} loaded: ${this.currentResults.items?.length} results`);
+    this.logStatus();
+    
+    return this.currentResults;
+  }
+  
+  hasNext(): boolean {
+    return this.currentResults ? this.currentResults.page! < this.currentResults.totalPages! : false;
+  }
+  
+  hasPrevious(): boolean {
+    return this.currentResults ? this.currentResults.page! > 1 : false;
+  }
+  
+  getCurrentPage(): number {
+    return this.currentResults?.page || 0;
+  }
+  
+  getTotalPages(): number {
+    return this.currentResults?.totalPages || 0;
+  }
+  
+  getTotalResults(): number {
+    return this.currentResults?.totalCount || 0;
+  }
+  
+  getCurrentResults(): PaginatedSearchResults | null {
+    return this.currentResults;
+  }
+  
+  private logStatus(): void {
+    if (this.currentResults) {
+      console.log(`Status: Page ${this.currentResults.page}/${this.currentResults.totalPages} | Results: ${this.currentResults.items?.length}/${this.currentResults.totalCount}`);
+    }
+  }
+  
+  async collectAll(maxPages: number = 10): Promise<Array<PaginatedSearchResultsItemsInner>> {
+    console.log(`Collecting all results (max ${maxPages} pages)...`);
+    
+    const allItems = [];
+    let pageCount = 0;
+    
+    // Start with first page
+    await this.first();
+    allItems.push(...(this.currentResults?.items || []));
+    pageCount++;
+    
+    // Collect subsequent pages
+    while (this.hasNext() && pageCount < maxPages) {
+      await this.next();
+      allItems.push(...(this.currentResults?.items || []));
+      pageCount++;
+      
+      // Rate limiting delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    console.log(`Collection complete: ${allItems.length} total results across ${pageCount} pages`);
+    return allItems;
+  }
+  
+  reset(): void {
+    this.currentResults = null;
+    console.log('Paginator reset');
+  }
+}
+
+// Usage example
+const paginator = new SearchPaginator(sdk, 'microservices architecture', {
+  pageSize: 30,
+  sort: 'relevance'
+});
+
+// Navigate manually
+await paginator.first();
+const hasMore = paginator.hasNext();
+if (hasMore) {
+  await paginator.next();
+}
+
+console.log(`Current status: Page ${paginator.getCurrentPage()}/${paginator.getTotalPages()}`);
+
+// Or collect everything at once
+const allResults = await paginator.collectAll(5);
+console.log(`Collected ${allResults.length} total results`);
+```
+
+### Bidirectional Pagination
+
+```typescript
+class BidirectionalSearchPaginator {
+  private sdk: StackOverflowSDK;
+  private query: string;
+  private options: Omit<SearchOptions, 'query' | 'page'>;
+  private currentPage: number = 1;
+  private totalPages: number = 0;
+  private totalCount: number = 0;
+  private cache: Map<number, PaginatedSearchResults> = new Map();
+  
+  constructor(sdk: StackOverflowSDK, query: string, options: Omit<SearchOptions, 'query' | 'page'> = {}) {
+    this.sdk = sdk;
+    this.query = query;
+    this.options = options;
+  }
+  
+  async initialize(): Promise<PaginatedSearchResults> {
+    console.log(`Initializing bidirectional paginator for: "${this.query}"`);
+    
+    const firstPage = await this.sdk.search.searchFirstPage(this.query, this.options);
+    
+    this.currentPage = firstPage.page || 1;
+    this.totalPages = firstPage.totalPages || 0;
+    this.totalCount = firstPage.totalCount || 0;
+    this.cache.set(this.currentPage, firstPage);
+    
+    console.log(`Initialized: ${this.totalCount} total results across ${this.totalPages} pages`);
+    return firstPage;
+  }
+  
+  async goToPage(pageNumber: number): Promise<PaginatedSearchResults | null> {
+    if (pageNumber < 1 || pageNumber > this.totalPages) {
+      console.log(`Invalid page number: ${pageNumber} (valid range: 1-${this.totalPages})`);
+      return null;
+    }
+    
+    // Check cache first
+    if (this.cache.has(pageNumber)) {
+      console.log(`Loading page ${pageNumber} from cache`);
+      this.currentPage = pageNumber;
+      return this.cache.get(pageNumber)!;
+    }
+    
+    // Fetch from API
+    console.log(`Fetching page ${pageNumber} from API...`);
+    
+    let results: PaginatedSearchResults;
+    if (pageNumber === 1) {
+      results = await this.sdk.search.searchFirstPage(this.query, this.options);
+    } else {
+      results = await this.sdk.search.searchNextPage(this.query, pageNumber - 1, this.options);
+    }
+    
+    this.currentPage = pageNumber;
+    this.cache.set(pageNumber, results);
+    
+    console.log(`Page ${pageNumber} loaded: ${results.items?.length} results`);
+    return results;
+  }
+  
+  async next(): Promise<PaginatedSearchResults | null> {
+    if (this.currentPage >= this.totalPages) {
+      console.log('Already on last page');
+      return null;
+    }
+    
+    return await this.goToPage(this.currentPage + 1);
+  }
+  
+  async previous(): Promise<PaginatedSearchResults | null> {
+    if (this.currentPage <= 1) {
+      console.log('Already on first page');
+      return null;
+    }
+    
+    return await this.goToPage(this.currentPage - 1);
+  }
+  
+  async first(): Promise<PaginatedSearchResults> {
+    return await this.goToPage(1) || await this.initialize();
+  }
+  
+  async last(): Promise<PaginatedSearchResults | null> {
+    return await this.goToPage(this.totalPages);
+  }
+  
+  getCurrentPageNumber(): number {
+    return this.currentPage;
+  }
+  
+  getTotalPages(): number {
+    return this.totalPages;
+  }
+  
+  getCurrentResults(): PaginatedSearchResults | null {
+    return this.cache.get(this.currentPage) || null;
+  }
+  
+  getCacheStatus(): { cached: number; total: number; coverage: number } {
+    return {
+      cached: this.cache.size,
+      total: this.totalPages,
+      coverage: this.totalPages > 0 ? (this.cache.size / this.totalPages) * 100 : 0
+    };
+  }
+  
+  clearCache(): void {
+    this.cache.clear();
+    console.log('Cache cleared');
+  }
+}
+
+// Usage example
+const bidirectionalPaginator = new BidirectionalSearchPaginator(sdk, 'ci/cd pipelines', {
+  pageSize: 50,
+  sort: 'newest'
+});
+
+// Initialize
+await bidirectionalPaginator.initialize();
+
+// Navigate around
+await bidirectionalPaginator.next();        // Go to page 2
+await bidirectionalPaginator.next();        // Go to page 3
+await bidirectionalPaginator.previous();    // Back to page 2
+await bidirectionalPaginator.first();       // Go to page 1
+await bidirectionalPaginator.last();        // Go to last page
+await bidirectionalPaginator.goToPage(5);   // Go to specific page
+
+console.log(`Current page: ${bidirectionalPaginator.getCurrentPageNumber()}`);
+console.log(`Cache status:`, bidirectionalPaginator.getCacheStatus());
+```
+
+### Pagination with Result Processing
+
+```typescript
+async function processResultsWithPagination(query: string, processingCallback: (item: any, pageNumber: number, itemIndex: number) => void) {
+  console.log(`Processing search results for: "${query}"`);
+  
+  // Start with first page
+  let currentResults = await sdk.search.searchFirstPage(query, {
+    pageSize: 50,
+    sort: 'score'
+  });
+  
+  let totalProcessed = 0;
+  let pageNumber = 1;
+  
+  do {
+    console.log(`Processing page ${pageNumber}/${currentResults.totalPages}...`);
+    
+    currentResults.items?.forEach((item, itemIndex) => {
+      processingCallback(item, pageNumber, itemIndex);
+      totalProcessed++;
+    });
+    
+    console.log(`Page ${pageNumber} complete: ${currentResults.items?.length} items processed`);
+    
+    // Move to next page if available
+    if (currentResults.page! < currentResults.totalPages!) {
+      pageNumber++;
+      currentResults = await sdk.search.searchNextPage(query, currentResults.page!);
+      
+      // Add delay between pages
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } else {
+      break;
+    }
+  } while (currentResults.items && currentResults.items.length > 0);
+  
+  console.log(`Processing complete: ${totalProcessed} total items processed across ${pageNumber} pages`);
+  return totalProcessed;
+}
+
+// Usage with processing callback
+const processedCount = await processResultsWithPagination('database optimization', (item, pageNumber, itemIndex) => {
+  console.log(`Page ${pageNumber}, Item ${itemIndex + 1}: ${item.type} - ${item.title} (Score: ${item.score})`);
+  
+  // Custom processing logic here
+  if (item.type === 'question' && item.score > 10) {
+    console.log(`  -> High-value question found!`);
+  }
+  
+  if (item.type === 'article' && item.readTimeInMinutes > 15) {
+    console.log(`  -> Long-form article detected`);
+  }
+});
+```
+
+### Pagination Performance Monitoring
+
+```typescript
+async function monitorPaginationPerformance(query: string, maxPages: number = 3) {
+  console.log(`Monitoring pagination performance: "${query}" (${maxPages} pages)`);
+  
+  const performanceData = {
+    query,
+    totalTime: 0,
+    pages: [],
+    averageResponseTime: 0,
+    totalResults: 0
+  };
+  
+  const startTime = Date.now();
+  
+  // First page
+  const firstPageStart = Date.now();
+  const firstPage = await sdk.search.searchFirstPage(query, { pageSize: 30 });
+  const firstPageTime = Date.now() - firstPageStart;
+  
+  performanceData.pages.push({
+    pageNumber: 1,
+    responseTime: firstPageTime,
+    resultCount: firstPage.items?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+  
+  performanceData.totalResults = firstPage.totalCount || 0;
+  console.log(`Page 1: ${firstPageTime}ms (${firstPage.items?.length} results)`);
+  
+  // Subsequent pages
+  let currentResults = firstPage;
+  let pageNumber = 1;
+  
+  while (pageNumber < maxPages && currentResults.page! < currentResults.totalPages!) {
+    pageNumber++;
+    
+    const pageStart = Date.now();
+    currentResults = await sdk.search.searchNextPage(query, currentResults.page!);
+    const pageTime = Date.now() - pageStart;
+    
+    performanceData.pages.push({
+      pageNumber,
+      responseTime: pageTime,
+      resultCount: currentResults.items?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`Page ${pageNumber}: ${pageTime}ms (${currentResults.items?.length} results)`);
+    
+    // Delay between requests
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  performanceData.totalTime = Date.now() - startTime;
+  performanceData.averageResponseTime = performanceData.pages.reduce((sum, page) => sum + page.responseTime, 0) / performanceData.pages.length;
+  
+  console.log(`\n=== Pagination Performance Summary ===`);
+  console.log(`Total time: ${performanceData.totalTime}ms`);
+  console.log(`Average response time: ${performanceData.averageResponseTime.toFixed(2)}ms`);
+  console.log(`Pages loaded: ${performanceData.pages.length}`);
+  console.log(`Total results found: ${performanceData.totalResults}`);
+  
+  return performanceData;
+}
+
+const performanceResults = await monitorPaginationPerformance('api testing frameworks', 5);
+```
+
+### Pagination Error Handling
+
+```typescript
+async function robustPagination(query: string, maxRetries: number = 2): Promise<Array<any>> {
+  const allResults = [];
+  let currentPage = 0;
+  let hasMore = true;
+  
+  while (hasMore) {
+    let pageResults = null;
+    let attempts = 0;
+    
+    while (attempts <= maxRetries && !pageResults) {
+      try {
+        attempts++;
+        console.log(`Loading page ${currentPage + 1}, attempt ${attempts}...`);
+        
+        if (currentPage === 0) {
+          pageResults = await sdk.search.searchFirstPage(query, { pageSize: 30 });
+        } else {
+          pageResults = await sdk.search.searchNextPage(query, currentPage);
+        }
+        
+        console.log(`Page ${currentPage + 1} loaded successfully`);
+        
+      } catch (error) {
+        console.warn(`Attempt ${attempts} failed:`, error.message);
+        
+        if (attempts <= maxRetries) {
+          const delay = Math.pow(2, attempts) * 1000;
+          console.log(`Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    if (!pageResults) {
+      console.error(`Failed to load page ${currentPage + 1} after ${maxRetries + 1} attempts`);
+      break;
+    }
+    
+    // Add results to collection
+    if (pageResults.items && pageResults.items.length > 0) {
+      allResults.push(...pageResults.items);
+      console.log(`Added ${pageResults.items.length} results (total: ${allResults.length})`);
+    }
+    
+    // Check if there are more pages
+    currentPage = pageResults.page || 0;
+    hasMore = currentPage < (pageResults.totalPages || 0);
+    
+    if (hasMore) {
+      // Rate limiting delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  console.log(`Pagination complete: ${allResults.length} total results collected`);
+  return allResults;
+}
+
+const robustResults = await robustPagination('container orchestration');
+```
+
+## Error Handling
+
+Pagination methods can throw the same errors as the main search method:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions for search operation |
+| `ValidationError` | 400 | Invalid search parameters or page numbers |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+async function safePagination(query: string): Promise<Array<any> | null> {
+  try {
+    const allResults = [];
+    
+    // Safe first page
+    const firstPage = await sdk.search.searchFirstPage(query);
+    allResults.push(...(firstPage.items || []));
+    
+    // Safe subsequent pages
+    let currentResults = firstPage;
+    while (currentResults.page! < currentResults.totalPages!) {
+      try {
+        currentResults = await sdk.search.searchNextPage(query, currentResults.page!);
+        allResults.push(...(currentResults.items || []));
+      } catch (pageError) {
+        console.warn(`Failed to load page ${currentResults.page! + 1}:`, pageError.message);
+        break; // Stop pagination on any page error
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    return allResults;
+    
+  } catch (error) {
+    console.error('Pagination failed:', error.message);
+    return null;
+  }
+}
+
+const safeResults = await safePagination('deployment strategies');
+if (safeResults) {
+  console.log(`Successfully collected ${safeResults.length} results`);
+} else {
+  console.log('Pagination could not be completed');
+}
+```
+
+## Notes
+
+- **Page Continuity**: `searchNextPage()` requires the exact same query string and options as the original search for consistent results.
+- **Zero-Based vs One-Based**: API pages are 1-based. The `currentPage` parameter represents the current page number, not an index.
+- **Rate Limiting**: Add delays between pagination calls to avoid hitting API rate limits.
+- **Memory Management**: For large result sets, consider processing pages individually rather than collecting all results in memory.
+- **Cache Strategy**: Results are not automatically cached - implement your own caching if needed for bidirectional navigation.
+- **Sort Consistency**: Maintain the same sort order across pages to ensure result consistency.
+- **Error Recovery**: Failed page loads can break pagination flow - implement retry logic for robust pagination.
+- **Performance**: First page calls are optimized, while next page calls depend on maintaining search context.

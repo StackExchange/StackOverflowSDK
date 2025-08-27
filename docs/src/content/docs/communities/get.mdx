@@ -1,0 +1,533 @@
+---
+title: get()
+description: Retrieves detailed information about a specific community including its members, description, and metadata.
+---
+
+# get()
+
+Retrieves detailed information about a specific community including its members, description, and metadata.
+
+## Syntax
+
+```typescript
+async get(communityId: number): Promise<CommunityResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `communityId` | `number` | Yes | The unique identifier of the community to retrieve |
+
+## Return Value
+
+Returns a `Promise<CommunityResponseModel>` containing the complete community object with the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The community's unique identifier |
+| `name` | `string` | The community's name |
+| `description` | `string` | The community's description |
+| `memberCount` | `number` | Number of members in the community |
+| `members` | `CommunityMemberResponseModel[]` | The community's members with detailed information |
+| `tags` | `TagSummaryResponseModel[]` | The community's associated tags |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get detailed information about a community
+const community = await sdk.communities.get(123);
+console.log(`Community: ${community.name}`);
+console.log(`Description: ${community.description}`);
+console.log(`Members: ${community.memberCount}`);
+console.log(`Tags: ${community.tags?.map(tag => tag.name).join(', ')}`);
+```
+
+### Member Analysis
+
+```typescript
+async function analyzeCommunityMembers(communityId: number) {
+  try {
+    const community = await sdk.communities.get(communityId);
+    
+    if (!community.members || community.members.length === 0) {
+      return {
+        communityId,
+        name: community.name,
+        hasMemberData: false,
+        message: 'No member data available for this community'
+      };
+    }
+    
+    // Analyze member composition
+    const memberAnalysis = {
+      total: community.memberCount || 0,
+      detailedMembers: community.members.length,
+      memberTypes: analyzeMemberTypes(community.members),
+      membershipHealth: assessMembershipHealth(community.members),
+      growthPotential: assessGrowthPotential(community)
+    };
+    
+    return {
+      communityId: community.id,
+      name: community.name,
+      description: community.description,
+      analysis: memberAnalysis,
+      tags: community.tags?.map(tag => tag.name) || [],
+      recommendations: generateMembershipRecommendations(memberAnalysis, community)
+    };
+  } catch (error) {
+    console.error('Failed to analyze community members:', error.message);
+    throw error;
+  }
+}
+
+function analyzeMemberTypes(members: any[]): any {
+  // This would analyze member roles, activity levels, etc.
+  // Implementation depends on CommunityMemberResponseModel structure
+  return {
+    activeMembers: members.length, // Placeholder
+    recentJoins: 0, // Would need join dates
+    longTermMembers: 0 // Would need membership duration
+  };
+}
+
+function assessMembershipHealth(members: any[]): string {
+  const memberCount = members.length;
+  if (memberCount > 500) return 'thriving';
+  if (memberCount > 100) return 'healthy';
+  if (memberCount > 20) return 'growing';
+  return 'emerging';
+}
+
+function assessGrowthPotential(community: any): string {
+  const memberCount = community.memberCount || 0;
+  const tagCount = community.tags?.length || 0;
+  
+  if (memberCount > 200 && tagCount > 3) return 'high';
+  if (memberCount > 50 && tagCount > 1) return 'medium';
+  return 'low';
+}
+
+function generateMembershipRecommendations(analysis: any, community: any): string[] {
+  const recommendations = [];
+  
+  if (analysis.membershipHealth === 'emerging') {
+    recommendations.push('Focus on attracting new members through targeted outreach');
+  }
+  
+  if (analysis.membershipHealth === 'thriving') {
+    recommendations.push('Consider creating sub-communities or specialized groups');
+  }
+  
+  if (community.tags && community.tags.length > 0) {
+    recommendations.push('Leverage community tags for content curation and member matching');
+  }
+  
+  if (analysis.total > 100) {
+    recommendations.push('Implement member engagement programs to maintain activity');
+  }
+  
+  return recommendations;
+}
+
+const memberAnalysis = await analyzeCommunityMembers(123);
+console.log('Community Analysis:', memberAnalysis);
+```
+
+### Community Health Check
+
+```typescript
+async function performCommunityHealthCheck(communityId: number) {
+  try {
+    const community = await sdk.communities.get(communityId);
+    
+    const healthMetrics = {
+      basic: {
+        hasName: !!community.name,
+        hasDescription: !!community.description && community.description.length > 10,
+        hasTags: !!community.tags && community.tags.length > 0,
+        hasMembers: (community.memberCount || 0) > 0
+      },
+      membership: {
+        memberCount: community.memberCount || 0,
+        size: categorizeCommunitySize(community.memberCount || 0),
+        hasDetailedMembers: !!community.members && community.members.length > 0
+      },
+      content: {
+        tagCount: community.tags?.length || 0,
+        topTags: community.tags?.slice(0, 5).map(tag => tag.name) || []
+      }
+    };
+    
+    // Calculate overall health score
+    const basicScore = Object.values(healthMetrics.basic).filter(Boolean).length;
+    const membershipScore = healthMetrics.membership.memberCount > 0 ? 
+      Math.min(healthMetrics.membership.memberCount / 100, 1) : 0;
+    const contentScore = Math.min(healthMetrics.content.tagCount / 5, 1);
+    
+    const overallHealth = (basicScore / 4 + membershipScore + contentScore) / 3;
+    
+    const healthCheck = {
+      communityId: community.id,
+      name: community.name,
+      overallHealth: parseFloat((overallHealth * 100).toFixed(1)),
+      healthLevel: overallHealth > 0.8 ? 'excellent' : 
+                   overallHealth > 0.6 ? 'good' : 
+                   overallHealth > 0.4 ? 'fair' : 'needs_improvement',
+      metrics: healthMetrics,
+      issues: identifyHealthIssues(healthMetrics),
+      suggestions: generateHealthSuggestions(healthMetrics)
+    };
+    
+    return healthCheck;
+  } catch (error) {
+    console.error('Failed to perform health check:', error.message);
+    throw error;
+  }
+}
+
+function categorizeCommunitySize(memberCount: number): string {
+  if (memberCount > 1000) return 'mega';
+  if (memberCount > 500) return 'large';
+  if (memberCount > 100) return 'medium';
+  if (memberCount > 20) return 'small';
+  return 'micro';
+}
+
+function identifyHealthIssues(metrics: any): string[] {
+  const issues = [];
+  
+  if (!metrics.basic.hasDescription) {
+    issues.push('Missing or inadequate description');
+  }
+  
+  if (!metrics.basic.hasTags) {
+    issues.push('No tags assigned for discoverability');
+  }
+  
+  if (metrics.membership.memberCount === 0) {
+    issues.push('No members - community may be inactive');
+  }
+  
+  if (metrics.membership.memberCount < 5) {
+    issues.push('Very low membership - needs growth strategy');
+  }
+  
+  return issues;
+}
+
+function generateHealthSuggestions(metrics: any): string[] {
+  const suggestions = [];
+  
+  if (!metrics.basic.hasDescription) {
+    suggestions.push('Add a compelling description to attract new members');
+  }
+  
+  if (metrics.content.tagCount < 3) {
+    suggestions.push('Add more relevant tags to improve discoverability');
+  }
+  
+  if (metrics.membership.memberCount < 10) {
+    suggestions.push('Implement member recruitment campaigns');
+  }
+  
+  if (metrics.membership.memberCount > 100) {
+    suggestions.push('Consider creating sub-groups or specialized channels');
+  }
+  
+  return suggestions;
+}
+
+const healthCheck = await performCommunityHealthCheck(123);
+console.log(`Community Health: ${healthCheck.healthLevel} (${healthCheck.overallHealth}%)`);
+if (healthCheck.issues.length > 0) {
+  console.log('Issues:', healthCheck.issues);
+}
+```
+
+### Community Comparison
+
+```typescript
+async function compareCommunities(communityIds: number[]) {
+  const comparisons = [];
+  
+  for (const communityId of communityIds) {
+    try {
+      const community = await sdk.communities.get(communityId);
+      
+      comparisons.push({
+        id: community.id,
+        name: community.name,
+        memberCount: community.memberCount || 0,
+        tagCount: community.tags?.length || 0,
+        hasDescription: !!community.description && community.description.length > 10,
+        memberDensity: (community.members?.length || 0) / Math.max(community.memberCount || 1, 1),
+        topTags: community.tags?.slice(0, 3).map(tag => tag.name) || []
+      });
+      
+      console.log(`✓ Analyzed: ${community.name}`);
+    } catch (error) {
+      console.error(`✗ Failed to analyze community ${communityId}:`, error.message);
+      comparisons.push({
+        id: communityId,
+        error: error.message
+      });
+    }
+  }
+  
+  // Sort by member count
+  const validComparisons = comparisons.filter(c => !c.error);
+  validComparisons.sort((a, b) => b.memberCount - a.memberCount);
+  
+  console.log('\nCommunity Comparison (by member count):');
+  validComparisons.forEach((community, index) => {
+    console.log(`${index + 1}. ${community.name}: ${community.memberCount} members, ${community.tagCount} tags`);
+  });
+  
+  return comparisons;
+}
+
+const communityComparison = await compareCommunities([123, 456, 789]);
+```
+
+### Member Network Analysis
+
+```typescript
+async function analyzeMemberNetwork(communityId: number) {
+  try {
+    const community = await sdk.communities.get(communityId);
+    
+    if (!community.members || community.members.length === 0) {
+      return {
+        communityId,
+        networkAnalysis: 'no_data',
+        message: 'Member data not available for network analysis'
+      };
+    }
+    
+    // Basic network metrics
+    const networkMetrics = {
+      totalMembers: community.members.length,
+      memberToTotalRatio: community.members.length / (community.memberCount || 1),
+      averageMemberData: community.members.length > 0 ? 'available' : 'limited'
+    };
+    
+    // Member distribution analysis (would need more member details)
+    const memberInsights = {
+      dataCompleteness: networkMetrics.memberToTotalRatio,
+      networkDensity: calculateNetworkDensity(community.members),
+      communityStructure: assessCommunityStructure(community.members, community.memberCount || 0)
+    };
+    
+    return {
+      communityId: community.id,
+      name: community.name,
+      networkMetrics,
+      insights: memberInsights,
+      recommendations: generateNetworkRecommendations(memberInsights)
+    };
+  } catch (error) {
+    console.error('Failed to analyze member network:', error.message);
+    throw error;
+  }
+}
+
+function calculateNetworkDensity(members: any[]): string {
+  // Simplified density calculation
+  const memberCount = members.length;
+  if (memberCount > 500) return 'dense';
+  if (memberCount > 100) return 'moderate';
+  if (memberCount > 20) return 'sparse';
+  return 'minimal';
+}
+
+function assessCommunityStructure(members: any[], totalCount: number): string {
+  const ratio = members.length / totalCount;
+  if (ratio > 0.8) return 'well_connected';
+  if (ratio > 0.5) return 'moderately_connected';
+  if (ratio > 0.2) return 'loosely_connected';
+  return 'fragmented';
+}
+
+function generateNetworkRecommendations(insights: any): string[] {
+  const recommendations = [];
+  
+  if (insights.networkDensity === 'minimal') {
+    recommendations.push('Focus on member acquisition and onboarding');
+  }
+  
+  if (insights.communityStructure === 'fragmented') {
+    recommendations.push('Improve member engagement and connection opportunities');
+  }
+  
+  if (insights.networkDensity === 'dense') {
+    recommendations.push('Consider creating specialized sub-communities');
+  }
+  
+  return recommendations;
+}
+
+const networkAnalysis = await analyzeMemberNetwork(123);
+console.log('Network Analysis:', networkAnalysis);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the community |
+| `NotFoundError` | 404 | Community with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const community = await sdk.communities.get(123);
+  console.log('Community retrieved:', community.name);
+  console.log(`Members: ${community.memberCount}`);
+  
+  if (community.description) {
+    console.log(`Description: ${community.description}`);
+  }
+  
+  if (community.tags && community.tags.length > 0) {
+    console.log(`Tags: ${community.tags.map(tag => tag.name).join(', ')}`);
+  }
+  
+  if (community.members && community.members.length > 0) {
+    console.log(`Detailed member data available for ${community.members.length} members`);
+  }
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Community not found or has been deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied - insufficient permissions to view this community');
+  } else {
+    console.error('Failed to retrieve community:', error.message);
+  }
+}
+```
+
+### Safe Community Retrieval
+
+```typescript
+async function safeGetCommunity(communityId: number) {
+  try {
+    const community = await sdk.communities.get(communityId);
+    return { 
+      success: true, 
+      community,
+      message: 'Community retrieved successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Community not found'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'access_denied',
+        message: 'Access denied to this community'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeGetCommunity(123);
+if (result.success) {
+  console.log('Community loaded:', result.community.name);
+} else {
+  console.log('Could not load community:', result.message);
+}
+```
+
+### Community Data Export
+
+```typescript
+async function exportCommunityData(communityId: number) {
+  try {
+    const community = await sdk.communities.get(communityId);
+    
+    const exportData = {
+      metadata: {
+        id: community.id,
+        name: community.name,
+        description: community.description,
+        memberCount: community.memberCount,
+        exportDate: new Date().toISOString()
+      },
+      tags: community.tags?.map(tag => ({
+        name: tag.name,
+        id: tag.id
+      })) || [],
+      members: community.members?.map(member => ({
+        // Map member data based on actual CommunityMemberResponseModel structure
+        id: member.id,
+        displayName: member.displayName,
+        // Add other relevant member fields
+      })) || [],
+      statistics: {
+        totalMembers: community.memberCount || 0,
+        detailedMemberData: community.members?.length || 0,
+        tagCount: community.tags?.length || 0,
+        dataCompleteness: {
+          hasDescription: !!community.description,
+          hasTags: !!community.tags && community.tags.length > 0,
+          hasMemberDetails: !!community.members && community.members.length > 0
+        }
+      }
+    };
+    
+    console.log('Community data exported:', exportData.metadata);
+    return exportData;
+  } catch (error) {
+    console.error('Failed to export community data:', error.message);
+    throw error;
+  }
+}
+
+const exportedData = await exportCommunityData(123);
+// Save to file, send to API, etc.
+```
+
+## Notes
+
+- This method returns the complete community object with all available fields
+- The `members` array provides detailed information about community members
+- Community tags help categorize and discover related communities
+- The method operates on the main/public level (no team-specific variant)
+- Member data availability may vary depending on privacy settings and permissions
+- Useful for community analysis, membership management, and engagement planning
+- The response includes both summary data (`memberCount`) and detailed data (`members` array)
+- Community descriptions support rich text formatting
+- Tags are associated with the community for categorization and discovery purposes

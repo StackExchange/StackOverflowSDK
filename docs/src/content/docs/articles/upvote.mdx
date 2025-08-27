@@ -1,0 +1,353 @@
+---
+title: upvote()
+description: Casts an upvote on an article to indicate it is helpful, well-written, or valuable content.
+---
+
+# upvote()
+
+Casts an upvote on an article to indicate it is helpful, well-written, or valuable content.
+
+## Syntax
+
+```typescript
+async upvote(articleId: number): Promise<ArticleResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to upvote |
+
+## Return Value
+
+Returns a `Promise<ArticleResponseModel>` containing the complete updated article information including the new vote count and score.
+
+## Examples
+
+### Basic Upvote
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Upvote an article
+const result = await sdk.articles.upvote(123);
+console.log(`Article score is now: ${result.score}`);
+console.log(`Total upvotes: ${result.upvoteCount}`);
+```
+
+### Upvote with Feedback
+
+```typescript
+try {
+  const articleBefore = await sdk.articles.get(123);
+  console.log(`Current score: ${articleBefore.score}`);
+  console.log(`Current upvotes: ${articleBefore.upvoteCount}`);
+  
+  const result = await sdk.articles.upvote(123);
+  
+  console.log(`Score after upvote: ${result.score}`);
+  console.log(`Upvotes after vote: ${result.upvoteCount}`);
+  console.log(`Score increased by: ${result.score - articleBefore.score}`);
+} catch (error) {
+  console.error('Failed to upvote:', error.message);
+}
+```
+
+### Conditional Upvoting
+
+```typescript
+async function upvoteIfHelpful(articleId: number) {
+  try {
+    // Get current article state
+    const article = await sdk.articles.get(articleId);
+    
+    // Check if we should upvote based on content quality
+    if (article.viewCount > 50 && article.score < 10) {
+      const result = await sdk.articles.upvote(articleId);
+      console.log(`Upvoted helpful article: ${article.title}`);
+      console.log(`New score: ${result.score}`);
+      return result;
+    } else {
+      console.log('Article doesn\'t meet upvote criteria');
+      return article;
+    }
+  } catch (error) {
+    console.error('Error in conditional upvote:', error.message);
+    throw error;
+  }
+}
+
+await upvoteIfHelpful(123);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const result = await teamSDK.articles.upvote(123);
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const voteResult = await teamArticleClient.upvote(123);
+```
+
+### Batch Upvoting
+
+```typescript
+async function upvoteMultipleArticles(articleIds: number[]) {
+  const results = [];
+  
+  for (const articleId of articleIds) {
+    try {
+      const result = await sdk.articles.upvote(articleId);
+      results.push({ 
+        articleId, 
+        status: 'upvoted', 
+        newScore: result.score,
+        title: result.title
+      });
+      console.log(`✓ Upvoted: ${result.title} (Score: ${result.score})`);
+    } catch (error) {
+      results.push({ 
+        articleId, 
+        status: 'failed', 
+        error: error.message 
+      });
+      console.error(`✗ Failed to upvote article ${articleId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const upvoteResults = await upvoteMultipleArticles([123, 456, 789]);
+console.log('Upvote results:', upvoteResults);
+```
+
+### Vote with Analytics
+
+```typescript
+async function upvoteWithAnalytics(articleId: number) {
+  try {
+    const beforeVote = await sdk.articles.get(articleId);
+    const voteResult = await sdk.articles.upvote(articleId);
+    
+    const analytics = {
+      articleId: articleId,
+      title: voteResult.title,
+      author: voteResult.owner?.displayName,
+      beforeVote: {
+        score: beforeVote.score,
+        upvotes: beforeVote.upvoteCount,
+        views: beforeVote.viewCount
+      },
+      afterVote: {
+        score: voteResult.score,
+        upvotes: voteResult.upvoteCount,
+        views: voteResult.viewCount
+      },
+      engagement: {
+        upvoteToViewRatio: voteResult.upvoteCount / Math.max(voteResult.viewCount, 1),
+        scoreImprovement: voteResult.score - beforeVote.score
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('Vote Analytics:', analytics);
+    return { voteResult, analytics };
+  } catch (error) {
+    console.error('Failed to upvote with analytics:', error.message);
+    throw error;
+  }
+}
+
+const { voteResult, analytics } = await upvoteWithAnalytics(123);
+```
+
+### Handling Vote State Changes
+
+```typescript
+import StackOverflowSDK, { ForbiddenError } from 'stack-overflow-sdk';
+
+async function toggleUpvote(articleId: number) {
+  try {
+    // Try to upvote
+    const result = await sdk.articles.upvote(articleId);
+    console.log('Upvote successful:', result.score);
+    return { action: 'upvoted', score: result.score };
+  } catch (error) {
+    if (error instanceof ForbiddenError && error.message.includes('already voted')) {
+      // If already upvoted, remove the upvote
+      const result = await sdk.articles.removeUpvote(articleId);
+      console.log('Upvote removed:', result.score);
+      return { action: 'removed_upvote', score: result.score };
+    } else {
+      console.error('Vote error:', error.message);
+      throw error;
+    }
+  }
+}
+
+const voteResult = await toggleUpvote(123);
+console.log(`Action: ${voteResult.action}, New score: ${voteResult.score}`);
+```
+
+### Quality-Based Upvoting
+
+```typescript
+async function upvoteQualityArticles(articleIds: number[]) {
+  const qualityThresholds = {
+    minViews: 20,
+    minWordCount: 100,
+    requiredTags: 2
+  };
+  
+  const results = [];
+  
+  for (const articleId of articleIds) {
+    try {
+      const article = await sdk.articles.get(articleId);
+      
+      // Quality checks
+      const wordCount = article.bodyMarkdown?.split(/\s+/).length || 0;
+      const meetsQuality = 
+        article.viewCount >= qualityThresholds.minViews &&
+        wordCount >= qualityThresholds.minWordCount &&
+        article.tags.length >= qualityThresholds.requiredTags;
+      
+      if (meetsQuality) {
+        const result = await sdk.articles.upvote(articleId);
+        results.push({
+          articleId,
+          title: result.title,
+          action: 'upvoted',
+          newScore: result.score,
+          qualityMetrics: {
+            views: article.viewCount,
+            wordCount,
+            tagCount: article.tags.length
+          }
+        });
+        console.log(`✓ Upvoted quality article: ${result.title}`);
+      } else {
+        results.push({
+          articleId,
+          title: article.title,
+          action: 'skipped',
+          reason: 'quality_threshold_not_met'
+        });
+        console.log(`- Skipped: ${article.title} (doesn't meet quality thresholds)`);
+      }
+    } catch (error) {
+      results.push({
+        articleId,
+        action: 'failed',
+        error: error.message
+      });
+      console.error(`✗ Failed to process article ${articleId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const qualityResults = await upvoteQualityArticles([123, 456, 789]);
+console.log(`Upvoted ${qualityResults.filter(r => r.action === 'upvoted').length} quality articles`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot vote (already voted, own article, insufficient permissions) |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.articles.upvote(123);
+  console.log('Upvote successful, new score:', result.score);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found');
+  } else if (error instanceof ForbiddenError) {
+    if (error.message.includes('already voted')) {
+      console.error('You have already upvoted this article');
+    } else if (error.message.includes('own article')) {
+      console.error('Cannot vote on your own article');
+    } else {
+      console.error('Vote not allowed:', error.message);
+    }
+  } else {
+    console.error('Failed to upvote:', error.message);
+  }
+}
+```
+
+### Safe Upvoting
+
+```typescript
+async function safeUpvote(articleId: number) {
+  try {
+    const result = await sdk.articles.upvote(articleId);
+    return { 
+      success: true, 
+      score: result.score,
+      upvoteCount: result.upvoteCount
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      if (error.message.includes('already voted')) {
+        return { success: false, reason: 'already_voted' };
+      } else if (error.message.includes('own article')) {
+        return { success: false, reason: 'own_article' };
+      } else if (error.message.includes('reputation')) {
+        return { success: false, reason: 'insufficient_reputation' };
+      }
+    }
+    return { success: false, reason: 'error', message: error.message };
+  }
+}
+
+const result = await safeUpvote(123);
+if (result.success) {
+  console.log('Upvoted successfully, new score:', result.score);
+} else {
+  console.log('Could not upvote:', result.reason);
+}
+```
+
+## Notes
+
+- Users cannot vote on their own articles
+- Each user can only upvote an article once
+- If a user has already upvoted an article, calling this method again will typically result in a `ForbiddenError`
+- Articles only support upvoting (no downvoting) unlike questions and answers
+- To remove an upvote, use the `removeUpvote()` method
+- Voting may require a minimum reputation level depending on the platform configuration
+- The returned `ArticleResponseModel` contains the complete updated article information
+- Vote counts and scores are updated immediately and reflected in the response
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Some articles may be protected from voting due to special circumstances (archived, locked, etc.)
+- Upvotes typically increase both the `score` and `upvoteCount` fields by 1

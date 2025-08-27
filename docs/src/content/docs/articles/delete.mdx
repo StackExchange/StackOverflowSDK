@@ -1,0 +1,353 @@
+---
+title: delete()
+description: Deletes an article permanently. Requires article ownership or appropriate permissions.
+---
+
+# delete()
+
+Deletes an article permanently. Requires article ownership or appropriate permissions.
+
+## Syntax
+
+```typescript
+async delete(articleId: number): Promise<void>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to delete |
+
+## Return Value
+
+Returns a `Promise<void>`. The method completes successfully if the deletion was processed.
+
+## Examples
+
+### Basic Article Deletion
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Delete an article
+await sdk.articles.delete(123);
+console.log('Article deleted successfully');
+```
+
+### Delete with Confirmation
+
+```typescript
+async function deleteArticleWithConfirmation(articleId: number) {
+  try {
+    // Get article details first
+    const article = await sdk.articles.get(articleId);
+    
+    console.log(`About to delete article: "${article.title}"`);
+    console.log(`Created by: ${article.owner?.displayName}`);
+    console.log(`Score: ${article.score}`);
+    console.log(`Views: ${article.viewCount}`);
+    console.log(`Tags: ${article.tags.join(', ')}`);
+    
+    // Confirm deletion (in a real app, you'd show a dialog)
+    const confirmed = true; // Replace with actual confirmation logic
+    
+    if (confirmed) {
+      await sdk.articles.delete(articleId);
+      console.log('Article has been deleted');
+    } else {
+      console.log('Deletion cancelled');
+    }
+  } catch (error) {
+    console.error('Failed to delete article:', error.message);
+  }
+}
+
+await deleteArticleWithConfirmation(123);
+```
+
+### Bulk Deletion with Validation
+
+```typescript
+async function deleteMultipleArticles(articleIds: number[]) {
+  const results = [];
+  
+  for (const articleId of articleIds) {
+    try {
+      // Verify the article exists and we can delete it
+      const article = await sdk.articles.get(articleId);
+      
+      // Check if it's safe to delete (e.g., not a critical policy)
+      if (article.type === 'policy') {
+        console.warn(`Skipping policy article: ${article.title}`);
+        results.push({ 
+          articleId, 
+          status: 'skipped', 
+          reason: 'policy_protection' 
+        });
+        continue;
+      }
+      
+      await sdk.articles.delete(articleId);
+      results.push({ 
+        articleId, 
+        status: 'deleted',
+        title: article.title
+      });
+      console.log(`✓ Deleted: ${article.title}`);
+    } catch (error) {
+      results.push({ 
+        articleId, 
+        status: 'failed', 
+        error: error.message 
+      });
+      console.error(`✗ Failed to delete article ${articleId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const deletionResults = await deleteMultipleArticles([123, 456, 789]);
+console.log('Deletion results:', deletionResults);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+await teamSDK.articles.delete(123);
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+await teamArticleClient.delete(123);
+```
+
+### Safe Deletion with Backup
+
+```typescript
+async function safeDeleteWithBackup(articleId: number) {
+  try {
+    // Create a backup of the article before deletion
+    const article = await sdk.articles.get(articleId);
+    
+    const backup = {
+      id: article.id,
+      title: article.title,
+      body: article.bodyMarkdown,
+      tags: article.tags,
+      type: article.type,
+      permissions: article.permissions,
+      score: article.score,
+      viewCount: article.viewCount,
+      creationDate: article.creationDate,
+      author: article.owner?.displayName,
+      deletedAt: new Date().toISOString()
+    };
+    
+    // Store backup (replace with your backup mechanism)
+    console.log('Backup created:', JSON.stringify(backup, null, 2));
+    
+    // Delete the article
+    await sdk.articles.delete(articleId);
+    
+    return {
+      success: true,
+      backup,
+      message: `Article "${article.title}" deleted and backed up`
+    };
+  } catch (error) {
+    console.error('Failed to delete article:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+const result = await safeDeleteWithBackup(123);
+if (result.success) {
+  console.log(result.message);
+} else {
+  console.error('Deletion failed:', result.error);
+}
+```
+
+### Cleanup Old Articles
+
+```typescript
+async function cleanupOldArticles(olderThanDays: number = 365) {
+  try {
+    // Get old articles (this is a conceptual example)
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const oldArticles = await sdk.articles.getAll({
+      to: cutoffDate,
+      sort: 'creation',
+      order: 'asc',
+      pageSize: 100
+    });
+    
+    console.log(`Found ${oldArticles.totalCount} articles older than ${olderThanDays} days`);
+    
+    const deletionCandidates = oldArticles.items.filter(article => {
+      // Only delete articles with low engagement
+      return article.score <= 0 && article.viewCount < 10;
+    });
+    
+    console.log(`${deletionCandidates.length} articles qualify for cleanup`);
+    
+    const results = [];
+    for (const article of deletionCandidates) {
+      try {
+        await sdk.articles.delete(article.id);
+        results.push({ id: article.id, status: 'deleted', title: article.title });
+        console.log(`Cleaned up: ${article.title}`);
+      } catch (error) {
+        results.push({ id: article.id, status: 'failed', error: error.message });
+        console.error(`Failed to cleanup article ${article.id}:`, error.message);
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Cleanup operation failed:', error.message);
+    throw error;
+  }
+}
+
+// Clean up articles older than 2 years with low engagement
+const cleanupResults = await cleanupOldArticles(730);
+console.log(`Cleanup completed: ${cleanupResults.filter(r => r.status === 'deleted').length} articles removed`);
+```
+
+### Archive Instead of Delete
+
+```typescript
+async function archiveArticle(articleId: number) {
+  try {
+    // Get the current article
+    const article = await sdk.articles.get(articleId);
+    
+    // Update it to mark as archived instead of deleting
+    const archivedArticle = await sdk.articles.update(articleId, {
+      title: `[ARCHIVED] ${article.title}`,
+      body: `> **This article has been archived on ${new Date().toDateString()}**
+      
+${article.bodyMarkdown}`,
+      tags: [...article.tags, 'archived'],
+      type: article.type,
+      permissions: {
+        editableBy: 'ownerOnly' // Restrict editing of archived content
+      }
+    });
+    
+    console.log(`Article archived: ${archivedArticle.title}`);
+    return archivedArticle;
+  } catch (error) {
+    console.error('Failed to archive article:', error.message);
+    throw error;
+  }
+}
+
+// Archive instead of delete for important content
+const archivedArticle = await archiveArticle(123);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to delete this article |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  await sdk.articles.delete(123);
+  console.log('Article deleted successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found - may already be deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot delete this article - insufficient permissions');
+  } else {
+    console.error('Failed to delete article:', error.message);
+  }
+}
+```
+
+### Permission Scenarios
+
+```typescript
+async function safeDeleteArticle(articleId: number) {
+  try {
+    await sdk.articles.delete(articleId);
+    return { success: true, message: 'Article deleted' };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      // Common reasons for deletion restrictions:
+      // - Not the article owner
+      // - Article has protection policies
+      // - Insufficient user permissions
+      return { 
+        success: false, 
+        reason: 'permissions', 
+        message: 'You do not have permission to delete this article' 
+      };
+    } else if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found', 
+        message: 'Article not found or already deleted' 
+      };
+    } else {
+      return { 
+        success: false, 
+        reason: 'error', 
+        message: error.message 
+      };
+    }
+  }
+}
+
+const result = await safeDeleteArticle(123);
+if (result.success) {
+  console.log(result.message);
+} else {
+  console.log('Could not delete article:', result.message);
+}
+```
+
+## Notes
+
+- Only the article owner or users with appropriate permissions can delete articles
+- Deletion is typically permanent - deleted articles cannot be recovered through the API
+- Important articles (like policies) may have additional protection against accidental deletion
+- Consider archiving or marking articles as deprecated instead of deleting for audit trails
+- Deleting articles will also remove associated metadata like vote counts and view statistics
+- The method automatically handles both public and team contexts based on how the client was initialized
+- After successful deletion, subsequent calls to `get()` for the same article will throw a `NotFoundError`
+- Some articles may be protected from deletion due to organizational policies or dependencies
+- Consider creating backups before deletion for important content that might need to be restored

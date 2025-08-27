@@ -1,0 +1,233 @@
+---
+title: answers.downvote()
+description: Casts a downvote on an answer to indicate it is not helpful, incorrect, or low quality.
+---
+
+Casts a downvote on an answer to indicate it is not helpful, incorrect, or low quality.
+
+## Syntax
+
+```typescript
+async downvote(questionId: number, answerId: number): Promise<AnswerSummaryResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to downvote |
+
+## Return Value
+
+Returns a `Promise<AnswerSummaryResponseModel>` containing updated answer summary information including the new vote count and score.
+
+## Examples
+
+### Basic Downvote
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Downvote an answer
+const result = await sdk.answers.downvote(123, 456);
+console.log(`Answer score is now: ${result.score}`);
+```
+
+### Downvote with Feedback
+
+```typescript
+try {
+  const answerBefore = await sdk.answers.get(123, 456);
+  console.log(`Current score: ${answerBefore.score}`);
+  
+  const result = await sdk.answers.downvote(123, 456);
+  
+  console.log(`Score after downvote: ${result.score}`);
+  console.log(`Score decreased by: ${answerBefore.score - result.score}`);
+} catch (error) {
+  console.error('Failed to downvote:', error.message);
+}
+```
+
+### Conditional Downvoting
+
+```typescript
+async function downvoteIfInaccurate(questionId: number, answerId: number) {
+  try {
+    // Get current answer to review content
+    const answer = await sdk.answers.get(questionId, answerId);
+    
+    // Example logic: check if answer has negative score already
+    if (answer.score > -5) { // Only downvote if not already heavily downvoted
+      const result = await sdk.answers.downvote(questionId, answerId);
+      console.log(`Downvoted answer ${answerId}, new score: ${result.score}`);
+      return result;
+    } else {
+      console.log('Answer already has low score, skipping downvote');
+      return answer;
+    }
+  } catch (error) {
+    console.error('Error in conditional downvote:', error.message);
+    throw error;
+  }
+}
+
+await downvoteIfInaccurate(123, 456);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const result = await teamSDK.answers.downvote(123, 456);
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const voteResult = await teamAnswerClient.downvote(123, 456);
+```
+
+### Vote Management Workflow
+
+```typescript
+async function changeUpvoteToDownvote(questionId: number, answerId: number) {
+  try {
+    // First, remove existing upvote
+    await sdk.answers.removeUpvote(questionId, answerId);
+    console.log('Upvote removed');
+    
+    // Then cast a downvote
+    const result = await sdk.answers.downvote(questionId, answerId);
+    console.log(`Changed to downvote, new score: ${result.score}`);
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to change vote:', error.message);
+    throw error;
+  }
+}
+
+await changeUpvoteToDownvote(123, 456);
+```
+
+### Handling Vote State Changes
+
+```typescript
+import StackOverflowSDK, { ForbiddenError } from 'stack-overflow-sdk';
+
+async function toggleDownvote(questionId: number, answerId: number) {
+  try {
+    // Try to downvote
+    const result = await sdk.answers.downvote(questionId, answerId);
+    console.log('Downvote successful:', result.score);
+    return { action: 'downvoted', score: result.score };
+  } catch (error) {
+    if (error instanceof ForbiddenError && error.message.includes('already voted')) {
+      // If already downvoted, remove the downvote
+      const result = await sdk.answers.removeDownvote(questionId, answerId);
+      console.log('Downvote removed:', result.score);
+      return { action: 'removed_downvote', score: result.score };
+    } else {
+      console.error('Vote error:', error.message);
+      throw error;
+    }
+  }
+}
+
+const voteResult = await toggleDownvote(123, 456);
+console.log(`Action: ${voteResult.action}, New score: ${voteResult.score}`);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot vote (already voted, own answer, insufficient permissions) |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.answers.downvote(123, 456);
+  console.log('Downvote successful, new score:', result.score);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer not found');
+  } else if (error instanceof ForbiddenError) {
+    if (error.message.includes('already voted')) {
+      console.error('You have already voted on this answer');
+    } else if (error.message.includes('own answer')) {
+      console.error('Cannot vote on your own answer');
+    } else if (error.message.includes('reputation')) {
+      console.error('Insufficient reputation to downvote');
+    } else {
+      console.error('Vote not allowed:', error.message);
+    }
+  } else {
+    console.error('Failed to downvote:', error.message);
+  }
+}
+```
+
+### Safe Downvoting
+
+```typescript
+async function safeDownvote(questionId: number, answerId: number) {
+  try {
+    const result = await sdk.answers.downvote(questionId, answerId);
+    return { success: true, score: result.score };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      if (error.message.includes('already voted')) {
+        return { success: false, reason: 'already_voted' };
+      } else if (error.message.includes('own answer')) {
+        return { success: false, reason: 'own_answer' };
+      } else if (error.message.includes('reputation')) {
+        return { success: false, reason: 'insufficient_reputation' };
+      }
+    }
+    return { success: false, reason: 'error', message: error.message };
+  }
+}
+
+const result = await safeDownvote(123, 456);
+if (result.success) {
+  console.log('Downvoted successfully, new score:', result.score);
+} else {
+  console.log('Could not downvote:', result.reason);
+}
+```
+
+## Notes
+
+- Users cannot vote on their own answers
+- Each user can only vote once per answer (upvote OR downvote, not both)
+- If a user has already downvoted an answer, calling this method again will typically result in a `ForbiddenError`
+- To change a downvote to an upvote, you must first remove the downvote using `removeDownvote()`, then call `upvote()`
+- Downvoting may require a higher reputation level than upvoting on some platforms
+- Downvotes typically decrease the answer score by 1, but this may vary by platform configuration
+- The returned `AnswerSummaryResponseModel` contains updated vote-related information
+- Vote counts and scores are updated immediately and reflected in the response
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Some answers may be protected from voting due to special circumstances (locked, deleted, etc.)
+- Downvoting may have reputation costs for the voter on some platforms

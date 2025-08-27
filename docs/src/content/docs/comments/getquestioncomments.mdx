@@ -1,0 +1,387 @@
+---
+title: getQuestionComments()
+description: Retrieves all comments associated with a specific question.
+---
+
+# getQuestionComments()
+
+Retrieves all comments associated with a specific question.
+
+## Syntax
+
+```typescript
+async getQuestionComments(questionId: number): Promise<Array<CommentResponseModel>>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question to retrieve comments for |
+
+## Return Value
+
+Returns a `Promise<Array<CommentResponseModel>>` containing an array of comment objects. Each comment has the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | The comment's unique identifier |
+| `score` | `number` | Comment score (upvotes minus downvotes) |
+| `body` | `string` | The text of the comment in Markdown format |
+| `ownerUserId` | `number` \| `null` | ID of the user that posted the comment |
+| `ownerDisplayName` | `string` | Name of the user that posted the comment |
+| `creationDate` | `Date` | When the comment was created |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all comments for a question
+const comments = await sdk.comments.getQuestionComments(123);
+console.log(`Found ${comments.length} comments on this question`);
+
+// Display comments chronologically
+comments
+  .sort((a, b) => new Date(a.creationDate).getTime() - new Date(b.creationDate).getTime())
+  .forEach((comment, index) => {
+    console.log(`${index + 1}. ${comment.ownerDisplayName}: ${comment.body}`);
+    console.log(`   Score: ${comment.score}, Posted: ${new Date(comment.creationDate).toDateString()}`);
+  });
+```
+
+### Question Discussion Analysis
+
+```typescript
+async function analyzeQuestionDiscussion(questionId: number) {
+  try {
+    const comments = await sdk.comments.getQuestionComments(questionId);
+    
+    if (comments.length === 0) {
+      return {
+        questionId,
+        hasDiscussion: false,
+        message: 'No comments found for this question'
+      };
+    }
+    
+    // Analyze discussion patterns
+    const sortedComments = comments.sort((a, b) => 
+      new Date(a.creationDate).getTime() - new Date(b.creationDate).getTime()
+    );
+    
+    // Find clarification requests and helpful comments
+    const clarificationComments = comments.filter(comment =>
+      comment.body?.toLowerCase().includes('clarify') ||
+      comment.body?.toLowerCase().includes('unclear') ||
+      comment.body?.includes('?')
+    );
+    
+    const helpfulComments = comments.filter(comment => (comment.score || 0) > 0);
+    
+    // Calculate discussion timeline
+    const firstComment = sortedComments[0];
+    const lastComment = sortedComments[sortedComments.length - 1];
+    const discussionSpan = new Date(lastComment.creationDate).getTime() - new Date(firstComment.creationDate).getTime();
+    const discussionDays = discussionSpan / (1000 * 60 * 60 * 24);
+    
+    // Count unique participants
+    const participants = new Set(
+      comments.map(comment => comment.ownerUserId).filter(id => id !== null)
+    );
+    
+    const analysis = {
+      questionId,
+      summary: {
+        totalComments: comments.length,
+        participants: participants.size,
+        discussionDays: parseFloat(discussionDays.toFixed(1)),
+        averageScore: comments.reduce((sum, c) => sum + (c.score || 0), 0) / comments.length
+      },
+      patterns: {
+        clarificationRequests: clarificationComments.length,
+        helpfulComments: helpfulComments.length,
+        commentsPerParticipant: parseFloat((comments.length / participants.size).toFixed(1))
+      },
+      timeline: {
+        firstComment: {
+          author: firstComment.ownerDisplayName,
+          date: firstComment.creationDate,
+          preview: firstComment.body?.substring(0, 50) + '...'
+        },
+        lastComment: {
+          author: lastComment.ownerDisplayName,
+          date: lastComment.creationDate,
+          preview: lastComment.body?.substring(0, 50) + '...'
+        }
+      }
+    };
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to analyze question discussion:', error.message);
+    throw error;
+  }
+}
+
+const discussionAnalysis = await analyzeQuestionDiscussion(123);
+console.log('Discussion Analysis:', discussionAnalysis);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamComments = await teamSDK.comments.getQuestionComments(123);
+
+// Or with direct client initialization
+import { CommentClient } from 'stack-overflow-sdk';
+const teamCommentClient = new CommentClient(config, 'team-123');
+const comments = await teamCommentClient.getQuestionComments(123);
+```
+
+### Comment Quality Assessment
+
+```typescript
+async function assessQuestionCommentQuality(questionId: number) {
+  try {
+    const comments = await sdk.comments.getQuestionComments(questionId);
+    
+    if (comments.length === 0) {
+      return { questionId, quality: 'no_comments' };
+    }
+    
+    // Assess comment quality based on various factors
+    const qualityMetrics = {
+      totalComments: comments.length,
+      averageLength: comments.reduce((sum, c) => sum + (c.body?.length || 0), 0) / comments.length,
+      averageScore: comments.reduce((sum, c) => sum + (c.score || 0), 0) / comments.length,
+      positiveComments: comments.filter(c => (c.score || 0) > 0).length,
+      negativeComments: comments.filter(c => (c.score || 0) < 0).length,
+      neutralComments: comments.filter(c => (c.score || 0) === 0).length
+    };
+    
+    // Categorize comment types
+    const commentTypes = {
+      questions: comments.filter(c => c.body?.includes('?')).length,
+      suggestions: comments.filter(c => 
+        c.body?.toLowerCase().includes('try') ||
+        c.body?.toLowerCase().includes('consider') ||
+        c.body?.toLowerCase().includes('maybe')
+      ).length,
+      clarifications: comments.filter(c =>
+        c.body?.toLowerCase().includes('clarify') ||
+        c.body?.toLowerCase().includes('unclear') ||
+        c.body?.toLowerCase().includes('what do you mean')
+      ).length
+    };
+    
+    // Determine overall quality
+    let quality = 'poor';
+    if (qualityMetrics.averageScore > 1 && qualityMetrics.positiveComments > qualityMetrics.negativeComments) {
+      quality = 'good';
+    } else if (qualityMetrics.averageScore > 0) {
+      quality = 'fair';
+    }
+    
+    return {
+      questionId,
+      quality,
+      metrics: qualityMetrics,
+      types: commentTypes,
+      insights: generateCommentInsights(qualityMetrics, commentTypes)
+    };
+  } catch (error) {
+    console.error('Failed to assess comment quality:', error.message);
+    throw error;
+  }
+}
+
+function generateCommentInsights(metrics: any, types: any): string[] {
+  const insights = [];
+  
+  if (types.clarifications > metrics.totalComments * 0.3) {
+    insights.push('Question may need clarification - many comments asking for details');
+  }
+  
+  if (types.suggestions > 0) {
+    insights.push('Community is providing helpful suggestions');
+  }
+  
+  if (metrics.positiveComments > metrics.negativeComments * 2) {
+    insights.push('Comments are generally well-received');
+  }
+  
+  if (metrics.averageLength < 50) {
+    insights.push('Comments are quite brief - may indicate simple clarifications');
+  }
+  
+  return insights;
+}
+
+const qualityAssessment = await assessQuestionCommentQuality(123);
+console.log(`Comment quality: ${qualityAssessment.quality}`);
+console.log('Insights:', qualityAssessment.insights);
+```
+
+### Real-time Comment Monitoring
+
+```typescript
+async function monitorQuestionComments(questionId: number, checkInterval = 30000) {
+  let lastCommentCount = 0;
+  let lastCommentId = 0;
+  
+  console.log(`Starting to monitor comments for question ${questionId}`);
+  
+  const checkForNewComments = async () => {
+    try {
+      const comments = await sdk.comments.getQuestionComments(questionId);
+      
+      if (comments.length > lastCommentCount) {
+        const newComments = comments.filter(c => (c.id || 0) > lastCommentId);
+        
+        console.log(`\n🔔 ${newComments.length} new comment(s) detected:`);
+        newComments.forEach(comment => {
+          console.log(`  ${comment.ownerDisplayName}: ${comment.body}`);
+          console.log(`  Posted: ${new Date(comment.creationDate).toLocaleString()}`);
+        });
+        
+        lastCommentCount = comments.length;
+        lastCommentId = Math.max(...comments.map(c => c.id || 0));
+      }
+    } catch (error) {
+      console.error('Error checking for new comments:', error.message);
+    }
+  };
+  
+  // Initial check
+  await checkForNewComments();
+  
+  // Set up periodic checking
+  return setInterval(checkForNewComments, checkInterval);
+}
+
+// Monitor question for new comments (check every 30 seconds)
+const monitoringInterval = await monitorQuestionComments(123);
+
+// Stop monitoring after 10 minutes
+setTimeout(() => {
+  clearInterval(monitoringInterval);
+  console.log('Stopped monitoring comments');
+}, 10 * 60 * 1000);
+```
+
+### Comparative Comment Analysis
+
+```typescript
+async function compareQuestionComments(questionIds: number[]) {
+  const comparisons = [];
+  
+  for (const questionId of questionIds) {
+    try {
+      const comments = await sdk.comments.getQuestionComments(questionId);
+      
+      const metrics = {
+        questionId,
+        commentCount: comments.length,
+        totalScore: comments.reduce((sum, c) => sum + (c.score || 0), 0),
+        averageScore: comments.length > 0 
+          ? comments.reduce((sum, c) => sum + (c.score || 0), 0) / comments.length 
+          : 0,
+        uniqueCommenters: new Set(comments.map(c => c.ownerUserId).filter(Boolean)).size,
+        engagementRatio: comments.length > 0 
+          ? comments.filter(c => (c.score || 0) > 0).length / comments.length 
+          : 0
+      };
+      
+      comparisons.push(metrics);
+      console.log(`✓ Question ${questionId}: ${metrics.commentCount} comments`);
+    } catch (error) {
+      console.error(`✗ Failed to analyze question ${questionId}:`, error.message);
+      comparisons.push({ questionId, error: error.message });
+    }
+  }
+  
+  // Sort by engagement
+  const validComparisons = comparisons.filter(c => !c.error);
+  validComparisons.sort((a, b) => b.commentCount - a.commentCount);
+  
+  console.log('\nQuestion Comment Comparison (by comment count):');
+  validComparisons.forEach((question, index) => {
+    console.log(`${index + 1}. Question ${question.questionId}: ${question.commentCount} comments (avg score: ${question.averageScore.toFixed(1)})`);
+  });
+  
+  return comparisons;
+}
+
+const questionComparison = await compareQuestionComments([123, 456, 789]);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access the question or its comments |
+| `NotFoundError` | 404 | Question with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const comments = await sdk.comments.getQuestionComments(123);
+  console.log(`Retrieved ${comments.length} comments`);
+  
+  if (comments.length > 0) {
+    console.log('Recent discussion:');
+    comments
+      .sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime())
+      .slice(0, 3)
+      .forEach(comment => {
+        console.log(`  ${comment.ownerDisplayName}: ${comment.body}`);
+      });
+  } else {
+    console.log('No comments found - question may need more engagement');
+  }
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Question not found or has been deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to question comments');
+  } else {
+    console.error('Failed to retrieve comments:', error.message);
+  }
+}
+```
+
+## Notes
+
+- This method returns all comments for the specified question in a single array
+- Comments are returned in the order provided by the API (typically chronological)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Question comments often contain clarification requests, suggestions, and discussion about the problem
+- Comment bodies are in Markdown format and may contain formatting
+- Returns an empty array if the question has no comments rather than throwing an error
+- Comment scores reflect community engagement and helpfulness
+- The `ownerUserId` may be null for deleted or anonymous users
+- Comments are read-only through this client - no creation, editing, or voting methods are available
+- Question comments are distinct from answer comments - use `getAnswerComments()` for answer-specific discussions

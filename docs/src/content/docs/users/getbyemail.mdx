@@ -1,0 +1,484 @@
+---
+title: getByEmail()
+description: Retrieve detailed user information by email address for both team and enterprise contexts.
+---
+
+# getByEmail()
+
+Retrieve detailed user information by email address for both team and enterprise contexts.
+
+## Syntax
+
+```typescript
+async getByEmail(email: string): Promise<UserDetailsResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `email` | `string` | Yes | The email address of the user to retrieve |
+
+## Return Value
+
+Returns a `Promise<UserDetailsResponseModel>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `accountId` | `number \| null` | User's Stack Overflow network account ID |
+| `name` | `string` | User's display name |
+| `email` | `string \| null` | Email address (visible to admins or current user only) |
+| `avatarUrl` | `string` | URL to user's profile picture |
+| `webUrl` | `string` | URL to user's profile page |
+| `reputation` | `number` | User's reputation score |
+| `role` | `string` | User's role on the site |
+| `externalId` | `string \| null` | External ID from SCIM or SAML |
+| `department` | `string \| null` | Organizational department from SAML |
+| `jobTitle` | `string \| null` | Job title from SAML |
+| `communities` | `CommunitySummaryResponseModel[]` | Communities the user belongs to |
+
+## Examples
+
+### Basic Email Lookup
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function findUserByEmail(email: string) {
+  try {
+    const user = await sdk.users.getByEmail(email);
+    
+    console.log(`User Found:`);
+    console.log(`Name: ${user.name}`);
+    console.log(`ID: ${user.id}`);
+    console.log(`Email: ${user.email}`);
+    console.log(`Role: ${user.role}`);
+    console.log(`Reputation: ${user.reputation}`);
+    
+    if (user.department) {
+      console.log(`Department: ${user.department}`);
+    }
+    
+    if (user.jobTitle) {
+      console.log(`Job Title: ${user.jobTitle}`);
+    }
+    
+    console.log(`Communities: ${user.communities?.length || 0}`);
+    
+    return user;
+  } catch (error) {
+    console.error(`User not found for email ${email}:`, error.message);
+    return null;
+  }
+}
+
+const user = await findUserByEmail('john.doe@company.com');
+```
+
+### Bulk Email Lookup
+
+```typescript
+async function lookupUsersByEmails(emailList: string[]) {
+  const results = {
+    found: [],
+    notFound: [],
+    errors: []
+  };
+  
+  console.log(`Looking up ${emailList.length} users by email...`);
+  
+  for (const email of emailList) {
+    try {
+      const user = await sdk.users.getByEmail(email);
+      results.found.push({
+        email,
+        user: {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          department: user.department,
+          jobTitle: user.jobTitle
+        }
+      });
+      console.log(`✓ Found: ${email} -> ${user.name}`);
+    } catch (error) {
+      if (error.message.includes('404') || error.message.toLowerCase().includes('not found')) {
+        results.notFound.push(email);
+        console.log(`✗ Not found: ${email}`);
+      } else {
+        results.errors.push({ email, error: error.message });
+        console.log(`! Error for ${email}: ${error.message}`);
+      }
+    }
+    
+    // Rate limiting delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  
+  console.log(`\nLookup Results:`);
+  console.log(`- Found: ${results.found.length}`);
+  console.log(`- Not Found: ${results.notFound.length}`);
+  console.log(`- Errors: ${results.errors.length}`);
+  
+  return results;
+}
+
+const emailList = [
+  'alice@company.com',
+  'bob@company.com',
+  'charlie@company.com',
+  'diana@company.com'
+];
+
+const lookupResults = await lookupUsersByEmails(emailList);
+```
+
+### User Directory Integration
+
+```typescript
+async function createUserDirectoryEntry(email: string) {
+  try {
+    const user = await sdk.users.getByEmail(email);
+    
+    const directoryEntry = {
+      basic: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      profile: {
+        reputation: user.reputation,
+        avatarUrl: user.avatarUrl,
+        profileUrl: user.webUrl
+      },
+      organization: {
+        department: user.department || 'Not specified',
+        jobTitle: user.jobTitle || 'Not specified',
+        hasExternalId: !!user.externalId
+      },
+      communities: {
+        count: user.communities?.length || 0,
+        names: user.communities?.map(c => c.name) || []
+      },
+      integration: {
+        isIntegrated: !!user.externalId,
+        hasOrganizationalData: !!(user.department || user.jobTitle)
+      }
+    };
+    
+    console.log(`=== Directory Entry for ${email} ===`);
+    console.log(`Name: ${directoryEntry.basic.name}`);
+    console.log(`Role: ${directoryEntry.basic.role} (${directoryEntry.profile.reputation} reputation)`);
+    console.log(`Department: ${directoryEntry.organization.department}`);
+    console.log(`Job Title: ${directoryEntry.organization.jobTitle}`);
+    console.log(`External Integration: ${directoryEntry.integration.isIntegrated ? 'Yes' : 'No'}`);
+    console.log(`Community Memberships: ${directoryEntry.communities.count}`);
+    
+    if (directoryEntry.communities.names.length > 0) {
+      console.log(`Communities: ${directoryEntry.communities.names.join(', ')}`);
+    }
+    
+    return directoryEntry;
+  } catch (error) {
+    console.error(`Cannot create directory entry for ${email}:`, error.message);
+    return null;
+  }
+}
+
+const directoryEntry = await createUserDirectoryEntry('manager@company.com');
+```
+
+### Email Domain Analysis
+
+```typescript
+async function analyzeEmailDomains(sampleEmails: string[]) {
+  const domainAnalysis = {
+    domains: new Map(),
+    users: [],
+    totalFound: 0,
+    totalNotFound: 0
+  };
+  
+  console.log('Analyzing email domains and user distribution...');
+  
+  for (const email of sampleEmails) {
+    const domain = email.split('@')[1];
+    
+    try {
+      const user = await sdk.users.getByEmail(email);
+      
+      // Track domain statistics
+      if (!domainAnalysis.domains.has(domain)) {
+        domainAnalysis.domains.set(domain, {
+          found: 0,
+          notFound: 0,
+          users: [],
+          departments: new Set(),
+          roles: new Set()
+        });
+      }
+      
+      const domainData = domainAnalysis.domains.get(domain);
+      domainData.found++;
+      domainData.users.push({
+        email,
+        name: user.name,
+        role: user.role,
+        department: user.department
+      });
+      
+      if (user.department) domainData.departments.add(user.department);
+      if (user.role) domainData.roles.add(user.role);
+      
+      domainAnalysis.users.push(user);
+      domainAnalysis.totalFound++;
+      
+    } catch (error) {
+      const domainData = domainAnalysis.domains.get(domain) || {
+        found: 0,
+        notFound: 0,
+        users: [],
+        departments: new Set(),
+        roles: new Set()
+      };
+      
+      domainData.notFound++;
+      domainAnalysis.domains.set(domain, domainData);
+      domainAnalysis.totalNotFound++;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  console.log('\n=== Email Domain Analysis ===');
+  console.log(`Total Emails Tested: ${sampleEmails.length}`);
+  console.log(`Users Found: ${domainAnalysis.totalFound}`);
+  console.log(`Users Not Found: ${domainAnalysis.totalNotFound}`);
+  
+  console.log('\n--- Domain Breakdown ---');
+  Array.from(domainAnalysis.domains.entries()).forEach(([domain, data]) => {
+    const successRate = ((data.found / (data.found + data.notFound)) * 100).toFixed(1);
+    console.log(`${domain}:`);
+    console.log(`  - Found: ${data.found}, Not Found: ${data.notFound}`);
+    console.log(`  - Success Rate: ${successRate}%`);
+    console.log(`  - Departments: ${Array.from(data.departments).join(', ') || 'None'}`);
+    console.log(`  - Roles: ${Array.from(data.roles).join(', ') || 'None'}`);
+  });
+  
+  return domainAnalysis;
+}
+
+const sampleEmails = [
+  'admin@company.com',
+  'dev1@company.com',
+  'dev2@company.com',
+  'manager@company.com',
+  'contractor@external.com',
+  'consultant@partner.com'
+];
+
+const domainAnalysis = await analyzeEmailDomains(sampleEmails);
+```
+
+### User Verification and Onboarding
+
+```typescript
+async function verifyAndOnboardUser(email: string) {
+  try {
+    const user = await sdk.users.getByEmail(email);
+    
+    const verification = {
+      userExists: true,
+      isComplete: true,
+      missingData: [],
+      recommendations: [],
+      onboardingStatus: 'complete'
+    };
+    
+    // Check profile completeness
+    if (!user.department) {
+      verification.isComplete = false;
+      verification.missingData.push('department');
+      verification.recommendations.push('Add department information for better organization');
+    }
+    
+    if (!user.jobTitle) {
+      verification.isComplete = false;
+      verification.missingData.push('jobTitle');
+      verification.recommendations.push('Add job title for professional context');
+    }
+    
+    if (!user.externalId) {
+      verification.recommendations.push('Consider SCIM/SAML integration for automated provisioning');
+    }
+    
+    if (!user.communities || user.communities.length === 0) {
+      verification.recommendations.push('Join relevant communities to enhance collaboration');
+    }
+    
+    // Determine onboarding status
+    if (verification.missingData.length > 2) {
+      verification.onboardingStatus = 'incomplete';
+    } else if (verification.missingData.length > 0) {
+      verification.onboardingStatus = 'partial';
+    }
+    
+    console.log(`=== User Verification: ${email} ===`);
+    console.log(`User: ${user.name} (ID: ${user.id})`);
+    console.log(`Profile Complete: ${verification.isComplete ? 'Yes' : 'No'}`);
+    console.log(`Onboarding Status: ${verification.onboardingStatus}`);
+    console.log(`Role: ${user.role}`);
+    console.log(`Reputation: ${user.reputation}`);
+    
+    if (verification.missingData.length > 0) {
+      console.log(`Missing Data: ${verification.missingData.join(', ')}`);
+    }
+    
+    if (verification.recommendations.length > 0) {
+      console.log('\nRecommendations:');
+      verification.recommendations.forEach(rec => console.log(`- ${rec}`));
+    }
+    
+    return { user, verification };
+    
+  } catch (error) {
+    console.log(`=== User Verification: ${email} ===`);
+    console.log('User not found - may need account creation');
+    
+    return {
+      user: null,
+      verification: {
+        userExists: false,
+        onboardingStatus: 'not_started',
+        recommendations: ['Create user account', 'Set up profile information', 'Assign to relevant communities']
+      }
+    };
+  }
+}
+
+const verificationResult = await verifyAndOnboardUser('newuser@company.com');
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `UserNotFoundError` | 404 | No user found with the specified email address |
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to look up users by email |
+| `ValidationError` | 400 | Invalid email format |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { UserNotFoundError, ValidationError, ForbiddenError } from 'stack-overflow-sdk';
+
+async function safeEmailLookup(email: string): Promise<UserDetailsResponseModel | null> {
+  try {
+    const user = await sdk.users.getByEmail(email);
+    console.log(`User found: ${user.name} (${email})`);
+    return user;
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      console.log(`No user found with email: ${email}`);
+    } else if (error instanceof ValidationError) {
+      console.error(`Invalid email format: ${email}`);
+    } else if (error instanceof ForbiddenError) {
+      console.error('Insufficient permissions to lookup users by email');
+    } else {
+      console.error(`Email lookup failed for ${email}:`, error.message);
+    }
+    return null;
+  }
+}
+
+const user = await safeEmailLookup('test@company.com');
+```
+
+### Batch Processing with Error Handling
+
+```typescript
+async function processBatchEmailLookup(emails: string[]) {
+  const results = {
+    successful: [],
+    failed: [],
+    invalidEmails: [],
+    summary: {
+      total: emails.length,
+      found: 0,
+      notFound: 0,
+      errors: 0
+    }
+  };
+  
+  for (const email of emails) {
+    // Basic email validation
+    if (!email.includes('@') || !email.includes('.')) {
+      results.invalidEmails.push(email);
+      results.summary.errors++;
+      continue;
+    }
+    
+    try {
+      const user = await sdk.users.getByEmail(email);
+      results.successful.push({ email, user });
+      results.summary.found++;
+      
+    } catch (error) {
+      if (error instanceof UserNotFoundError) {
+        results.failed.push({ email, reason: 'User not found' });
+        results.summary.notFound++;
+      } else {
+        results.failed.push({ email, reason: error.message });
+        results.summary.errors++;
+      }
+    }
+    
+    // Rate limiting
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  
+  console.log('=== Batch Email Lookup Results ===');
+  console.log(`Total Processed: ${results.summary.total}`);
+  console.log(`Found: ${results.summary.found}`);
+  console.log(`Not Found: ${results.summary.notFound}`);
+  console.log(`Errors/Invalid: ${results.summary.errors}`);
+  
+  if (results.invalidEmails.length > 0) {
+    console.log('\nInvalid Email Formats:');
+    results.invalidEmails.forEach(email => console.log(`- ${email}`));
+  }
+  
+  return results;
+}
+
+const batchResults = await processBatchEmailLookup([
+  'valid@company.com',
+  'invalid-email',
+  'nonexistent@company.com',
+  'another@company.com'
+]);
+```
+
+## Notes
+
+- **Admin Privileges**: Email lookup typically requires administrative permissions or the ability to view user email addresses.
+- **Case Sensitivity**: Email lookups are generally case-insensitive, following standard email conventions.
+- **Domain Validation**: The method accepts any valid email format, but success depends on user existence in the system.
+- **Privacy Considerations**: Email addresses in responses may be filtered based on user permissions and privacy settings.
+- **Integration Use Cases**: Commonly used for user provisioning, directory synchronization, and account validation workflows.
+- **Performance**: Individual email lookups are efficient; use batch processing carefully with rate limiting for multiple lookups.
+- **External Integration**: Users found via email lookup may have rich organizational data if SCIM/SAML integration is configured.
+- **Context Awareness**: Results may vary between team and enterprise contexts based on user membership and permissions.
+- **Data Freshness**: User information reflects the current state and may change between API calls.

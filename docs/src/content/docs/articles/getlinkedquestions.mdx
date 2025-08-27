@@ -1,0 +1,483 @@
+---
+title: getLinkedQuestions()
+description: Retrieves a paginated list of questions that are linked to or related to a specific article.
+---
+
+# getLinkedQuestions()
+
+Retrieves a paginated list of questions that are linked to or related to a specific article.
+
+## Syntax
+
+```typescript
+async getLinkedQuestions(articleId: number, options?: GetLinkedQuestionsOptions): Promise<PaginatedLinkedOrRelatedQuestions>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | `number` | Yes | The unique identifier of the article to get linked questions for |
+| `options` | `GetLinkedQuestionsOptions` | No | Configuration options for pagination and sorting |
+
+### GetLinkedQuestionsOptions
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of questions to return per page |
+| `sort` | `LinkedOrRelatedQuestionsSortParameter` | No | | Sort questions by: `"hot"`, `"creation"`, `"activity"`, or `"score"` |
+| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+
+## Return Value
+
+Returns a `Promise<PaginatedLinkedOrRelatedQuestions>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of linked questions for the article |
+| `pageSize` | `number` | Number of items per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `LinkedOrRelatedQuestionsSortParameter` | Sort parameter used |
+| `order` | `SortOrder` | Sort order used |
+| `items` | `QuestionSummaryResponseModel[]` | Array of linked question objects |
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all linked questions for an article
+const linkedQuestions = await sdk.articles.getLinkedQuestions(123);
+console.log(`Found ${linkedQuestions.totalCount} linked questions`);
+
+// Display the linked questions
+linkedQuestions.items.forEach(question => {
+  console.log(`- ${question.title} (Score: ${question.score})`);
+});
+```
+
+### With Pagination
+
+```typescript
+// Get the second page with 50 questions per page
+const linkedQuestions = await sdk.articles.getLinkedQuestions(123, {
+  page: 2,
+  pageSize: 50
+});
+
+console.log(`Page ${linkedQuestions.page} of ${linkedQuestions.totalPages}`);
+console.log(`Showing ${linkedQuestions.items.length} of ${linkedQuestions.totalCount} questions`);
+```
+
+### With Sorting
+
+```typescript
+// Get hottest linked questions
+const hotQuestions = await sdk.articles.getLinkedQuestions(123, {
+  sort: 'hot',
+  order: 'desc',
+  pageSize: 15
+});
+
+// Get newest linked questions first
+const newestQuestions = await sdk.articles.getLinkedQuestions(123, {
+  sort: 'creation',
+  order: 'desc'
+});
+
+// Get highest-scored linked questions
+const topQuestions = await sdk.articles.getLinkedQuestions(123, {
+  sort: 'score',
+  order: 'desc'
+});
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const teamLinkedQuestions = await teamSDK.articles.getLinkedQuestions(123);
+
+// Or with direct client initialization
+import { ArticleClient } from 'stack-overflow-sdk';
+const teamArticleClient = new ArticleClient(config, 'team-123');
+const linkedQuestions = await teamArticleClient.getLinkedQuestions(123);
+```
+
+### Article-Question Relationship Analysis
+
+```typescript
+async function analyzeArticleQuestionRelationships(articleId: number) {
+  try {
+    // Get the article details
+    const article = await sdk.articles.get(articleId);
+    
+    // Get all linked questions
+    const linkedQuestions = await sdk.articles.getLinkedQuestions(articleId, {
+      sort: 'score',
+      order: 'desc',
+      pageSize: 100
+    });
+    
+    const analysis = {
+      article: {
+        id: article.id,
+        title: article.title,
+        score: article.score,
+        views: article.viewCount,
+        tags: article.tags
+      },
+      linkedQuestions: {
+        total: linkedQuestions.totalCount,
+        averageScore: linkedQuestions.items.reduce((sum, q) => sum + q.score, 0) / linkedQuestions.items.length,
+        topQuestions: linkedQuestions.items.slice(0, 5).map(q => ({
+          title: q.title,
+          score: q.score,
+          answerCount: q.answerCount
+        })),
+        commonTags: getCommonTags(linkedQuestions.items, article.tags),
+        engagement: {
+          totalViews: linkedQuestions.items.reduce((sum, q) => sum + (q.viewCount || 0), 0),
+          totalAnswers: linkedQuestions.items.reduce((sum, q) => sum + (q.answerCount || 0), 0),
+          unansweredCount: linkedQuestions.items.filter(q => (q.answerCount || 0) === 0).length
+        }
+      }
+    };
+    
+    return analysis;
+  } catch (error) {
+    console.error('Failed to analyze relationships:', error.message);
+    throw error;
+  }
+}
+
+function getCommonTags(questions: any[], articleTags: string[]): string[] {
+  const questionTags = questions.flatMap(q => q.tags || []);
+  return articleTags.filter(tag => questionTags.includes(tag));
+}
+
+const analysis = await analyzeArticleQuestionRelationships(123);
+console.log('Article-Question Analysis:', analysis);
+```
+
+### Content Gap Identification
+
+```typescript
+async function identifyContentGaps(articleId: number) {
+  try {
+    const linkedQuestions = await sdk.articles.getLinkedQuestions(articleId, {
+      sort: 'score',
+      order: 'desc'
+    });
+    
+    // Find questions with high scores but no accepted answers
+    const unansweredHighValueQuestions = linkedQuestions.items.filter(q => 
+      q.score >= 5 && !q.hasAcceptedAnswer
+    );
+    
+    // Find questions with many answers but low scores (might indicate confusion)
+    const confusingQuestions = linkedQuestions.items.filter(q => 
+      (q.answerCount || 0) > 3 && q.score < 2
+    );
+    
+    // Find recent questions (might need updated article content)
+    const recentQuestions = linkedQuestions.items.filter(q => {
+      const questionDate = new Date(q.creationDate);
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      return questionDate > monthAgo;
+    });
+    
+    const gaps = {
+      unansweredHighValue: unansweredHighValueQuestions.map(q => ({
+        title: q.title,
+        score: q.score,
+        id: q.id
+      })),
+      confusingTopics: confusingQuestions.map(q => ({
+        title: q.title,
+        score: q.score,
+        answerCount: q.answerCount,
+        id: q.id
+      })),
+      recentInterest: recentQuestions.map(q => ({
+        title: q.title,
+        creationDate: q.creationDate,
+        id: q.id
+      }))
+    };
+    
+    console.log('Content gaps identified:');
+    console.log(`- ${gaps.unansweredHighValue.length} high-value unanswered questions`);
+    console.log(`- ${gaps.confusingTopics.length} potentially confusing topics`);
+    console.log(`- ${gaps.recentInterest.length} recent questions indicating new interest`);
+    
+    return gaps;
+  } catch (error) {
+    console.error('Failed to identify content gaps:', error.message);
+    throw error;
+  }
+}
+
+const contentGaps = await identifyContentGaps(123);
+```
+
+### Pagination Through All Linked Questions
+
+```typescript
+async function getAllLinkedQuestions(articleId: number): Promise<any[]> {
+  const allQuestions: any[] = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  while (hasMorePages) {
+    const result = await sdk.articles.getLinkedQuestions(articleId, {
+      page: currentPage,
+      pageSize: 100, // Maximum page size for efficiency
+      sort: 'creation',
+      order: 'desc'
+    });
+
+    allQuestions.push(...result.items);
+    
+    hasMorePages = currentPage < result.totalPages;
+    currentPage++;
+    
+    console.log(`Loaded page ${currentPage - 1} of ${result.totalPages}`);
+  }
+
+  return allQuestions;
+}
+
+const allLinkedQuestions = await getAllLinkedQuestions(123);
+console.log(`Total linked questions loaded: ${allLinkedQuestions.length}`);
+```
+
+### Knowledge Base Cross-Referencing
+
+```typescript
+async function crossReferenceKnowledgeBase(articleIds: number[]) {
+  const crossReferences = [];
+  
+  for (const articleId of articleIds) {
+    try {
+      const [article, linkedQuestions] = await Promise.all([
+        sdk.articles.get(articleId),
+        sdk.articles.getLinkedQuestions(articleId, {
+          sort: 'score',
+          order: 'desc',
+          pageSize: 50
+        })
+      ]);
+      
+      crossReferences.push({
+        article: {
+          id: article.id,
+          title: article.title,
+          tags: article.tags,
+          score: article.score
+        },
+        linkedQuestions: linkedQuestions.items.map(q => ({
+          id: q.id,
+          title: q.title,
+          score: q.score,
+          tags: q.tags || []
+        })),
+        metrics: {
+          totalLinkedQuestions: linkedQuestions.totalCount,
+          averageQuestionScore: linkedQuestions.items.reduce((sum, q) => sum + q.score, 0) / linkedQuestions.items.length || 0,
+          topicCoverage: calculateTopicCoverage(article.tags, linkedQuestions.items)
+        }
+      });
+      
+      console.log(`✓ Analyzed article: ${article.title} (${linkedQuestions.totalCount} linked questions)`);
+    } catch (error) {
+      console.error(`✗ Failed to analyze article ${articleId}:`, error.message);
+      crossReferences.push({
+        articleId,
+        error: error.message
+      });
+    }
+  }
+  
+  return crossReferences;
+}
+
+function calculateTopicCoverage(articleTags: string[], questions: any[]): number {
+  if (!articleTags.length) return 0;
+  
+  const questionTags = new Set(questions.flatMap(q => q.tags || []));
+  const coveredTags = articleTags.filter(tag => questionTags.has(tag));
+  
+  return coveredTags.length / articleTags.length;
+}
+
+const knowledgeBaseCrossRef = await crossReferenceKnowledgeBase([123, 456, 789]);
+console.log('Knowledge base cross-reference complete');
+```
+
+### Find Related Content Opportunities
+
+```typescript
+async function findRelatedContentOpportunities(articleId: number) {
+  try {
+    const linkedQuestions = await sdk.articles.getLinkedQuestions(articleId, {
+      sort: 'activity',
+      order: 'desc'
+    });
+    
+    // Group questions by common themes/tags
+    const themeGroups: { [key: string]: any[] } = {};
+    
+    linkedQuestions.items.forEach(question => {
+      const tags = question.tags || [];
+      tags.forEach(tag => {
+        if (!themeGroups[tag]) {
+          themeGroups[tag] = [];
+        }
+        themeGroups[tag].push(question);
+      });
+    });
+    
+    // Find themes with multiple questions (potential for new articles)
+    const contentOpportunities = Object.entries(themeGroups)
+      .filter(([tag, questions]) => questions.length >= 3)
+      .map(([tag, questions]) => ({
+        theme: tag,
+        questionCount: questions.length,
+        totalScore: questions.reduce((sum, q) => sum + q.score, 0),
+        averageScore: questions.reduce((sum, q) => sum + q.score, 0) / questions.length,
+        sampleQuestions: questions.slice(0, 3).map(q => ({
+          title: q.title,
+          score: q.score,
+          id: q.id
+        }))
+      }))
+      .sort((a, b) => b.totalScore - a.totalScore);
+    
+    console.log('Content opportunities found:');
+    contentOpportunities.forEach(opportunity => {
+      console.log(`- ${opportunity.theme}: ${opportunity.questionCount} questions (avg score: ${opportunity.averageScore.toFixed(1)})`);
+    });
+    
+    return contentOpportunities;
+  } catch (error) {
+    console.error('Failed to find content opportunities:', error.message);
+    throw error;
+  }
+}
+
+const opportunities = await findRelatedContentOpportunities(123);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to access linked questions |
+| `NotFoundError` | 404 | Article with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const linkedQuestions = await sdk.articles.getLinkedQuestions(123, {
+    sort: 'score',
+    order: 'desc',
+    pageSize: 25
+  });
+  
+  console.log(`Successfully retrieved ${linkedQuestions.items.length} linked questions`);
+  linkedQuestions.items.forEach(question => {
+    console.log(`- ${question.title} (Score: ${question.score})`);
+  });
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Article not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Access denied to linked questions');
+  } else {
+    console.error('Failed to retrieve linked questions:', error.message);
+  }
+}
+```
+
+### Safe Linked Questions Retrieval
+
+```typescript
+async function safeGetLinkedQuestions(articleId: number, options?: GetLinkedQuestionsOptions) {
+  try {
+    const linkedQuestions = await sdk.articles.getLinkedQuestions(articleId, options);
+    return { 
+      success: true, 
+      data: linkedQuestions,
+      message: 'Linked questions retrieved successfully'
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Article not found'
+      };
+    } else if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'access_denied',
+        message: 'Access denied to linked questions'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeGetLinkedQuestions(123, {
+  sort: 'hot',
+  order: 'desc'
+});
+
+if (result.success) {
+  console.log(`Retrieved ${result.data.totalCount} linked questions`);
+} else {
+  console.log('Could not retrieve linked questions:', result.message);
+}
+```
+
+## Notes
+
+- This method returns questions that are explicitly linked to the article or algorithmically determined to be related
+- All filter parameters are optional and can be combined for precise sorting
+- The relationship between articles and questions may be bidirectional - questions can reference articles and vice versa
+- When no sorting options are provided, the API uses its default sorting behavior
+- Page numbers are 1-based (first page is `page: 1`)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Empty results are returned as an array with `totalCount: 0` rather than throwing an error
+- The `hot` sort parameter typically considers recent activity, votes, and engagement
+- Linked questions provide valuable context for understanding how articles are being used in practice
+- This feature is useful for content curation, gap analysis, and understanding user needs around specific topics

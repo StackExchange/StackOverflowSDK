@@ -1,0 +1,300 @@
+---
+title: answers.unaccept()
+description: Removes the accepted status from an answer. Requires moderator permissions or question ownership.
+---
+
+Removes the accepted status from an answer. Requires moderator permissions or question ownership.
+
+## Syntax
+
+```typescript
+async unaccept(questionId: number, answerId: number): Promise<AnswerSummaryResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to unaccept |
+
+## Return Value
+
+Returns a `Promise<AnswerSummaryResponseModel>` containing updated answer summary information with the accepted status removed.
+
+## Examples
+
+### Basic Answer Unacceptance
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Unaccept an answer (requires moderator permissions or question ownership)
+const result = await sdk.answers.unaccept(123, 456);
+console.log(`Answer ${result.id} is no longer accepted`);
+```
+
+### Unaccept with Verification
+
+```typescript
+try {
+  // Get answer details before unaccepting
+  const answer = await sdk.answers.get(123, 456);
+  console.log(`About to unaccept answer by: ${answer.owner?.displayName}`);
+  
+  if (answer.isAccepted) {
+    const result = await sdk.answers.unaccept(123, 456);
+    console.log('Answer unaccepted successfully');
+    console.log(`Unaccepted answer ID: ${result.id}`);
+  } else {
+    console.log('Answer is not currently accepted');
+  }
+} catch (error) {
+  console.error('Failed to unaccept answer:', error.message);
+}
+```
+
+### Question Owner Workflow
+
+```typescript
+async function unacceptCurrentAnswer(questionId: number) {
+  try {
+    // Find the currently accepted answer
+    const answers = await sdk.answers.getAll(questionId);
+    const acceptedAnswer = answers.items.find(a => a.isAccepted);
+    
+    if (acceptedAnswer) {
+      console.log(`Found accepted answer: ${acceptedAnswer.id}`);
+      const result = await sdk.answers.unaccept(questionId, acceptedAnswer.id);
+      console.log('Successfully unaccepted the answer');
+      return result;
+    } else {
+      console.log('No accepted answer found for this question');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error unaccepting answer:', error.message);
+    throw error;
+  }
+}
+
+await unacceptCurrentAnswer(123);
+```
+
+### Replace Accepted Answer Workflow
+
+```typescript
+async function replaceAcceptedAnswer(questionId: number, oldAnswerId: number, newAnswerId: number) {
+  try {
+    // First, unaccept the current answer
+    console.log(`Unaccepting answer ${oldAnswerId}`);
+    await sdk.answers.unaccept(questionId, oldAnswerId);
+    
+    // Then accept the new answer
+    console.log(`Accepting answer ${newAnswerId}`);
+    const result = await sdk.answers.accept(questionId, newAnswerId);
+    
+    console.log('Successfully replaced accepted answer');
+    return result;
+  } catch (error) {
+    console.error('Failed to replace accepted answer:', error.message);
+    throw error;
+  }
+}
+
+await replaceAcceptedAnswer(123, 456, 789);
+```
+
+### Team Context
+
+```typescript
+// Using team context (requires team moderator permissions)
+const teamSDK = sdk.forTeam('team-123');
+const result = await teamSDK.answers.unaccept(123, 456);
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const unacceptResult = await teamAnswerClient.unaccept(123, 456);
+```
+
+### Moderator Workflow
+
+```typescript
+async function moderatorUnacceptAnswer(questionId: number, answerId: number, reason?: string) {
+  try {
+    // Get question and answer context
+    const [question, answer] = await Promise.all([
+      sdk.questions.get(questionId),
+      sdk.answers.get(questionId, answerId)
+    ]);
+    
+    console.log(`Moderator unaccepting answer for question: "${question.title}"`);
+    console.log(`Answer by: ${answer.owner?.displayName}, Score: ${answer.score}`);
+    
+    if (reason) {
+      console.log(`Reason: ${reason}`);
+    }
+    
+    if (answer.isAccepted) {
+      const result = await sdk.answers.unaccept(questionId, answerId);
+      console.log('Answer unaccepted by moderator');
+      return result;
+    } else {
+      console.log('Answer is not currently accepted');
+      return answer;
+    }
+  } catch (error) {
+    console.error('Moderator unacceptance failed:', error.message);
+    throw error;
+  }
+}
+
+await moderatorUnacceptAnswer(123, 456, 'Need to review answer accuracy');
+```
+
+### Bulk Unaccept Operation
+
+```typescript
+async function unacceptAllAnswersForQuestion(questionId: number) {
+  try {
+    const answers = await sdk.answers.getAll(questionId);
+    const acceptedAnswers = answers.items.filter(a => a.isAccepted);
+    
+    if (acceptedAnswers.length === 0) {
+      console.log('No accepted answers found');
+      return [];
+    }
+    
+    const results = [];
+    for (const answer of acceptedAnswers) {
+      try {
+        const result = await sdk.answers.unaccept(questionId, answer.id);
+        results.push({ answerId: answer.id, status: 'unaccepted' });
+        console.log(`Unaccepted answer ${answer.id}`);
+      } catch (error) {
+        results.push({ answerId: answer.id, status: 'failed', error: error.message });
+        console.error(`Failed to unaccept answer ${answer.id}:`, error.message);
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Error in bulk unaccept operation:', error.message);
+    throw error;
+  }
+}
+
+const results = await unacceptAllAnswersForQuestion(123);
+console.log('Unaccept results:', results);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions (not question owner or moderator) |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.answers.unaccept(123, 456);
+  console.log('Answer unaccepted successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer or question not found');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot unaccept answer - insufficient permissions');
+    console.error('You must be the question owner or have moderator permissions');
+  } else {
+    console.error('Failed to unaccept answer:', error.message);
+  }
+}
+```
+
+### Safe Unaccept with Validation
+
+```typescript
+async function safeUnacceptAnswer(questionId: number, answerId: number) {
+  try {
+    // First check if the answer is actually accepted
+    const answer = await sdk.answers.get(questionId, answerId);
+    
+    if (!answer.isAccepted) {
+      return { 
+        success: false, 
+        reason: 'not_accepted',
+        message: 'Answer is not currently accepted'
+      };
+    }
+    
+    const result = await sdk.answers.unaccept(questionId, answerId);
+    return { 
+      success: true, 
+      answerId: result.id,
+      message: 'Answer unaccepted successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { 
+        success: false, 
+        reason: 'insufficient_permissions',
+        message: 'You must be the question owner or have moderator permissions to unaccept answers'
+      };
+    } else if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found',
+        message: 'Question or answer not found'
+      };
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeUnacceptAnswer(123, 456);
+if (result.success) {
+  console.log('Answer unaccepted:', result.answerId);
+} else {
+  console.log('Could not unaccept answer:', result.message);
+}
+```
+
+## Notes
+
+- **Permission Requirements**: This method requires either:
+  - Being the owner of the question, OR
+  - Having moderator permissions on the platform/team
+- The answer must currently be accepted for this operation to succeed
+- Unaccepting an answer leaves the question without an accepted answer
+- The change is immediately reflected in the returned response
+- Reputation bonuses from acceptance may be reversed when an answer is unaccepted
+- Question owners can change their mind about which answer (if any) should be accepted
+- Moderators can unaccept answers when they determine the acceptance was inappropriate
+- After unaccepting, the same or different answer can be accepted later
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Some platforms may have time limits or restrictions on changing acceptance status
+- Unaccepting an answer does not affect its vote score or other properties

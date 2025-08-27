@@ -1,0 +1,235 @@
+---
+title: answers.removeUpvote()
+description: Removes a previously cast upvote from an answer, returning the vote count to its previous state.
+---
+
+Removes a previously cast upvote from an answer, returning the vote count to its previous state.
+
+## Syntax
+
+```typescript
+async removeUpvote(questionId: number, answerId: number): Promise<AnswerSummaryResponseModel>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to remove the upvote from |
+
+## Return Value
+
+Returns a `Promise<AnswerSummaryResponseModel>` containing updated answer summary information with the adjusted vote count and score.
+
+## Examples
+
+### Basic Upvote Removal
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Remove an upvote from an answer
+const result = await sdk.answers.removeUpvote(123, 456);
+console.log(`Answer score is now: ${result.score}`);
+```
+
+### Remove Upvote with Score Tracking
+
+```typescript
+try {
+  const answerBefore = await sdk.answers.get(123, 456);
+  console.log(`Current score: ${answerBefore.score}`);
+  
+  const result = await sdk.answers.removeUpvote(123, 456);
+  
+  console.log(`Score after removing upvote: ${result.score}`);
+  console.log(`Score decreased by: ${answerBefore.score - result.score}`);
+} catch (error) {
+  console.error('Failed to remove upvote:', error.message);
+}
+```
+
+### Conditional Vote Removal
+
+```typescript
+async function removeUpvoteIfExists(questionId: number, answerId: number) {
+  try {
+    const result = await sdk.answers.removeUpvote(questionId, answerId);
+    console.log(`Removed upvote from answer ${answerId}, new score: ${result.score}`);
+    return { removed: true, score: result.score };
+  } catch (error) {
+    if (error.message.includes('no upvote') || error.message.includes('not voted')) {
+      console.log('No upvote to remove');
+      return { removed: false, reason: 'no_upvote' };
+    } else {
+      console.error('Error removing upvote:', error.message);
+      throw error;
+    }
+  }
+}
+
+const result = await removeUpvoteIfExists(123, 456);
+```
+
+### Vote Management Workflow
+
+```typescript
+async function changeVoteToDownvote(questionId: number, answerId: number) {
+  try {
+    // First, remove existing upvote
+    await sdk.answers.removeUpvote(questionId, answerId);
+    console.log('Upvote removed');
+    
+    // Then cast a downvote
+    const result = await sdk.answers.downvote(questionId, answerId);
+    console.log(`Changed vote to downvote, new score: ${result.score}`);
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to change vote:', error.message);
+    throw error;
+  }
+}
+
+await changeVoteToDownvote(123, 456);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+const result = await teamSDK.answers.removeUpvote(123, 456);
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+const voteResult = await teamAnswerClient.removeUpvote(123, 456);
+```
+
+### Bulk Vote Management
+
+```typescript
+async function removeUpvotesFromMultipleAnswers(questionId: number, answerIds: number[]) {
+  const results = [];
+  
+  for (const answerId of answerIds) {
+    try {
+      const result = await sdk.answers.removeUpvote(questionId, answerId);
+      results.push({ 
+        answerId, 
+        status: 'removed', 
+        newScore: result.score 
+      });
+      console.log(`Removed upvote from answer ${answerId}`);
+    } catch (error) {
+      results.push({ 
+        answerId, 
+        status: 'failed', 
+        error: error.message 
+      });
+      console.error(`Failed to remove upvote from answer ${answerId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const results = await removeUpvotesFromMultipleAnswers(123, [456, 789]);
+console.log('Vote removal results:', results);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Cannot remove upvote (no existing upvote, insufficient permissions) |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  const result = await sdk.answers.removeUpvote(123, 456);
+  console.log('Upvote removed successfully, new score:', result.score);
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer not found');
+  } else if (error instanceof ForbiddenError) {
+    if (error.message.includes('no upvote') || error.message.includes('not voted')) {
+      console.error('You have not upvoted this answer');
+    } else {
+      console.error('Cannot remove upvote:', error.message);
+    }
+  } else {
+    console.error('Failed to remove upvote:', error.message);
+  }
+}
+```
+
+### Safe Vote Removal
+
+```typescript
+async function safeRemoveUpvote(questionId: number, answerId: number) {
+  try {
+    const result = await sdk.answers.removeUpvote(questionId, answerId);
+    return { 
+      success: true, 
+      score: result.score,
+      message: 'Upvote removed successfully'
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      if (error.message.includes('no upvote') || error.message.includes('not voted')) {
+        return { 
+          success: false, 
+          reason: 'no_upvote',
+          message: 'No upvote exists to remove'
+        };
+      }
+    }
+    return { 
+      success: false, 
+      reason: 'error', 
+      message: error.message 
+    };
+  }
+}
+
+const result = await safeRemoveUpvote(123, 456);
+if (result.success) {
+  console.log('Upvote removed, new score:', result.score);
+} else {
+  console.log('Could not remove upvote:', result.message);
+}
+```
+
+## Notes
+
+- This method can only be called if the user has previously upvoted the answer
+- Calling this method when no upvote exists will result in a `ForbiddenError`
+- After removing an upvote, the user can cast either an upvote or downvote on the same answer
+- The score decrease depends on the voting system (typically decreases by 1)
+- Vote removal is immediate and reflected in the returned response
+- Users cannot remove votes on their own answers (since they can't vote on them in the first place)
+- The method automatically handles both public and team contexts based on how the client was initialized
+- Some platforms may have time limits on vote changes - after a certain period, votes may become locked
+- The returned `AnswerSummaryResponseModel` contains the updated vote-related information

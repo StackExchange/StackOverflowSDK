@@ -1,0 +1,193 @@
+---
+title: answers.delete()
+description: Deletes an answer permanently or marks it as deleted, depending on permissions and answer status.
+---
+
+Deletes an answer permanently or marks it as deleted, depending on permissions and answer status.
+
+## Syntax
+
+```typescript
+async delete(questionId: number, answerId: number): Promise<void>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
+| `answerId` | `number` | Yes | The unique identifier of the answer to delete |
+
+## Return Value
+
+Returns a `Promise<void>`. The method completes successfully if the deletion was processed, regardless of whether it was a soft delete (marked as deleted) or hard delete (permanently removed).
+
+## Examples
+
+### Basic Answer Deletion
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Delete an answer
+await sdk.answers.delete(123, 456);
+console.log('Answer deleted successfully');
+```
+
+### Delete with Confirmation
+
+```typescript
+async function deleteAnswerWithConfirmation(questionId: number, answerId: number) {
+  try {
+    // Get answer details first
+    const answer = await sdk.answers.get(questionId, answerId);
+    
+    console.log(`About to delete answer: "${answer.body.substring(0, 50)}..."`);
+    console.log(`Created by: ${answer.owner?.displayName}`);
+    console.log(`Score: ${answer.score}`);
+    
+    // Confirm deletion (in a real app, you'd show a dialog)
+    const confirmed = true; // Replace with actual confirmation logic
+    
+    if (confirmed) {
+      await sdk.answers.delete(questionId, answerId);
+      console.log('Answer has been deleted');
+    }
+  } catch (error) {
+    console.error('Failed to delete answer:', error.message);
+  }
+}
+
+await deleteAnswerWithConfirmation(123, 456);
+```
+
+### Bulk Deletion (with Error Handling)
+
+```typescript
+async function deleteMultipleAnswers(questionId: number, answerIds: number[]) {
+  const results = [];
+  
+  for (const answerId of answerIds) {
+    try {
+      await sdk.answers.delete(questionId, answerId);
+      results.push({ answerId, status: 'deleted' });
+      console.log(`Deleted answer ${answerId}`);
+    } catch (error) {
+      results.push({ answerId, status: 'failed', error: error.message });
+      console.error(`Failed to delete answer ${answerId}:`, error.message);
+    }
+  }
+  
+  return results;
+}
+
+const deletionResults = await deleteMultipleAnswers(123, [456, 789, 101]);
+console.log('Deletion results:', deletionResults);
+```
+
+### Team Context
+
+```typescript
+// Using team context
+const teamSDK = sdk.forTeam('team-123');
+await teamSDK.answers.delete(123, 456);
+
+// Or with direct client initialization
+import { AnswerClient } from 'stack-overflow-sdk';
+const teamAnswerClient = new AnswerClient(config, 'team-123');
+await teamAnswerClient.delete(123, 456);
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to delete this answer |
+| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+try {
+  await sdk.answers.delete(123, 456);
+  console.log('Answer deleted successfully');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Answer not found - may already be deleted');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot delete this answer - insufficient permissions');
+  } else {
+    console.error('Failed to delete answer:', error.message);
+  }
+}
+```
+
+### Permission Scenarios
+
+```typescript
+async function safeDeleteAnswer(questionId: number, answerId: number) {
+  try {
+    await sdk.answers.delete(questionId, answerId);
+    return { success: true, message: 'Answer deleted' };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      // Common reasons for deletion restrictions:
+      // - Not the answer owner
+      // - Answer is accepted (may require special permissions)
+      // - Answer has upvotes (may require confirmation)
+      // - Insufficient reputation for deletion
+      return { 
+        success: false, 
+        reason: 'permissions', 
+        message: 'You do not have permission to delete this answer' 
+      };
+    } else if (error instanceof NotFoundError) {
+      return { 
+        success: false, 
+        reason: 'not_found', 
+        message: 'Answer not found or already deleted' 
+      };
+    } else {
+      return { 
+        success: false, 
+        reason: 'error', 
+        message: error.message 
+      };
+    }
+  }
+}
+
+const result = await safeDeleteAnswer(123, 456);
+console.log(result);
+```
+
+## Notes
+
+- Only the answer owner or users with sufficient privileges (moderators) can delete answers
+- Deletion behavior depends on the answer's status and score:
+  - Low-score answers by the owner may be permanently deleted
+  - High-score or accepted answers are typically soft-deleted (marked as deleted but preserved)
+  - Moderators can perform both soft and hard deletions
+- Deleted answers may still be visible to users with sufficient reputation
+- The deletion may be reversible (undeletable) depending on the platform's rules and user permissions
+- Accepted answers may require additional confirmation or permissions to delete
+- The method automatically handles both public and team contexts based on how the client was initialized
+- After successful deletion, subsequent calls to `get()` for the same answer will throw a `NotFoundError`
+- Some answers may be protected from deletion due to community guidelines or historical significance

@@ -1,0 +1,529 @@
+---
+title: manage()
+description: Retrieve paginated lists of users with advanced management filtering and administrative information (Enterprise API only).
+---
+
+# manage()
+
+Retrieve paginated lists of users with advanced management filtering and administrative information (Enterprise API only).
+
+## Syntax
+
+```typescript
+async manage(options: ManageUsersOptions = {}): Promise<PaginatedManageUsers>
+async getActiveUsers(options: Omit<ManageUsersOptions, 'isDeactivated'> = {}): Promise<PaginatedManageUsers>
+async getDeactivatedUsers(options: Omit<ManageUsersOptions, 'isDeactivated'> = {}): Promise<PaginatedManageUsers>
+async manageByLastAccessDate(options: Omit<ManageUsersOptions, 'sort' | 'order'> = {}): Promise<PaginatedManageUsers>
+async getUsersByLastAccessRange(from: Date, to: Date, options: Omit<ManageUsersOptions, 'lastAccessDateFrom' | 'lastAccessDateTo'> = {}): Promise<PaginatedManageUsers>
+async getInactiveUsers(daysSinceLastAccess: number, options: Omit<ManageUsersOptions, 'lastAccessDateFrom' | 'lastAccessDateTo'> = {}): Promise<PaginatedManageUsers>
+async getRecentlyActiveUsers(daysSinceLastAccess: number, options: Omit<ManageUsersOptions, 'lastAccessDateFrom' | 'lastAccessDateTo'> = {}): Promise<PaginatedManageUsers>
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `ManageUsersOptions` | No | User management filtering and sorting options |
+
+### ManageUsersOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `page` | `number` | No | Page number (defaults to 1) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| `sort` | `ManageUsersSortParameter` | No | Sort field: `'id'`, `'name'`, `'email'`, `'lastAccessDate'` |
+| `order` | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+| `isDeactivated` | `boolean` | No | Filter by deactivation status |
+| `lastAccessDateFrom` | `Date` | No | Filter users active since this date |
+| `lastAccessDateTo` | `Date` | No | Filter users active before this date |
+
+## Return Value
+
+Returns a `Promise<PaginatedManageUsers>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of users found |
+| `pageSize` | `number` | Number of results per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `ManageUsersSortParameter` | Applied sort field |
+| `order` | `SortOrder` | Applied sort direction |
+| `items` | `ManageUserResponseModel[]` | Array of user management objects |
+
+### ManageUserResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `accountId` | `number \| null` | User's Stack Overflow network account ID |
+| `name` | `string` | User's display name |
+| `email` | `string \| null` | Email address (always visible in management context) |
+| `avatarUrl` | `string` | URL to user's profile picture |
+| `webUrl` | `string` | URL to user's profile page |
+| `reputation` | `number` | User's reputation score |
+| `role` | `string` | User's role on the site |
+| `isDeactivated` | `boolean` | Whether the user account is deactivated |
+| `creationDate` | `Date` | When the user account was created |
+| `lastModifiedDate` | `Date \| null` | When the user account was last modified |
+| `lastAccessDate` | `Date` | When the user last accessed the system |
+
+## Examples
+
+### Basic User Management
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-admin-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+async function getUserManagementOverview() {
+  try {
+    // Get all users with management information
+    const allUsers = await sdk.users.manage({
+      pageSize: 50,
+      sort: 'lastAccessDate',
+      order: 'desc'
+    });
+    
+    console.log(`Total Users: ${allUsers.totalCount}`);
+    console.log(`Page ${allUsers.page} of ${allUsers.totalPages}`);
+    
+    // Analyze user status
+    const activeUsers = allUsers.items?.filter(user => !user.isDeactivated).length || 0;
+    const deactivatedUsers = allUsers.items?.filter(user => user.isDeactivated).length || 0;
+    
+    console.log(`\nUser Status Overview:`);
+    console.log(`- Active: ${activeUsers}`);
+    console.log(`- Deactivated: ${deactivatedUsers}`);
+    
+    // Show recently active users
+    console.log('\nMost Recently Active Users:');
+    allUsers.items?.slice(0, 5).forEach((user, index) => {
+      const lastAccess = new Date(user.lastAccessDate).toLocaleDateString();
+      const status = user.isDeactivated ? '[DEACTIVATED]' : '[ACTIVE]';
+      console.log(`${index + 1}. ${user.name} ${status} - Last access: ${lastAccess}`);
+    });
+    
+    return allUsers;
+  } catch (error) {
+    console.error('Failed to get user management data:', error.message);
+    return null;
+  }
+}
+
+const managementOverview = await getUserManagementOverview();
+```
+
+### User Activity Analysis
+
+```typescript
+async function analyzeUserActivity() {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  
+  // Get users by activity periods
+  const [recentlyActive, moderatelyActive, inactive] = await Promise.all([
+    sdk.users.getRecentlyActiveUsers(7, { pageSize: 100 }),
+    sdk.users.getUsersByLastAccessRange(thirtyDaysAgo, new Date(), { pageSize: 100 }),
+    sdk.users.getInactiveUsers(90, { pageSize: 100 })
+  ]);
+  
+  const analysis = {
+    recentlyActive: recentlyActive.totalCount || 0,
+    moderatelyActive: moderatelyActive.totalCount || 0,
+    inactive: inactive.totalCount || 0,
+    total: 0
+  };
+  
+  analysis.total = analysis.recentlyActive + analysis.moderatelyActive + analysis.inactive;
+  
+  console.log('=== User Activity Analysis ===');
+  console.log(`Recently Active (7 days): ${analysis.recentlyActive}`);
+  console.log(`Moderately Active (30 days): ${analysis.moderatelyActive}`);
+  console.log(`Inactive (90+ days): ${analysis.inactive}`);
+  console.log(`Total Analyzed: ${analysis.total}`);
+  
+  // Calculate percentages
+  if (analysis.total > 0) {
+    const recentPct = ((analysis.recentlyActive / analysis.total) * 100).toFixed(1);
+    const moderatePct = ((analysis.moderatelyActive / analysis.total) * 100).toFixed(1);
+    const inactivePct = ((analysis.inactive / analysis.total) * 100).toFixed(1);
+    
+    console.log('\nActivity Distribution:');
+    console.log(`- Recently Active: ${recentPct}%`);
+    console.log(`- Moderately Active: ${moderatePct}%`);
+    console.log(`- Inactive: ${inactivePct}%`);
+  }
+  
+  // Show sample of inactive users
+  if (inactive.items && inactive.items.length > 0) {
+    console.log('\nSample of Inactive Users:');
+    inactive.items.slice(0, 5).forEach(user => {
+      const daysSinceAccess = Math.floor(
+        (Date.now() - new Date(user.lastAccessDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      console.log(`- ${user.name}: ${daysSinceAccess} days since last access`);
+    });
+  }
+  
+  return analysis;
+}
+
+const activityAnalysis = await analyzeUserActivity();
+```
+
+### Deactivated User Management
+
+```typescript
+async function manageDeactivatedUsers() {
+  // Get all deactivated users
+  const deactivatedUsers = await sdk.users.getDeactivatedUsers({
+    pageSize: 100,
+    sort: 'lastAccessDate',
+    order: 'desc'
+  });
+  
+  console.log(`Total Deactivated Users: ${deactivatedUsers.totalCount}`);
+  
+  if (!deactivatedUsers.items || deactivatedUsers.items.length === 0) {
+    console.log('No deactivated users found');
+    return;
+  }
+  
+  // Analyze deactivated users
+  const analysis = {
+    totalDeactivated: deactivatedUsers.totalCount || 0,
+    recentlyDeactivated: 0,
+    longTermDeactivated: 0,
+    departmentBreakdown: new Map(),
+    recommendations: []
+  };
+  
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  deactivatedUsers.items.forEach(user => {
+    // Count recently vs long-term deactivated
+    const lastAccess = new Date(user.lastAccessDate);
+    if (lastAccess > thirtyDaysAgo) {
+      analysis.recentlyDeactivated++;
+    } else {
+      analysis.longTermDeactivated++;
+    }
+    
+    // Track department breakdown (if available)
+    const dept = user.department || 'Unknown';
+    analysis.departmentBreakdown.set(dept, (analysis.departmentBreakdown.get(dept) || 0) + 1);
+  });
+  
+  console.log('\n=== Deactivated User Analysis ===');
+  console.log(`Recently Deactivated (30 days): ${analysis.recentlyDeactivated}`);
+  console.log(`Long-term Deactivated (30+ days): ${analysis.longTermDeactivated}`);
+  
+  console.log('\nDepartment Breakdown:');
+  Array.from(analysis.departmentBreakdown.entries())
+    .sort(([,a], [,b]) => b - a)
+    .forEach(([dept, count]) => {
+      console.log(`- ${dept}: ${count} users`);
+    });
+  
+  // Generate recommendations
+  if (analysis.recentlyDeactivated > analysis.longTermDeactivated * 0.1) {
+    analysis.recommendations.push('High recent deactivation rate - investigate potential issues');
+  }
+  
+  if (analysis.longTermDeactivated > 50) {
+    analysis.recommendations.push('Consider archiving long-term deactivated accounts');
+  }
+  
+  if (analysis.recommendations.length > 0) {
+    console.log('\nRecommendations:');
+    analysis.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return analysis;
+}
+
+const deactivatedAnalysis = await manageDeactivatedUsers();
+```
+
+### User Lifecycle Management
+
+```typescript
+async function generateUserLifecycleReport() {
+  const now = new Date();
+  const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+  
+  // Get users by different lifecycle stages
+  const [newUsers, establishedUsers, veteranUsers, inactiveUsers] = await Promise.all([
+    sdk.users.manage({
+      sort: 'creationDate',
+      order: 'desc',
+      pageSize: 100
+    }),
+    sdk.users.getUsersByLastAccessRange(oneMonthAgo, now, { pageSize: 100 }),
+    sdk.users.getUsersByLastAccessRange(sixMonthsAgo, threeMonthsAgo, { pageSize: 100 }),
+    sdk.users.getInactiveUsers(180, { pageSize: 100 })
+  ]);
+  
+  // Filter new users (created in last 30 days)
+  const recentNewUsers = newUsers.items?.filter(user => 
+    new Date(user.creationDate) > oneMonthAgo
+  ) || [];
+  
+  const lifecycle = {
+    new: recentNewUsers.length,
+    established: establishedUsers.totalCount || 0,
+    veteran: veteranUsers.totalCount || 0,
+    inactive: inactiveUsers.totalCount || 0,
+    total: newUsers.totalCount || 0
+  };
+  
+  console.log('=== User Lifecycle Report ===');
+  console.log(`Total Users: ${lifecycle.total}`);
+  console.log(`New Users (30 days): ${lifecycle.new}`);
+  console.log(`Established Users (active monthly): ${lifecycle.established}`);
+  console.log(`Veteran Users (active 3-6 months ago): ${lifecycle.veteran}`);
+  console.log(`Inactive Users (180+ days): ${lifecycle.inactive}`);
+  
+  // Calculate health metrics
+  const activenessRatio = ((lifecycle.established / lifecycle.total) * 100).toFixed(1);
+  const inactivityRatio = ((lifecycle.inactive / lifecycle.total) * 100).toFixed(1);
+  
+  console.log('\nHealth Metrics:');
+  console.log(`User Activeness: ${activenessRatio}% (monthly active users)`);
+  console.log(`User Inactivity: ${inactivityRatio}% (6+ months inactive)`);
+  
+  // Show sample of new users
+  if (recentNewUsers.length > 0) {
+    console.log('\nRecent New Users:');
+    recentNewUsers.slice(0, 5).forEach(user => {
+      const joinDate = new Date(user.creationDate).toLocaleDateString();
+      const daysSinceJoin = Math.floor(
+        (Date.now() - new Date(user.creationDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      console.log(`- ${user.name}: Joined ${joinDate} (${daysSinceJoin} days ago)`);
+    });
+  }
+  
+  return lifecycle;
+}
+
+const lifecycleReport = await generateUserLifecycleReport();
+```
+
+### Enterprise User Audit
+
+```typescript
+async function performUserAudit() {
+  const audit = {
+    timestamp: new Date(),
+    totalUsers: 0,
+    activeUsers: 0,
+    deactivatedUsers: 0,
+    usersWithoutEmail: 0,
+    usersWithExternalId: 0,
+    departmentDistribution: new Map(),
+    roleDistribution: new Map(),
+    recentSignups: 0,
+    inactiveUsers: 0,
+    findings: [],
+    recommendations: []
+  };
+  
+  // Get comprehensive user data
+  let currentPage = 1;
+  let hasMorePages = true;
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  while (hasMorePages && currentPage <= 10) { // Limit to first 10 pages for demo
+    const pageData = await sdk.users.manage({
+      page: currentPage,
+      pageSize: 100,
+      sort: 'creationDate',
+      order: 'desc'
+    });
+    
+    if (!pageData.items || pageData.items.length === 0) break;
+    
+    audit.totalUsers = pageData.totalCount || 0;
+    
+    pageData.items.forEach(user => {
+      // Count active vs deactivated
+      if (user.isDeactivated) {
+        audit.deactivatedUsers++;
+      } else {
+        audit.activeUsers++;
+      }
+      
+      // Check for missing email
+      if (!user.email) {
+        audit.usersWithoutEmail++;
+      }
+      
+      // Check external integration
+      if (user.externalId) {
+        audit.usersWithExternalId++;
+      }
+      
+      // Track department distribution
+      const dept = user.department || 'Not Specified';
+      audit.departmentDistribution.set(dept, (audit.departmentDistribution.get(dept) || 0) + 1);
+      
+      // Track role distribution
+      audit.roleDistribution.set(user.role, (audit.roleDistribution.get(user.role) || 0) + 1);
+      
+      // Count recent signups
+      if (new Date(user.creationDate) > thirtyDaysAgo) {
+        audit.recentSignups++;
+      }
+      
+      // Count inactive users (no access in 60 days)
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      if (new Date(user.lastAccessDate) < sixtyDaysAgo && !user.isDeactivated) {
+        audit.inactiveUsers++;
+      }
+    });
+    
+    hasMorePages = currentPage < (pageData.totalPages || 0);
+    currentPage++;
+    
+    // Rate limiting
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  // Generate findings and recommendations
+  const externalIdPercentage = ((audit.usersWithExternalId / audit.totalUsers) * 100).toFixed(1);
+  const deactivationRate = ((audit.deactivatedUsers / audit.totalUsers) * 100).toFixed(1);
+  const inactivityRate = ((audit.inactiveUsers / audit.activeUsers) * 100).toFixed(1);
+  
+  if (audit.usersWithoutEmail > 0) {
+    audit.findings.push(`${audit.usersWithoutEmail} users lack email addresses`);
+    audit.recommendations.push('Ensure all users have valid email addresses for communication');
+  }
+  
+  if (parseFloat(externalIdPercentage) < 80) {
+    audit.findings.push(`Only ${externalIdPercentage}% of users have external ID integration`);
+    audit.recommendations.push('Consider implementing SCIM or SAML for better user management');
+  }
+  
+  if (parseFloat(inactivityRate) > 20) {
+    audit.findings.push(`${inactivityRate}% of active users haven't accessed the system in 60+ days`);
+    audit.recommendations.push('Implement user engagement campaigns or consider deactivating inactive accounts');
+  }
+  
+  console.log('=== Enterprise User Audit Report ===');
+  console.log(`Audit Date: ${audit.timestamp.toLocaleString()}`);
+  console.log(`Total Users Analyzed: ${audit.totalUsers.toLocaleString()}`);
+  
+  console.log('\n--- User Status ---');
+  console.log(`Active Users: ${audit.activeUsers.toLocaleString()}`);
+  console.log(`Deactivated Users: ${audit.deactivatedUsers.toLocaleString()}`);
+  console.log(`Deactivation Rate: ${deactivationRate}%`);
+  
+  console.log('\n--- Data Quality ---');
+  console.log(`Users with Email: ${(audit.totalUsers - audit.usersWithoutEmail).toLocaleString()}`);
+  console.log(`Users with External ID: ${audit.usersWithExternalId.toLocaleString()} (${externalIdPercentage}%)`);
+  
+  console.log('\n--- Activity Metrics ---');
+  console.log(`Recent Signups (30 days): ${audit.recentSignups.toLocaleString()}`);
+  console.log(`Inactive Users (60+ days): ${audit.inactiveUsers.toLocaleString()} (${inactivityRate}%)`);
+  
+  console.log('\n--- Department Distribution ---');
+  Array.from(audit.departmentDistribution.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10)
+    .forEach(([dept, count]) => {
+      console.log(`- ${dept}: ${count.toLocaleString()}`);
+    });
+  
+  console.log('\n--- Role Distribution ---');
+  Array.from(audit.roleDistribution.entries())
+    .sort(([,a], [,b]) => b - a)
+    .forEach(([role, count]) => {
+      console.log(`- ${role}: ${count.toLocaleString()}`);
+    });
+  
+  if (audit.findings.length > 0) {
+    console.log('\n--- Key Findings ---');
+    audit.findings.forEach(finding => console.log(`- ${finding}`));
+  }
+  
+  if (audit.recommendations.length > 0) {
+    console.log('\n--- Recommendations ---');
+    audit.recommendations.forEach(rec => console.log(`- ${rec}`));
+  }
+  
+  return audit;
+}
+
+const userAudit = await performUserAudit();
+```
+
+## Error Handling
+
+This method can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions (admin/moderator required) |
+| `ValidationError` | 400 | Invalid date range or filter parameters |
+| `UnsupportedOperationError` | 400 | Management endpoint not available in team context |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { ForbiddenError, UnsupportedOperationError, ValidationError } from 'stack-overflow-sdk';
+
+async function safeUserManagement(options: ManageUsersOptions = {}) {
+  try {
+    const users = await sdk.users.manage(options);
+    console.log(`Successfully retrieved ${users.totalCount} users for management`);
+    return users;
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      console.error('Admin privileges required for user management operations');
+    } else if (error instanceof UnsupportedOperationError) {
+      console.error('User management is only available in enterprise context, not team context');
+    } else if (error instanceof ValidationError) {
+      console.error('Invalid management parameters - check date ranges and filter values');
+    } else {
+      console.error('User management operation failed:', error.message);
+    }
+    return null;
+  }
+}
+
+const managementData = await safeUserManagement({
+  sort: 'lastAccessDate',
+  order: 'desc',
+  isDeactivated: false
+});
+```
+
+## Notes
+
+- **Enterprise Only**: This method is only available in enterprise Stack Overflow context, not for Stack Overflow for Teams.
+- **Admin Privileges**: Requires administrator or moderator permissions to access user management data.
+- **Extended User Data**: Provides additional fields like creation dates, modification dates, and deactivation status not available in regular user queries.
+- **Date Filtering**: Supports sophisticated date-based filtering for activity analysis and user lifecycle management.
+- **Performance**: Management queries may be slower than regular user queries due to additional data processing.
+- **Email Visibility**: Email addresses are always visible in management context for administrative purposes.
+- **Bulk Operations**: Ideal for administrative dashboards, user audits, and compliance reporting.
+- **Activity Tracking**: Last access date filtering enables identification of inactive users for account cleanup.
+- **Deactivation Management**: Provides tools for managing deactivated user accounts and analyzing deactivation patterns.
+- **Integration Status**: Use external ID presence to track SCIM/SAML integration coverage across your organization.
