@@ -13,7 +13,7 @@ export default defineConfig({
       	},
    		logo: {
    			light: './src/assets/stackoverflow-black.svg',
-   			dark: './src/assets/stackoverflow-black.svg',
+   			dark: './src/assets/stackoverflow-white.png',
    			replacesTitle: true
    		},
    		social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
