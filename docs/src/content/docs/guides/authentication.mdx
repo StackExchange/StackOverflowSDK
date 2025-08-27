@@ -33,9 +33,9 @@ This guide covers:
 - Token generation and management
 - Security best practices
 
-### For Public Stack Overflow for Teams
+### For Stack Overflow for Teams
 
--- fill out
+-- pending
 
 ## Using Access Tokens
 
@@ -47,14 +47,9 @@ import StackOverflowSDK from 'stackoverflow-sdk';
 // For Stack Overflow for Teams
 const teamsSDK = new StackOverflowSDK({
   baseUrl: 'https://your-site.stackenterprise.co',
-  accessToken: 'your-teams-access-token'
+  accessToken: 'your-access-token'
 });
 
-// For public Stack Overflow
-const publicSDK = new StackOverflowSDK({
-  baseUrl: 'https://api.stackexchange.com',
-  accessToken: 'your-public-access-token'
-});
 ```
 
 ## Token Scopes
@@ -135,8 +130,8 @@ async function makeAuthenticatedRequest() {
 Once you have your access token configured:
 
 - [Quickstart Guide](/quickstart) - Get started with the SDK
-- [Questions API](/api/questions) - Learn about fetching questions
-- [Error Handling](/guides/error-handling) - Implement robust error handling
+- [Questions API](/questions/getall/) - Learn about fetching questions
+- [Rate Limits](/guides/rate-limiting) - Understand how rate limits work on SO Teams
 
 :::note[Rate Limits]
 Authentication doesn't bypass API rate limits. Authenticated requests typically have higher rate limits than anonymous requests, but limits still apply.

@@ -12,17 +12,17 @@ Get your Stack Overflow integration running in minutes with our JavaScript SDK. 
 <Tabs>
   <TabItem label="npm">
     ```bash
-    npm install stackoverflow-sdk
+    npm install so-teams-sdk
     ```
   </TabItem>
   <TabItem label="yarn">
     ```bash
-    yarn add stackoverflow-sdk
+    yarn add so-teams-sdk
     ```
   </TabItem>
   <TabItem label="pnpm">
     ```bash
-    pnpm add stackoverflow-sdk
+    pnpm add so-teams-sdk
     ```
   </TabItem>
 </Tabs>
@@ -30,10 +30,10 @@ Get your Stack Overflow integration running in minutes with our JavaScript SDK. 
 ## 1. Initialize the SDK
 
 ```typescript title="app.ts"
-import StackOverflowSDK from 'stackoverflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
-  baseUrl: 'https://api.stackexchange.com',
+  baseUrl: 'https://[your-site].stackenterprise.co',
   accessToken: 'your-access-token'
 });
 ```
@@ -44,9 +44,9 @@ Start exploring Stack Overflow data with these basic examples:
 
 ```typescript title="api-calls.ts"
 // Fetch recent questions
-async function getQuestions() {
+async function getAll() {
   try {
-    const questions = await sdk.questions.getQuestions();
+    const questions = await sdk.questions.getAll();
     console.log('Recent questions:', questions.items);
     return questions;
   } catch (error) {
@@ -57,7 +57,7 @@ async function getQuestions() {
 // Search for content
 async function searchContent(query: string) {
   try {
-    const results = await sdk.search.search(query);
+    const results = await sdk.search.query(query);
     console.log('Search results:', results.items);
     return results;
   } catch (error) {
@@ -83,14 +83,14 @@ async function getUser(userId: number) {
   <TabItem label="Questions & Answers">
     ```typescript title="qa-example.ts"
     // Get questions with their answers
-    const questions = await sdk.questions.getQuestions();
+    const questions = await sdk.questions.getAll();
     
     // Get specific question details
     const questionId = 12345;
-    const question = await sdk.questions.getQuestionById(questionId);
+    const question = await sdk.questions.get(questionId);
     
     // Get answers for a question
-    const answers = await sdk.answers.getAnswers();
+    const answers = await sdk.answers.getAll(questionId);
     
     // Get specific answer
     const answerId = 67890;
@@ -100,28 +100,30 @@ async function getUser(userId: number) {
   <TabItem label="Users & Communities">
     ```typescript title="users-example.ts"
     // Get user information
-    const users = await sdk.users.getUsers();
+    const users = await sdk.users.getAll();
     
     // Get communities
-    const communities = await sdk.communities.getCommunities();
+    const communities = await sdk.communities.getAll();
     
     // Get user groups
-    const userGroups = await sdk.usergroups.getUserGroups();
+    const userGroups = await sdk.usergroups.getAll();
     ```
   </TabItem>
   <TabItem label="Content & Tags">
     ```typescript title="content-example.ts"
     // Browse articles
-    const articles = await sdk.articles.getArticles();
+    const articles = await sdk.articles.getAll();
     
     // Get collections
-    const collections = await sdk.collections.getCollections();
+    const collections = await sdk.collections.getAll();
     
     // Explore tags
-    const tags = await sdk.tags.getTags();
+    const tags = await sdk.tags.getAll();
     
     // Get comments
-    const comments = await sdk.comments.getComments();
+    const questionComments = await sdk.comments.getQuestionComments();
+    const answerComments = await sdk.comments.getAnswerComments();
+    const articleComments = await sdk.comments.getArticleComments();
     ```
   </TabItem>
 </Tabs>
@@ -137,7 +139,7 @@ const teamContext = sdk.forTeam('your-team-id');
 // Get team-specific questions
 async function getTeamQuestions() {
   try {
-    const teamQuestions = await teamContext.questions.getQuestions();
+    const teamQuestions = await teamContext.questions.getAll();
     console.log('Team questions:', teamQuestions.items);
     return teamQuestions;
   } catch (error) {
@@ -148,74 +150,13 @@ async function getTeamQuestions() {
 // Get team-specific answers
 async function getTeamAnswers() {
   try {
-    const teamAnswers = await teamContext.answers.getAnswers();
+    const teamAnswers = await teamContext.answers.getAll(question.id);
     console.log('Team answers:', teamAnswers.items);
     return teamAnswers;
   } catch (error) {
     console.error('Failed to fetch team answers:', error);
   }
 }
-```
-
-## 5. Complete Example
-
-Here's a complete working example:
-
-```typescript title="complete-example.ts"
-import StackOverflowSDK from 'stackoverflow-sdk';
-
-class StackOverflowIntegration {
-  private sdk: StackOverflowSDK;
-
-  constructor(accessToken: string) {
-    this.sdk = new StackOverflowSDK({
-      baseUrl: 'https://api.stackexchange.com',
-      accessToken
-    });
-  }
-
-  async getPopularQuestions() {
-    const questions = await this.sdk.questions.getQuestions();
-    return questions.items?.slice(0, 10); // Get top 10
-  }
-
-  async searchByTag(tag: string) {
-    const results = await this.sdk.search.search(`[${tag}]`);
-    return results.items;
-  }
-
-  async getUserProfile(userId: number) {
-    const user = await this.sdk.users.getUserById(userId);
-    return user;
-  }
-
-  // Team-specific methods
-  async getTeamContent(teamId: string) {
-    const teamContext = this.sdk.forTeam(teamId);
-    
-    const [questions, answers] = await Promise.all([
-      teamContext.questions.getQuestions(),
-      teamContext.answers.getAnswers()
-    ]);
-
-    return { questions: questions.items, answers: answers.items };
-  }
-}
-
-// Usage
-const integration = new StackOverflowIntegration('your-access-token');
-
-// Get popular questions
-const popularQuestions = await integration.getPopularQuestions();
-console.log('Popular questions:', popularQuestions);
-
-// Search for JavaScript content
-const jsQuestions = await integration.searchByTag('javascript');
-console.log('JavaScript questions:', jsQuestions);
-
-// Get team content
-const teamContent = await integration.getTeamContent('team-123');
-console.log('Team content:', teamContent);
 ```
 
 ## Error Handling
@@ -225,7 +166,7 @@ Always wrap your API calls in try-catch blocks:
 ```typescript title="error-handling.ts"
 async function safeApiCall() {
   try {
-    const data = await sdk.questions.getQuestions();
+    const data = await sdk.questions.getAll();
     return data;
   } catch (error) {
     if (error.status === 401) {
@@ -239,27 +180,6 @@ async function safeApiCall() {
   }
 }
 ```
-
-## Next Steps
-
-<CardGrid>
-  <Card title="Questions API" icon="document">
-    Learn about fetching and managing questions with detailed examples.
-  </Card>
-  <Card title="Answers API" icon="puzzle">
-    Explore answer retrieval and management functionality.
-  </Card>
-  <Card title="Search API" icon="magnifier">
-    Master content discovery with advanced search capabilities.
-  </Card>
-  <Card title="Users API" icon="user">
-    Work with user profiles and community data.
-  </Card>
-</CardGrid>
-
-:::note[Rate Limits]
-The Stack Overflow API has rate limits in place. Monitor your usage and implement appropriate retry logic for production applications.
-:::
 
 ## Troubleshooting
 
