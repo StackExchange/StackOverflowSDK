@@ -11,7 +11,7 @@ export default defineConfig({
    		favicon: '/favicon.ico',
    		title: 'Stack Overflow for Teams SDK',
 		editLink: {
-        baseUrl: 'https://github.com/EstoesMoises/StackOverflowSDK/edit/main/docs',
+        baseUrl: 'https://github.com/StackExchange/StackOverflowSDK/edit/main/docs',
       	},
    		logo: {
    			light: './src/assets/stackoverflow-black.svg',
