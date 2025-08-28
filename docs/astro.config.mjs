@@ -4,6 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+   site: 'https://stackexchange.github.io',
+   base: '/StackOverflowSDK',
    integrations: [
    	starlight({
    		favicon: '/favicon.ico',
