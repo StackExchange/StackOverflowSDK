@@ -1,0 +1,547 @@
+---
+title: User Groups
+description: Comprehensive user group management with CRUD operations, member management, and bulk operations for both team and enterprise contexts.
+---
+
+# User Groups
+
+Comprehensive user group management with CRUD operations, member management, and bulk operations for both team and enterprise contexts.
+
+## Core Methods
+
+### getAll()
+
+Retrieve paginated lists of user groups with sorting capabilities.
+
+#### Return Value
+
+Returns a `Promise<UserGroupResponseModel>` containing the newly created user group.
+
+### update()
+
+Update an existing user group.
+
+#### Syntax
+
+```typescript
+async update(userGroupId: number, options: UpdateUserGroupOptions): Promise<UserGroupResponseModel>
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userGroupId` | `number` | Yes | The unique identifier of the user group to update |
+| `options` | `UpdateUserGroupOptions` | Yes | User group update options |
+
+##### UpdateUserGroupOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | `string` | Yes | The user group's name |
+| `description` | `string` | No | The user group's description |
+
+#### Return Value
+
+Returns a `Promise<UserGroupResponseModel>` containing the updated user group.
+
+## Member Management Methods
+
+### addMembers()
+
+Add multiple users to a user group.
+
+#### Syntax
+
+```typescript
+async addMembers(userGroupId: number, userIds: number[]): Promise<UserGroupResponseModel>
+async addMember(userGroupId: number, userId: number): Promise<UserGroupResponseModel>
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userGroupId` | `number` | Yes | The unique identifier of the user group |
+| `userIds` | `number[]` | Yes | Array of user IDs to add to the group |
+| `userId` | `number` | Yes | Single user ID to add to the group (for `addMember`) |
+
+#### Return Value
+
+Returns a `Promise<UserGroupResponseModel>` containing the updated user group with new members.
+
+### removeMember()
+
+Remove a single user from a user group.
+
+#### Syntax
+
+```typescript
+async removeMember(userGroupId: number, userId: number): Promise<UserGroupResponseModel>
+async removeMembers(userGroupId: number, userIds: number[]): Promise<UserGroupResponseModel[]>
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userGroupId` | `number` | Yes | The unique identifier of the user group |
+| `userId` | `number` | Yes | User ID to remove from the group |
+| `userIds` | `number[]` | Yes | Array of user IDs to remove (for `removeMembers`) |
+
+#### Return Value
+
+Returns a `Promise<UserGroupResponseModel>` for single removal or `Promise<UserGroupResponseModel[]>` for bulk removal.
+
+## Data Models
+
+### UserGroupResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User group's unique identifier |
+| `name` | `string` | User group's name |
+| `description` | `string` | User group's description |
+| `users` | `UserSummaryResponseModel[]` | Array of users in the group |
+
+### UserSummaryResponseModel Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `number` | User's unique identifier |
+| `name` | `string` | User's display name |
+| `reputation` | `number` | User's reputation score |
+| `avatarUrl` | `string` | URL to user's profile picture |
+
+## Examples
+
+### Basic User Group Operations
+
+```typescript
+import StackOverflowSDK from 'stack-overflow-sdk';
+
+const sdk = new StackOverflowSDK({
+  accessToken: 'your-access-token',
+  baseUrl: 'https://api.stackoverflowteams.com'
+});
+
+// Get all user groups
+const allGroups = await sdk.userGroups.getAll();
+console.log(`Found ${allGroups.totalCount} total user groups`);
+
+// Display group information
+allGroups.items?.forEach(group => {
+  console.log(`- ${group.name}: ${group.users?.length || 0} members`);
+  if (group.description) {
+    console.log(`  Description: ${group.description}`);
+  }
+});
+
+// Create a new user group
+const newGroup = await sdk.userGroups.create({
+  name: 'Frontend Developers',
+  description: 'Team members focused on frontend development'
+});
+console.log(`Created group: ${newGroup.name} (ID: ${newGroup.id})`);
+
+// Get specific group details
+const groupDetails = await sdk.userGroups.get(newGroup.id!);
+console.log(`Group "${groupDetails.name}" has ${groupDetails.users?.length || 0} members`);
+```
+
+### Member Management
+
+```typescript
+async function manageGroupMembers() {
+  const groupId = 123;
+  const userIds = [456, 789, 101];
+  
+  // Add multiple members
+  const updatedGroup = await sdk.userGroups.addMembers(groupId, userIds);
+  console.log(`Added ${userIds.length} members to group "${updatedGroup.name}"`);
+  console.log(`Group now has ${updatedGroup.users?.length || 0} total members`);
+  
+  // Add single member
+  await sdk.userGroups.addMember(groupId, 202);
+  
+  // Remove single member
+  const groupAfterRemoval = await sdk.userGroups.removeMember(groupId, 456);
+  console.log(`Removed member. Group now has ${groupAfterRemoval.users?.length || 0} members`);
+  
+  // Remove multiple members
+  const removedResults = await sdk.userGroups.removeMembers(groupId, [789, 101]);
+  console.log(`Removed ${removedResults.length} members from group`);
+  
+  return updatedGroup;
+}
+
+const managedGroup = await manageGroupMembers();
+```
+
+### Sorting and Filtering
+
+```typescript
+async function exploreUserGroups() {
+  // Get groups sorted by name (alphabetically)
+  const groupsByName = await sdk.userGroups.getAllByName({
+    pageSize: 30
+  });
+  
+  console.log('Groups by Name:');
+  groupsByName.items?.forEach((group, index) => {
+    console.log(`${index + 1}. ${group.name} (${group.users?.length || 0} members)`);
+  });
+  
+  // Get groups sorted by size (largest first)
+  const groupsBySize = await sdk.userGroups.getAllBySize({
+    pageSize: 50
+  });
+  
+  console.log('\nLargest Groups:');
+  groupsBySize.items?.slice(0, 10).forEach((group, index) => {
+    console.log(`${index + 1}. ${group.name} - ${group.users?.length || 0} members`);
+  });
+  
+  // Custom sorting with pagination
+  const customSorted = await sdk.userGroups.getAll({
+    page: 2,
+    pageSize: 25,
+    sort: 'size',
+    order: 'asc'
+  });
+  
+  console.log(`\nSmallest Groups (Page 2):`);
+  customSorted.items?.forEach(group => {
+    console.log(`- ${group.name}: ${group.users?.length || 0} members`);
+  });
+  
+  return { groupsByName, groupsBySize, customSorted };
+}
+
+const groupResults = await exploreUserGroups();
+```
+
+### Advanced Workflows
+
+```typescript
+async function advancedGroupManagement() {
+  // Transfer member between groups
+  const transferResult = await sdk.userGroups.transferMember(
+    123, // from group ID
+    456, // to group ID
+    789  // user ID
+  );
+  
+  console.log(`Transferred user from "${transferResult.removedFrom.name}" to "${transferResult.addedTo.name}"`);
+  
+  // Transfer multiple members
+  const bulkTransferResult = await sdk.userGroups.transferMembers(
+    123,           // from group ID
+    456,           // to group ID
+    [101, 202, 303] // user IDs
+  );
+  
+  console.log(`Bulk transferred ${bulkTransferResult.removedFrom.length} users`);
+  
+  // Populate group in batches
+  const largeUserList = Array.from({length: 50}, (_, i) => i + 1000);
+  const populateResults = await sdk.userGroups.populateGroup(
+    456,           // group ID
+    largeUserList, // user IDs
+    10             // batch size
+  );
+  
+  console.log(`Populated group in ${populateResults.length} batches`);
+  
+  // Duplicate group structure
+  const duplicateResult = await sdk.userGroups.duplicateGroup(
+    123, // source group ID
+    {
+      name: 'Backend Developers - Copy',
+      description: 'Duplicated from original backend team'
+    }
+  );
+  
+  console.log(`Created duplicate group: ${duplicateResult.newGroup.name}`);
+  
+  return { transferResult, bulkTransferResult, populateResults, duplicateResult };
+}
+
+const advancedResults = await advancedGroupManagement();
+```
+
+### Bulk Operations
+
+```typescript
+async function bulkGroupOperations() {
+  // Create multiple groups
+  const groupsToCreate = [
+    { name: 'QA Team', description: 'Quality assurance specialists' },
+    { name: 'DevOps Team', description: 'Infrastructure and deployment' },
+    { name: 'Design Team', description: 'UI/UX designers' }
+  ];
+  
+  const createdGroups = await sdk.userGroups.createGroups(groupsToCreate);
+  console.log(`Created ${createdGroups.length} new groups`);
+  
+  // Update multiple groups
+  const groupUpdates = createdGroups.map(group => ({
+    id: group.id!,
+    options: {
+      name: group.name!,
+      description: `${group.description} - Updated ${new Date().toLocaleDateString()}`
+    }
+  }));
+  
+  const updatedGroups = await sdk.userGroups.updateGroups(groupUpdates);
+  console.log(`Updated ${updatedGroups.length} groups`);
+  
+  // Add user to multiple groups
+  const userId = 999;
+  const groupIds = createdGroups.map(g => g.id!);
+  const addResults = await sdk.userGroups.addUserToGroups(userId, groupIds);
+  console.log(`Added user ${userId} to ${addResults.length} groups`);
+  
+  // Remove user from multiple groups
+  const removeResults = await sdk.userGroups.removeUserFromGroups(userId, groupIds.slice(0, 2));
+  console.log(`Removed user ${userId} from ${removeResults.length} groups`);
+  
+  return { createdGroups, updatedGroups, addResults, removeResults };
+}
+
+const bulkResults = await bulkGroupOperations();
+```
+
+### Team vs Enterprise Context
+
+```typescript
+async function compareGroupContexts(teamId: string) {
+  // Get enterprise user groups
+  const enterpriseGroups = await sdk.userGroups.getAll({
+    pageSize: 50,
+    sort: 'size',
+    order: 'desc'
+  });
+  
+  // Get team-specific user groups
+  const teamGroups = await sdk.forTeam(teamId).userGroups.getAll({
+    pageSize: 50,
+    sort: 'size',
+    order: 'desc'
+  });
+  
+  console.log(`Enterprise Groups: ${enterpriseGroups.totalCount}`);
+  console.log(`Team Groups: ${teamGroups.totalCount}`);
+  
+  // Compare largest groups
+  const topEnterpriseGroup = enterpriseGroups.items?.[0];
+  const topTeamGroup = teamGroups.items?.[0];
+  
+  if (topEnterpriseGroup && topTeamGroup) {
+    console.log(`\nLargest Enterprise Group: ${topEnterpriseGroup.name} (${topEnterpriseGroup.users?.length || 0} members)`);
+    console.log(`Largest Team Group: ${topTeamGroup.name} (${topTeamGroup.users?.length || 0} members)`);
+  }
+  
+  return { enterpriseGroups, teamGroups };
+}
+
+const contextComparison = await compareGroupContexts('team-123');
+```
+
+### Complete Workflow Example
+
+```typescript
+async function completeGroupWorkflow() {
+  console.log('Starting complete user group management workflow...');
+  
+  // Step 1: Create a new group
+  const newGroup = await sdk.userGroups.create({
+    name: 'Product Team',
+    description: 'Cross-functional product development team'
+  });
+  console.log(`✓ Created group: ${newGroup.name} (ID: ${newGroup.id})`);
+  
+  // Step 2: Add initial members
+  const initialMembers = [100, 101, 102, 103, 104];
+  const groupWithMembers = await sdk.userGroups.addMembers(newGroup.id!, initialMembers);
+  console.log(`✓ Added ${initialMembers.length} initial members`);
+  
+  // Step 3: Add more members individually
+  await sdk.userGroups.addMember(newGroup.id!, 105);
+  await sdk.userGroups.addMember(newGroup.id!, 106);
+  console.log(`✓ Added 2 additional members`);
+  
+  // Step 4: Get updated group details
+  const currentGroup = await sdk.userGroups.get(newGroup.id!);
+  console.log(`✓ Group now has ${currentGroup.users?.length || 0} total members`);
+  
+  // Step 5: Update group information
+  const updatedGroup = await sdk.userGroups.update(newGroup.id!, {
+    name: 'Product Development Team',
+    description: 'Cross-functional team focused on product innovation and development'
+  });
+  console.log(`✓ Updated group name to: ${updatedGroup.name}`);
+  
+  // Step 6: Remove some members
+  const membersToRemove = [100, 101];
+  await sdk.userGroups.removeMembers(newGroup.id!, membersToRemove);
+  console.log(`✓ Removed ${membersToRemove.length} members`);
+  
+  // Step 7: Get final state
+  const finalGroup = await sdk.userGroups.get(newGroup.id!);
+  console.log(`✓ Workflow complete. Final group has ${finalGroup.users?.length || 0} members`);
+  
+  return finalGroup;
+}
+
+const workflowResult = await completeGroupWorkflow();
+```
+
+## Error Handling
+
+This client can throw the following errors:
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `AuthenticationError` | 401 | Invalid or missing authentication token |
+| `TokenExpiredError` | 401 | Authentication token has expired |
+| `ForbiddenError` | 403 | Insufficient permissions to manage user groups |
+| `NotFoundError` | 404 | User group or user not found |
+| `ValidationError` | 400 | Invalid parameters or data |
+| `ContentParseError` | 500 | Failed to parse API response |
+| `SDKError` | Various | Other API or network errors |
+
+### Example Error Handling
+
+```typescript
+import StackOverflowSDK, { 
+  ValidationError, 
+  ForbiddenError, 
+  AuthenticationError, 
+  NotFoundError 
+} from 'stack-overflow-sdk';
+
+try {
+  const userGroups = await sdk.userGroups.getAll({
+    pageSize: 50,
+    sort: 'name',
+    order: 'asc'
+  });
+  
+  console.log(`Retrieved ${userGroups.totalCount} user groups successfully`);
+  
+  // Try to create a new group
+  const newGroup = await sdk.userGroups.create({
+    name: 'Test Group',
+    description: 'A test user group'
+  });
+  
+  console.log(`Created new group: ${newGroup.name}`);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Invalid parameters - check group name and options');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Cannot manage user groups - insufficient permissions');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Authentication required to manage user groups');
+  } else if (error instanceof NotFoundError) {
+    console.error('User group or user not found');
+  } else {
+    console.error('Failed to manage user groups:', error.message);
+  }
+}
+```
+
+## Notes
+
+- **No Delete Operation**: The User Groups API does not support deletion of user groups. Groups can only be created, updated, and have their membership modified.
+- **Bulk Operations**: Use the provided bulk methods for better performance when working with multiple groups or members.
+- **Member Batching**: The `populateGroup` method automatically batches member additions to avoid overwhelming the API.
+- **Team Context**: When using team context, operations are limited to user groups within that specific team.
+- **Enterprise Context**: Enterprise context provides access to all user groups in the organization.
+- **Member Information**: User group responses include detailed member information via the `users` array.
+- **Search Limitations**: The `findGroupsByName` method has limited functionality due to API constraints - it returns all groups rather than filtering by name.
+- **Rate Limiting**: Be mindful of API limits when performing bulk operations or iterating through multiple pages.
+- **Sorting Options**: User groups can be sorted by `'name'` (alphabetical) or `'size'` (member count).
+- **Member Transfer**: Use `transferMember` and `transferMembers` for efficient movement of users between groups.
+- **Group Duplication**: The `duplicateGroup` method creates a new group with the same structure but requires manual member addition based on the source group's member list. Syntax
+
+```typescript
+async getAll(options: GetUserGroupsOptions = {}): Promise<PaginatedUserGroups>
+async getAllByName(options: Omit<GetUserGroupsOptions, 'sort' | 'order'> = {}): Promise<PaginatedUserGroups>
+async getAllBySize(options: Omit<GetUserGroupsOptions, 'sort' | 'order'> = {}): Promise<PaginatedUserGroups>
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `GetUserGroupsOptions` | No | User group filtering and sorting options |
+
+##### GetUserGroupsOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `page` | `number` | No | Page number (defaults to 1) |
+| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| `sort` | `UserGroupsSortParameter` | No | Sort field: `'name'` or `'size'` |
+| `order` | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+
+#### Return Value
+
+Returns a `Promise<PaginatedUserGroups>` containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totalCount` | `number` | Total number of user groups found |
+| `pageSize` | `number` | Number of results per page |
+| `page` | `number` | Current page number |
+| `totalPages` | `number` | Total number of pages available |
+| `sort` | `UserGroupsSortParameter` | Applied sort field |
+| `order` | `SortOrder` | Applied sort direction |
+| `items` | `UserGroupResponseModel[]` | Array of user group objects |
+
+### get()
+
+Retrieve a specific user group by ID.
+
+#### Syntax
+
+```typescript
+async get(userGroupId: number): Promise<UserGroupResponseModel>
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userGroupId` | `number` | Yes | The unique identifier of the user group |
+
+#### Return Value
+
+Returns a `Promise<UserGroupResponseModel>` containing the user group details.
+
+### create()
+
+Create a new user group.
+
+#### Syntax
+
+```typescript
+async create(options: CreateUserGroupOptions): Promise<UserGroupResponseModel>
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `options` | `CreateUserGroupOptions` | Yes | User group creation options |
+
+##### CreateUserGroupOptions Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | `string` | Yes | The user group's name |
+| `description` | `string` | No | The user group's description |
+
+####

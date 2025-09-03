@@ -17,7 +17,7 @@ export default defineConfig({
    			dark: './src/assets/stackoverflow-white.png',
    			replacesTitle: true
    		},
-   		social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+   		social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/StackExchange/StackOverflowSDK' }],
    		sidebar: [
    			{
    				label: 'Guides',
@@ -29,6 +29,7 @@ export default defineConfig({
    			},
 			{
    				label: 'Answers',
+				collapsed: true,
    				items: [
 					{ label: 'getAll', slug: 'answers/getall'},
 					{ label: 'get', slug: 'answers/get' },
@@ -45,6 +46,7 @@ export default defineConfig({
    			},
 			{
 				label: 'Articles',
+				collapsed: true,
 				items: [
 					{ label: 'getAll', slug: 'articles/getall'},
 					{ label: 'get', slug:'articles/get'},
@@ -58,6 +60,7 @@ export default defineConfig({
 			},
 			{
 				label: 'Collections',
+				collapsed: true,
 				items: [
 					{ label: 'getAll', slug: 'collections/getall' },
 					{ label: 'get', slug: 'collections/get' },
@@ -68,6 +71,7 @@ export default defineConfig({
 			},
 			{
 				label: 'Comments',
+				collapsed: true,
 				items: [
 					{ label: 'getAnswerComments', slug: 'comments/getanswercomments' },
 					{ label: 'getArticleComments', slug: 'comments/getarticlecomments' },
@@ -76,6 +80,7 @@ export default defineConfig({
 			},
 			{
 				label: 'Communities',
+				collapsed: true,
 				items: [
 					{ label: 'get', slug: 'communities/get'},
 					{ label: 'getAll', slug: 'communities/getall'},
@@ -90,6 +95,7 @@ export default defineConfig({
 			},
    			{
    				label: 'Questions',
+				collapsed: true,
    				items: [
    					{ label: 'ask', slug: 'questions/ask' },
 					{ label: 'get', slug: 'questions/get' },
@@ -103,6 +109,7 @@ export default defineConfig({
    			},
 			{
 				label: 'Search',
+				collapsed: true,
 				items: [
 					{ label: 'Searching Content', slug: 'search/search' },
 					{ label: 'Search Pagination', slug: 'search/searchpagination'},
@@ -110,6 +117,7 @@ export default defineConfig({
 			},
    			{
    				label: 'Tags',
+				collapsed: true,
    				items: [
    					{ label: 'get', slug: 'tags/get' },
 					{ label: 'getAll', slug: 'tags/getall' },
@@ -122,6 +130,7 @@ export default defineConfig({
    			},
 			{
 				label: 'Users',
+				collapsed: true,
 				items: [
 					{ label: 'get', slug: 'users/get' },
 					{ label: 'getall', slug: 'users/getall' },
@@ -133,8 +142,9 @@ export default defineConfig({
 			},
 			{
 				label: 'UserGroups',
+				collapsed: true,
 				items: [
-					{ label: '', slug: '' }
+					{ label: 'User Group Management', slug: 'usergroups/usergroup' }
 				]
 			}
    		],
