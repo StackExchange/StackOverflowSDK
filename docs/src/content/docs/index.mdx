@@ -8,7 +8,7 @@ hero:
    light: ../../assets/stackoverflow-black.svg
    dark: ../../assets/stackoverflow-white.png
   actions:
-    - text: Quick Start Guide
+    - text: Get Started
       link: ./guides/quickstart/
       icon: right-arrow
     - text: API Version 3 overview
@@ -28,9 +28,6 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 	<Card title="Installation" icon="rocket">
 		Install the SDK with npm, yarn, or your preferred package manager and start accessing your team's knowledge base immediately.
 	</Card>
-	<Card title="Authentication" icon="approve-check">
-		Set up authentication to securely access your team's private Stack Overflow for Teams instance and data.
-	</Card>
 	<Card title="Query Team Knowledge" icon="comment-alt">
 		Search and retrieve questions, answers, and articles from your team's private knowledge repository.
 	</Card>
@@ -48,9 +45,6 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 	<Card title="Type Safety" icon="laptop">
 		Complete TypeScript definitions for all Teams endpoints, models, and responses.
 	</Card>
-	<Card title="Rate Limiting" icon="seti:clock">
-		Built-in rate limiting and retry logic to handle API quotas automatically for your team instance.
-	</Card>
 </CardGrid>
 
 ## Popular use cases
@@ -65,8 +59,13 @@ Whether you're building internal tools, integrating with existing workflows, or 
 
 **Custom Team Apps**: Build specialized interfaces, mobile apps, or integrations tailored to your team's specific needs and workflows.
 
+## Current status
+
+At the moment, the SDK is only available as a **TypeScript library**.  
+This project is in **early access**, and more language support and features (such as authentication helpers and rate limiting) will be added in the future.
+
 ## Ready to start building?
 
-Choose your preferred language and dive into the documentation. Our SDK provides a higher-level abstraction for programmatically interacting with Stack Overflow for Teams, removing friction and enabling you to focus on building great experiences for your team.
+Our SDK provides a higher-level abstraction for programmatically interacting with Stack Overflow for Teams, removing friction and enabling you to focus on building great experiences for your team.
 
 The SDK goes beyond just API endpoints - it's designed to provide the ideal developer experience with built-in tools, best practices, and comprehensive guidance for building applications that enhance your team's collaborative knowledge sharing.
