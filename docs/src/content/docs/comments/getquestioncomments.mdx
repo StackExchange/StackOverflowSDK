@@ -37,7 +37,7 @@ Returns a `Promise<Array<CommentResponseModel>>` containing an array of comment 
 ### Basic Usage
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -143,7 +143,7 @@ const teamSDK = sdk.forTeam('team-123');
 const teamComments = await teamSDK.comments.getQuestionComments(123);
 
 // Or with direct client initialization
-import { CommentClient } from 'stack-overflow-sdk';
+import { CommentClient } from 'so-teams-sdk';
 const teamCommentClient = new CommentClient(config, 'team-123');
 const comments = await teamCommentClient.getQuestionComments(123);
 ```
@@ -340,7 +340,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

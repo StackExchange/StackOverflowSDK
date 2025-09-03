@@ -118,7 +118,7 @@ Returns a `Promise<UserGroupResponseModel>` for single removal or `Promise<UserG
 ### Basic User Group Operations
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -419,7 +419,7 @@ import StackOverflowSDK, {
   ForbiddenError, 
   AuthenticationError, 
   NotFoundError 
-} from 'stack-overflow-sdk';
+} from 'so-teams-sdk';
 
 try {
   const userGroups = await sdk.userGroups.getAll({

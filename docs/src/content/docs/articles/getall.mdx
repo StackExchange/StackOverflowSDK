@@ -51,7 +51,7 @@ Returns a `Promise<PaginatedArticles>` containing:
 ### Basic Usage
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -171,7 +171,7 @@ const teamArticles = await teamSDK.articles.getAll({
 });
 
 // Or with direct client initialization
-import { ArticleClient } from 'stack-overflow-sdk';
+import { ArticleClient } from 'so-teams-sdk';
 const teamArticleClient = new ArticleClient(config, 'team-123');
 const articles = await teamArticleClient.getAll();
 ```
@@ -222,7 +222,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

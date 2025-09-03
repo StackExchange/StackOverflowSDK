@@ -68,7 +68,7 @@ Both methods return a `Promise<PaginatedCommunities>` with the same structure as
 ### Basic Alphabetical Listing
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -552,7 +552,7 @@ These sorting methods inherit the same error handling behavior as `getAll()`:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { AuthenticationError, ForbiddenError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

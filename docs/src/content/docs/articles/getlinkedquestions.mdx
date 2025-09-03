@@ -48,7 +48,7 @@ Returns a `Promise<PaginatedLinkedOrRelatedQuestions>` containing:
 ### Basic Usage
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -109,7 +109,7 @@ const teamSDK = sdk.forTeam('team-123');
 const teamLinkedQuestions = await teamSDK.articles.getLinkedQuestions(123);
 
 // Or with direct client initialization
-import { ArticleClient } from 'stack-overflow-sdk';
+import { ArticleClient } from 'so-teams-sdk';
 const teamArticleClient = new ArticleClient(config, 'team-123');
 const linkedQuestions = await teamArticleClient.getLinkedQuestions(123);
 ```
@@ -395,7 +395,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

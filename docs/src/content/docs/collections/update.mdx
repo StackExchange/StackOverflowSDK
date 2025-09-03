@@ -42,7 +42,7 @@ Returns a `Promise<CollectionsResponseModel>` containing the updated collection 
 ### Basic Update
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -154,7 +154,7 @@ const updatedCollection = await teamSDK.collections.update(123, {
 });
 
 // Or with direct client initialization
-import { CollectionClient } from 'stack-overflow-sdk';
+import { CollectionClient } from 'so-teams-sdk';
 const teamCollectionClient = new CollectionClient(config, 'team-123');
 const collection = await teamCollectionClient.update(123, {
   description: 'Updated team collection description'
@@ -312,7 +312,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

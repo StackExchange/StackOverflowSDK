@@ -40,7 +40,7 @@ Returns a `Promise<CollectionsResponseModel>` containing the newly created colle
 ### Basic Collection Creation
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -132,7 +132,7 @@ const teamCollection = await teamSDK.collections.create({
 });
 
 // Or with direct client initialization
-import { CollectionClient } from 'stack-overflow-sdk';
+import { CollectionClient } from 'so-teams-sdk';
 const teamCollectionClient = new CollectionClient(config, 'team-123');
 const collection = await teamCollectionClient.create({
   title: 'Team Collection',
@@ -203,7 +203,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { ForbiddenError, SDKError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { ForbiddenError, SDKError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

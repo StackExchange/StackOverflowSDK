@@ -44,7 +44,7 @@ Returns a `Promise<Array<UserResponseModel>>` containing an array of user object
 ### Basic External ID Lookup
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -460,7 +460,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { ValidationError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { ValidationError, ForbiddenError } from 'so-teams-sdk';
 
 async function safeExternalIdLookup(externalId: string): Promise<Array<UserResponseModel> | null> {
   try {

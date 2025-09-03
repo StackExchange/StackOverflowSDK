@@ -49,7 +49,7 @@ async addSubjectMatterExpertUser(tagId: number, userId: number): Promise<Subject
 ### Adding Individual SME Users
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -526,7 +526,7 @@ These methods can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

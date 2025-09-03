@@ -27,7 +27,7 @@ Returns a `Promise<AnswerSummaryResponseModel>` containing updated answer summar
 ### Basic Answer Acceptance
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -100,7 +100,7 @@ const teamSDK = sdk.forTeam('team-123');
 const result = await teamSDK.answers.accept(123, 456);
 
 // Or with direct client initialization
-import { AnswerClient } from 'stack-overflow-sdk';
+import { AnswerClient } from 'so-teams-sdk';
 const teamAnswerClient = new AnswerClient(config, 'team-123');
 const acceptResult = await teamAnswerClient.accept(123, 456);
 ```
@@ -179,7 +179,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

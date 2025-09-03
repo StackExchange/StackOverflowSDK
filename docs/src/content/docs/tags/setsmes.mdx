@@ -45,7 +45,7 @@ Returns a `Promise<SubjectMatterExpertResponseModel>` containing the updated SME
 ### Complete SME Replacement
 
 ```typescript
-import StackOverflowSDK from 'stack-overflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -506,7 +506,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'stack-overflow-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
