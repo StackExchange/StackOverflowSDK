@@ -28,15 +28,30 @@ Get your Stack Overflow integration running in minutes with our JavaScript SDK. 
 </Tabs>
 
 ## 1. Initialize the SDK
+<Tabs>
+  <TabItem label='Basic & Business'>
+    ```typescript title="app.ts"
+    import StackOverflowSDK from 'so-teams-sdk';
 
-```typescript title="app.ts"
-import StackOverflowSDK from 'so-teams-sdk';
+    const sdk = new StackOverflowSDK({
+      baseUrl: 'https://api.stackoverflowteams.com/v3',
+      accessToken: 'your-access-token'
+    });
 
-const sdk = new StackOverflowSDK({
-  baseUrl: 'https://[your-site].stackenterprise.co',
-  accessToken: 'your-access-token'
-});
-```
+    const teamContext = sdk.forTeam('team-slug');
+    ```
+  </TabItem>
+  <TabItem label='Enterprise'>
+    ```typescript title="app.ts"
+    import StackOverflowSDK from 'so-teams-sdk';
+
+    const sdk = new StackOverflowSDK({
+      baseUrl: 'https://[your-site].stackenterprise.co/api/v3',
+      accessToken: 'your-access-token'
+    });
+    ```
+  </TabItem>
+</Tabs>
 
 ## 2. Make Your First API Call
 
