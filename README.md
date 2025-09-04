@@ -17,7 +17,6 @@ The Stack Overflow for Teams SDK lets you build powerful applications and integr
 - 👥 **Team management** – access profiles, activity, and collaborate on internal documentation and Q&A.  
 
 ⚠️ Currently, this SDK is in **early access** and available only as a **TypeScript library**.  
-Authentication helpers and rate limiting are not yet included but will be added in future releases.
 
 ## 🚀 Installation
 
