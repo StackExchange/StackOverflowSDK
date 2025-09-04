@@ -11,7 +11,7 @@ The Stack Overflow SDK requires an access token to authenticate API requests. Th
 The SDK uses OAuth 2.0 with access tokens for authentication. All API calls require a valid access token to be passed during SDK initialization.
 
 ```typescript
-import StackOverflowSDK from 'stackoverflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk;
 
 const sdk = new StackOverflowSDK({
   baseUrl: 'https://[your-site].stackenterprise.co',
@@ -46,7 +46,7 @@ PATs allow you to authenticate securely with the API without needing the full OA
 Once you have an access token, initialize the SDK with your credentials:
 
 ```typescript title="sdk-setup.ts"
-import StackOverflowSDK from 'stackoverflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk;
 
 // For Stack Overflow for Teams
 const teamsSDK = new StackOverflowSDK({
@@ -79,7 +79,7 @@ export const config = {
 ```
 
 ```typescript title="app.ts"
-import StackOverflowSDK from 'stackoverflow-sdk';
+import StackOverflowSDK from 'so-teams-sdk;
 import { config } from './config';
 
 const sdk = new StackOverflowSDK(config);
