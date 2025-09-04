@@ -19,7 +19,7 @@ async bookmark(questionId: number): Promise<QuestionResponseModel>
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question to bookmark |
+| questionId | `number` | Yes | The unique identifier of the question to bookmark |
 
 ---
 
@@ -35,7 +35,7 @@ async removeBookmark(questionId: number): Promise<QuestionResponseModel>
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question to remove bookmark from |
+| questionId | `number` | Yes | The unique identifier of the question to remove bookmark from |
 
 ## Return Value
 
@@ -691,12 +691,12 @@ Both bookmark methods can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to bookmark questions |
-| `NotFoundError` | 404 | Question with the specified ID does not exist |
-| `ConflictError` | 409 | Bookmark already exists (for bookmark) or doesn't exist (for removeBookmark) |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to bookmark questions |
+| NotFoundError | 404 | Question with the specified ID does not exist |
+| ConflictError | 409 | Bookmark already exists (for bookmark) or doesn't exist (for removeBookmark) |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

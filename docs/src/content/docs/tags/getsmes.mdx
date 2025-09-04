@@ -17,7 +17,7 @@ async getSubjectMatterExperts(tagId: number): Promise<SubjectMatterExpertRespons
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
+| tagId | `number` | Yes | The unique identifier of the tag |
 
 ## Return Value
 
@@ -25,28 +25,28 @@ Returns a `Promise<SubjectMatterExpertResponseModel>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `users` | `UserSummaryResponseModel[]` | Individual users assigned as SMEs |
-| `userGroups` | `UserGroupResponseModel[]` | User groups assigned as SMEs |
+| users | `UserSummaryResponseModel[]` | Individual users assigned as SMEs |
+| userGroups | `UserGroupResponseModel[]` | User groups assigned as SMEs |
 
 ### UserSummaryResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `userId` | `number` | User's unique identifier |
-| `displayName` | `string` | User's display name |
-| `reputation` | `number` | User's reputation score |
-| `profileUrl` | `string` | URL to user's profile |
-| `profileImage` | `string` | URL to user's avatar image |
+| userId | `number` | User's unique identifier |
+| displayName | `string` | User's display name |
+| reputation | `number` | User's reputation score |
+| profileUrl | `string` | URL to user's profile |
+| profileImage | `string` | URL to user's avatar image |
 
 ### UserGroupResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | Group's unique identifier |
-| `name` | `string` | Group name |
-| `description` | `string` | Group description |
-| `memberCount` | `number` | Number of members in the group |
-| `isPrivate` | `boolean` | Whether the group is private |
+| id | `number` | Group's unique identifier |
+| name | `string` | Group name |
+| description | `string` | Group description |
+| memberCount | `number` | Number of members in the group |
+| isPrivate | `boolean` | Whether the group is private |
 
 ## Examples
 
@@ -553,11 +553,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access SME information |
-| `NotFoundError` | 404 | Tag with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access SME information |
+| NotFoundError | 404 | Tag with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

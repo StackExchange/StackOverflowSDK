@@ -17,7 +17,7 @@ async getQuestionComments(questionId: number): Promise<Array<CommentResponseMode
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question to retrieve comments for |
+| questionId | `number` | Yes | The unique identifier of the question to retrieve comments for |
 
 ## Return Value
 
@@ -25,12 +25,12 @@ Returns a `Promise<Array<CommentResponseModel>>` containing an array of comment 
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | The comment's unique identifier |
-| `score` | `number` | Comment score (upvotes minus downvotes) |
-| `body` | `string` | The text of the comment in Markdown format |
-| `ownerUserId` | `number` \| `null` | ID of the user that posted the comment |
-| `ownerDisplayName` | `string` | Name of the user that posted the comment |
-| `creationDate` | `Date` | When the comment was created |
+| id | `number` | The comment's unique identifier |
+| score | `number` | Comment score (upvotes minus downvotes) |
+| body | `string` | The text of the comment in Markdown format |
+| ownerUserId | `number` \| null | ID of the user that posted the comment |
+| ownerDisplayName | `string` | Name of the user that posted the comment |
+| creationDate | `Date` | When the comment was created |
 
 ## Examples
 
@@ -331,11 +331,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access the question or its comments |
-| `NotFoundError` | 404 | Question with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access the question or its comments |
+| NotFoundError | 404 | Question with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

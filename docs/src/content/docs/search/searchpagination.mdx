@@ -20,23 +20,23 @@ async searchNextPage(query: string, currentPage: number, options: Omit<SearchOpt
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `query` | `string` | Yes | Search query string |
-| `options` | `Omit<SearchOptions, 'query' \| 'page'>` | No | Search options excluding query and page |
+| query | `string` | Yes | Search query string |
+| options | `Omit<SearchOptions, 'query' \| 'page'>` | No | Search options excluding query and page |
 
 ### searchNextPage()
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `query` | `string` | Yes | Search query string (must match original search) |
-| `currentPage` | `number` | Yes | Current page number to increment from |
-| `options` | `Omit<SearchOptions, 'query' \| 'page'>` | No | Search options excluding query and page |
+| query | `string` | Yes | Search query string (must match original search) |
+| currentPage | `number` | Yes | Current page number to increment from |
+| options | `Omit<SearchOptions, 'query' \| 'page'>` | No | Search options excluding query and page |
 
 ### Available Options
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `pageSize` | `15 \| 30 \| 50 \| 100` | Number of results per page |
-| `sort` | `SearchSortParameter` | Sort order: `'relevance'`, `'newest'`, `'active'`, or `'score'` |
+| pageSize | `15 \| 30 \| 50 \| 100` | Number of results per page |
+| sort | `SearchSortParameter` | Sort order: `'relevance'`, `'newest'`, `'active'`, or `'score'` |
 
 ## Return Value
 
@@ -575,11 +575,11 @@ Pagination methods can throw the same errors as the main search method:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions for search operation |
-| `ValidationError` | 400 | Invalid search parameters or page numbers |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions for search operation |
+| ValidationError | 400 | Invalid search parameters or page numbers |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

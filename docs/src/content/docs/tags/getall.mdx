@@ -25,19 +25,19 @@ async getAllByPostCount(options: Omit<GetTagsOptions, 'sort' | 'order'> = {}): P
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `GetTagsOptions` | No | Tag filtering and sorting options |
+| options | `GetTagsOptions` | No | Tag filtering and sorting options |
 
 ### GetTagsOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `page` | `number` | No | Page number (defaults to 1) |
-| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
-| `sort` | `TagsSortParameter` | No | Sort field: `'name'`, `'postCount'`, or `'creationDate'` |
-| `order` | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
-| `partialName` | `string` | No | Search for tags containing this text |
-| `hasSmes` | `boolean` | No | Filter by presence of Subject Matter Experts |
-| `hasSynonyms` | `boolean` | No | Filter by presence of tag synonyms |
+| page | `number` | No | Page number (defaults to 1) |
+| pageSize | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| sort | `TagsSortParameter` | No | Sort field: `'name'`, `'postCount'`, or `'creationDate'` |
+| order | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+| partialName | `string` | No | Search for tags containing this text |
+| hasSmes | `boolean` | No | Filter by presence of Subject Matter Experts |
+| hasSynonyms | `boolean` | No | Filter by presence of tag synonyms |
 
 ## Return Value
 
@@ -45,13 +45,13 @@ Returns a `Promise<PaginatedTags>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `totalCount` | `number` | Total number of tags found |
-| `pageSize` | `number` | Number of results per page |
-| `page` | `number` | Current page number |
-| `totalPages` | `number` | Total number of pages available |
-| `sort` | `TagsSortParameter` | Applied sort field |
-| `order` | `SortOrder` | Applied sort direction |
-| `items` | `TagSummaryResponseModel[]` | Array of tag summary objects |
+| totalCount | `number` | Total number of tags found |
+| pageSize | `number` | Number of results per page |
+| page | `number` | Current page number |
+| totalPages | `number` | Total number of pages available |
+| sort | `TagsSortParameter` | Applied sort field |
+| order | `SortOrder` | Applied sort direction |
+| items | `TagSummaryResponseModel[]` | Array of tag summary objects |
 
 ### TagSummaryResponseModel Properties
 
@@ -471,11 +471,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access tags |
-| `ValidationError` | 400 | Invalid filter parameters or sort options |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access tags |
+| ValidationError | 400 | Invalid filter parameters or sort options |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

@@ -17,20 +17,20 @@ async getAll(options?: GetArticlesOptions): Promise<PaginatedArticles>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `GetArticlesOptions` | No | Configuration options for pagination, filtering, and sorting |
+| options | `GetArticlesOptions` | No | Configuration options for pagination, filtering, and sorting |
 
 ### GetArticlesOptions
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
-| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of articles to return per page |
-| `sort` | `ArticleSortParameter` | No | | Sort articles by: `"activity"`, `"creation"`, or `"score"` |
-| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
-| `tagId` | `number[]` | No | | Filter articles by specific tag IDs |
-| `authorId` | `number` | No | | Filter articles by specific author ID |
-| `from` | `Date` | No | | Filter articles created after this date |
-| `to` | `Date` | No | | Filter articles created before this date |
+| page | `number` | No | 1 | The page number to retrieve (1-based) |
+| pageSize | `15 \| 30 \| 50 \| 100` | No | 30 | Number of articles to return per page |
+| sort | `ArticleSortParameter` | No | | Sort articles by: `"activity"`, `"creation"`, or `"score"` |
+| order | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| tagId | `number[]` | No | | Filter articles by specific tag IDs |
+| authorId | `number` | No | | Filter articles by specific author ID |
+| from | `Date` | No | | Filter articles created after this date |
+| to | `Date` | No | | Filter articles created before this date |
 
 ## Return Value
 
@@ -38,13 +38,13 @@ Returns a `Promise<PaginatedArticles>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `totalCount` | `number` | Total number of articles matching the criteria |
-| `pageSize` | `number` | Number of items per page |
-| `page` | `number` | Current page number |
-| `totalPages` | `number` | Total number of pages available |
-| `sort` | `ArticleSortParameter` | Sort parameter used |
-| `order` | `SortOrder` | Sort order used |
-| `items` | `ArticleResponseModel[]` | Array of article objects |
+| totalCount | `number` | Total number of articles matching the criteria |
+| pageSize | `number` | Number of items per page |
+| page | `number` | Current page number |
+| totalPages | `number` | Total number of pages available |
+| sort | `ArticleSortParameter` | Sort parameter used |
+| order | `SortOrder` | Sort order used |
+| items | `ArticleResponseModel[]` | Array of article objects |
 
 ## Examples
 
@@ -214,10 +214,10 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access articles |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access articles |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

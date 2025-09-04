@@ -15,8 +15,8 @@ async delete(questionId: number, answerId: number): Promise<void>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
-| `answerId` | `number` | Yes | The unique identifier of the answer to delete |
+| questionId | `number` | Yes | The unique identifier of the question that contains the answer |
+| answerId | `number` | Yes | The unique identifier of the answer to delete |
 
 ## Return Value
 
@@ -109,11 +109,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to delete this answer |
-| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to delete this answer |
+| NotFoundError | 404 | Question or answer with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

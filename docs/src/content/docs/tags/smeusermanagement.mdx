@@ -21,22 +21,22 @@ async addSubjectMatterExpertUser(tagId: number, userId: number): Promise<Subject
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
-| `userIds` | `number[]` | Yes | Array of user IDs to add as SMEs |
+| tagId | `number` | Yes | The unique identifier of the tag |
+| userIds | `number[]` | Yes | Array of user IDs to add as SMEs |
 
 ### removeSubjectMatterExpertUser()
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
-| `userId` | `number` | Yes | The user ID to remove from SMEs |
+| tagId | `number` | Yes | The unique identifier of the tag |
+| userId | `number` | Yes | The user ID to remove from SMEs |
 
 ### addSubjectMatterExpertUser()
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
-| `userId` | `number` | Yes | The user ID to add as SME |
+| tagId | `number` | Yes | The unique identifier of the tag |
+| userId | `number` | Yes | The user ID to add as SME |
 
 ## Return Value
 
@@ -516,12 +516,12 @@ These methods can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to modify SME assignments |
-| `NotFoundError` | 404 | Tag or user with specified ID does not exist |
-| `ValidationError` | 400 | Invalid user IDs or user already/not assigned |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to modify SME assignments |
+| NotFoundError | 404 | Tag or user with specified ID does not exist |
+| ValidationError | 400 | Invalid user IDs or user already/not assigned |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

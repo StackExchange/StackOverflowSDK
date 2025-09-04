@@ -17,7 +17,7 @@ async join(communityId: number): Promise<CommunityResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `communityId` | `number` | Yes | The unique identifier of the community to join |
+| communityId | `number` | Yes | The unique identifier of the community to join |
 
 ## Return Value
 
@@ -329,11 +329,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Cannot join community (already a member, restricted access, etc.) |
-| `NotFoundError` | 404 | Community with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Cannot join community (already a member, restricted access, etc.) |
+| NotFoundError | 404 | Community with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

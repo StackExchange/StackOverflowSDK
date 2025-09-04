@@ -17,25 +17,25 @@ async create(options: CreateArticleOptions): Promise<ArticleResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `CreateArticleOptions` | Yes | The article creation options |
+| options | `CreateArticleOptions` | Yes | The article creation options |
 
 ### CreateArticleOptions
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `title` | `string` | Yes | The article title |
-| `body` | `string` | Yes | The article content in Markdown format |
-| `tags` | `string[]` | Yes | Array of tags to associate with the article |
-| `type` | `ArticleType` | Yes | The type/category of the article: `"knowledgeArticle"`, `"announcement"`, `"policy"`, or `"howToGuide"` |
-| `permissions` | `ArticlePermissionsRequestModel` | Yes | Article permission and access control settings |
+| title | `string` | Yes | The article title |
+| body | `string` | Yes | The article content in Markdown format |
+| tags | `string[]` | Yes | Array of tags to associate with the article |
+| type | `ArticleType` | Yes | The type/category of the article: `"knowledgeArticle"`, `"announcement"`, `"policy"`, or `"howToGuide"` |
+| permissions | `ArticlePermissionsRequestModel` | Yes | Article permission and access control settings |
 
 ### ArticlePermissionsRequestModel
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `editableBy` | `ArticlePermissionsType` | No | Who can edit this article: `"ownerOnly"`, `"specificEditors"`, or `"everyone"` |
-| `editorUserIds` | `number[]` | No | Specific user IDs who can edit this article |
-| `editorUserGroupIds` | `number[]` | No | Specific user group IDs who can edit this article |
+| editableBy | `ArticlePermissionsType` | No | Who can edit this article: `"ownerOnly"`, `"specificEditors"`, or `"everyone"` |
+| editorUserIds | `number[]` | No | Specific user IDs who can edit this article |
+| editorUserGroupIds | `number[]` | No | Specific user group IDs who can edit this article |
 
 ## Return Value
 
@@ -328,10 +328,10 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to create articles |
-| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to create articles |
+| SDKError | Various | Other API or network errors (e.g., validation errors) |
 
 ### Example Error Handling
 

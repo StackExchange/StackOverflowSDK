@@ -15,15 +15,15 @@ async update(questionId: number, answerId: number, options: CreateAnswerOptions)
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
-| `answerId` | `number` | Yes | The unique identifier of the answer to update |
-| `options` | `CreateAnswerOptions` | Yes | The answer update options |
+| questionId | `number` | Yes | The unique identifier of the question that contains the answer |
+| answerId | `number` | Yes | The unique identifier of the answer to update |
+| options | `CreateAnswerOptions` | Yes | The answer update options |
 
 ### CreateAnswerOptions
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `body` | `string` | Yes | The updated content of the answer in Markdown format |
+| body | `string` | Yes | The updated content of the answer in Markdown format |
 
 ## Return Value
 
@@ -127,11 +127,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to edit this answer |
-| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to edit this answer |
+| NotFoundError | 404 | Question or answer with the specified ID does not exist |
+| SDKError | Various | Other API or network errors (e.g., validation errors) |
 
 ### Example Error Handling
 

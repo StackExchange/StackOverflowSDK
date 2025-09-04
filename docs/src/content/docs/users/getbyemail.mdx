@@ -17,7 +17,7 @@ async getByEmail(email: string): Promise<UserDetailsResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `email` | `string` | Yes | The email address of the user to retrieve |
+| email | `string` | Yes | The email address of the user to retrieve |
 
 ## Return Value
 
@@ -25,18 +25,18 @@ Returns a `Promise<UserDetailsResponseModel>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | User's unique identifier |
-| `accountId` | `number \| null` | User's Stack Overflow network account ID |
-| `name` | `string` | User's display name |
-| `email` | `string \| null` | Email address (visible to admins or current user only) |
-| `avatarUrl` | `string` | URL to user's profile picture |
-| `webUrl` | `string` | URL to user's profile page |
-| `reputation` | `number` | User's reputation score |
-| `role` | `string` | User's role on the site |
-| `externalId` | `string \| null` | External ID from SCIM or SAML |
-| `department` | `string \| null` | Organizational department from SAML |
-| `jobTitle` | `string \| null` | Job title from SAML |
-| `communities` | `CommunitySummaryResponseModel[]` | Communities the user belongs to |
+| id | `number` | User's unique identifier |
+| accountId | `number \| null` | User's Stack Overflow network account ID |
+| name | `string` | User's display name |
+| email | `string \| null` | Email address (visible to admins or current user only) |
+| avatarUrl | `string` | URL to user's profile picture |
+| webUrl | `string` | URL to user's profile page |
+| reputation | `number` | User's reputation score |
+| role | `string` | User's role on the site |
+| externalId | `string \| null` | External ID from SCIM or SAML |
+| department | `string \| null` | Organizational department from SAML |
+| jobTitle | `string \| null` | Job title from SAML |
+| communities | `CommunitySummaryResponseModel[]` | Communities the user belongs to |
 
 ## Examples
 
@@ -372,12 +372,12 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `UserNotFoundError` | 404 | No user found with the specified email address |
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to look up users by email |
-| `ValidationError` | 400 | Invalid email format |
-| `SDKError` | Various | Other API or network errors |
+| UserNotFoundError | 404 | No user found with the specified email address |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to look up users by email |
+| ValidationError | 400 | Invalid email format |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

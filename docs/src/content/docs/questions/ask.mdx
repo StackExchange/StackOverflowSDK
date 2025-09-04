@@ -17,15 +17,15 @@ async ask(options: CreateQuestionOptions): Promise<QuestionResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `CreateQuestionOptions` | Yes | Question creation configuration |
+| options | `CreateQuestionOptions` | Yes | Question creation configuration |
 
 ### CreateQuestionOptions
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `title` | `string` | Yes | Question title - the actual question stated briefly in one sentence |
-| `body` | `string` | Yes | Question body - main content in Markdown format |
-| `tags` | `string[]` | Yes | Array of tag names associated with the question |
+| title | `string` | Yes | Question title - the actual question stated briefly in one sentence |
+| body | `string` | Yes | Question body - main content in Markdown format |
+| tags | `string[]` | Yes | Array of tag names associated with the question |
 
 ## Return Value
 
@@ -522,11 +522,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ValidationError` | 400 | Invalid question data (empty title, body, or tags) |
-| `ForbiddenError` | 403 | Insufficient permissions to create questions |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ValidationError | 400 | Invalid question data (empty title, body, or tags) |
+| ForbiddenError | 403 | Insufficient permissions to create questions |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

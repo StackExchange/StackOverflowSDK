@@ -3,8 +3,6 @@ title: answers.getAll()
 description: Retrieve all answers for a specific question with pagination and sorting options.
 ---
 
-import ResponsiveTable from '../../../components/ResponsiveTable.astro'
-
 Retrieves a paginated list of answers for a specific question.
 
 ## Syntax
@@ -105,11 +103,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access the question |
-| `NotFoundError` | 404 | Question with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access the question |
+| NotFoundError | 404 | Question with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

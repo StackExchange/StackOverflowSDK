@@ -17,7 +17,7 @@ async create(options: CreateCollectionOptions): Promise<CollectionsResponseModel
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `CreateCollectionOptions` | Yes | The collection creation options |
+| options | `CreateCollectionOptions` | Yes | The collection creation options |
 
 ### CreateCollectionOptions
 
@@ -25,11 +25,11 @@ Based on the underlying `CollectionRequestModel`, the following properties are a
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `title` | `string` | Yes | A brief title to distinguish the collection and its contents |
-| `description` | `string` | No | A detailed description of what the collection contains (supports Markdown) |
-| `editorUserIds` | `number[]` | No | The IDs of users who can modify this collection |
-| `editorUserGroupIds` | `number[]` | No | The IDs of user groups whose members can modify this collection |
-| `contentIds` | `number[]` | No | The IDs of questions and/or articles that this collection contains, in order |
+| title | `string` | Yes | A brief title to distinguish the collection and its contents |
+| description | `string` | No | A detailed description of what the collection contains (supports Markdown) |
+| editorUserIds | `number[]` | No | The IDs of users who can modify this collection |
+| editorUserGroupIds | `number[]` | No | The IDs of user groups whose members can modify this collection |
+| contentIds | `number[]` | No | The IDs of questions and/or articles that this collection contains, in order |
 
 ## Return Value
 
@@ -195,10 +195,10 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to create collections |
-| `SDKError` | Various | Other API or network errors (e.g., validation errors) |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to create collections |
+| SDKError | Various | Other API or network errors (e.g., validation errors) |
 
 ### Example Error Handling
 

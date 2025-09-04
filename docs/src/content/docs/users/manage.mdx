@@ -23,19 +23,19 @@ async getRecentlyActiveUsers(daysSinceLastAccess: number, options: Omit<ManageUs
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `ManageUsersOptions` | No | User management filtering and sorting options |
+| options | `ManageUsersOptions` | No | User management filtering and sorting options |
 
 ### ManageUsersOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `page` | `number` | No | Page number (defaults to 1) |
-| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
-| `sort` | `ManageUsersSortParameter` | No | Sort field: `'id'`, `'name'`, `'email'`, `'lastAccessDate'` |
-| `order` | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
-| `isDeactivated` | `boolean` | No | Filter by deactivation status |
-| `lastAccessDateFrom` | `Date` | No | Filter users active since this date |
-| `lastAccessDateTo` | `Date` | No | Filter users active before this date |
+| page | `number` | No | Page number (defaults to 1) |
+| pageSize | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| sort | `ManageUsersSortParameter` | No | Sort field: `'id'`, `'name'`, `'email'`, `'lastAccessDate'` |
+| order | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+| isDeactivated | `boolean` | No | Filter by deactivation status |
+| lastAccessDateFrom | `Date` | No | Filter users active since this date |
+| lastAccessDateTo | `Date` | No | Filter users active before this date |
 
 ## Return Value
 
@@ -43,30 +43,30 @@ Returns a `Promise<PaginatedManageUsers>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `totalCount` | `number` | Total number of users found |
-| `pageSize` | `number` | Number of results per page |
-| `page` | `number` | Current page number |
-| `totalPages` | `number` | Total number of pages available |
-| `sort` | `ManageUsersSortParameter` | Applied sort field |
-| `order` | `SortOrder` | Applied sort direction |
-| `items` | `ManageUserResponseModel[]` | Array of user management objects |
+| totalCount | `number` | Total number of users found |
+| pageSize | `number` | Number of results per page |
+| page | `number` | Current page number |
+| totalPages | `number` | Total number of pages available |
+| sort | `ManageUsersSortParameter` | Applied sort field |
+| order | `SortOrder` | Applied sort direction |
+| items | `ManageUserResponseModel[]` | Array of user management objects |
 
 ### ManageUserResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | User's unique identifier |
-| `accountId` | `number \| null` | User's Stack Overflow network account ID |
-| `name` | `string` | User's display name |
-| `email` | `string \| null` | Email address (always visible in management context) |
-| `avatarUrl` | `string` | URL to user's profile picture |
-| `webUrl` | `string` | URL to user's profile page |
-| `reputation` | `number` | User's reputation score |
-| `role` | `string` | User's role on the site |
-| `isDeactivated` | `boolean` | Whether the user account is deactivated |
-| `creationDate` | `Date` | When the user account was created |
-| `lastModifiedDate` | `Date \| null` | When the user account was last modified |
-| `lastAccessDate` | `Date` | When the user last accessed the system |
+| id | `number` | User's unique identifier |
+| accountId | `number \| null` | User's Stack Overflow network account ID |
+| name | `string` | User's display name |
+| email | `string \| null` | Email address (always visible in management context) |
+| avatarUrl | `string` | URL to user's profile picture |
+| webUrl | `string` | URL to user's profile page |
+| reputation | `number` | User's reputation score |
+| role | `string` | User's role on the site |
+| isDeactivated | `boolean` | Whether the user account is deactivated |
+| creationDate | `Date` | When the user account was created |
+| lastModifiedDate | `Date \| null` | When the user account was last modified |
+| lastAccessDate | `Date` | When the user last accessed the system |
 
 ## Examples
 
@@ -477,12 +477,12 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions (admin/moderator required) |
-| `ValidationError` | 400 | Invalid date range or filter parameters |
-| `UnsupportedOperationError` | 400 | Management endpoint not available in team context |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions (admin/moderator required) |
+| ValidationError | 400 | Invalid date range or filter parameters |
+| UnsupportedOperationError | 400 | Management endpoint not available in team context |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

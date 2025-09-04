@@ -21,22 +21,22 @@ async addSubjectMatterExpertUserGroup(tagId: number, userGroupId: number): Promi
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
-| `userGroupIds` | `number[]` | Yes | Array of user group IDs to add as SMEs |
+| tagId | `number` | Yes | The unique identifier of the tag |
+| userGroupIds | `number[]` | Yes | Array of user group IDs to add as SMEs |
 
 ### removeSubjectMatterExpertUserGroup()
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
-| `userGroupId` | `number` | Yes | The user group ID to remove from SMEs |
+| tagId | `number` | Yes | The unique identifier of the tag |
+| userGroupId | `number` | Yes | The user group ID to remove from SMEs |
 
 ### addSubjectMatterExpertUserGroup()
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag |
-| `userGroupId` | `number` | Yes | The user group ID to add as SME |
+| tagId | `number` | Yes | The unique identifier of the tag |
+| userGroupId | `number` | Yes | The user group ID to add as SME |
 
 ## Return Value
 
@@ -739,12 +739,12 @@ These methods can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to modify SME assignments |
-| `NotFoundError` | 404 | Tag or user group with specified ID does not exist |
-| `ValidationError` | 400 | Invalid group IDs or group already/not assigned |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to modify SME assignments |
+| NotFoundError | 404 | Tag or user group with specified ID does not exist |
+| ValidationError | 400 | Invalid group IDs or group already/not assigned |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

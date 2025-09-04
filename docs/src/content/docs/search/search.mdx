@@ -22,16 +22,16 @@ async searchByVotes(query: string, options: Omit<SearchOptions, 'query' | 'sort'
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `options` | `SearchOptions` | No | Search configuration options |
+| options | `SearchOptions` | No | Search configuration options |
 
 ### SearchOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `query` | `string` | No | Search query string |
-| `page` | `number` | No | Page number (defaults to 1) |
-| `pageSize` | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
-| `sort` | `SearchSortParameter` | No | Sort order: `'relevance'`, `'newest'`, `'active'`, or `'score'` |
+| query | `string` | No | Search query string |
+| page | `number` | No | Page number (defaults to 1) |
+| pageSize | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
+| sort | `SearchSortParameter` | No | Sort order: `'relevance'`, `'newest'`, `'active'`, or `'score'` |
 
 ## Return Value
 
@@ -39,12 +39,12 @@ Returns a `Promise<PaginatedSearchResults>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `totalCount` | `number` | Total number of results found |
-| `pageSize` | `number` | Number of results per page |
-| `page` | `number` | Current page number |
-| `totalPages` | `number` | Total number of pages available |
-| `sort` | `SearchSortParameter` | Applied sort order |
-| `items` | `Array<QuestionSearchResultModel \| AnswerSearchResultModel \| ArticleSearchResultModel>` | Search results |
+| totalCount | `number` | Total number of results found |
+| pageSize | `number` | Number of results per page |
+| page | `number` | Current page number |
+| totalPages | `number` | Total number of pages available |
+| sort | `SearchSortParameter` | Applied sort order |
+| items | `Array<QuestionSearchResultModel \| AnswerSearchResultModel \| ArticleSearchResultModel>` | Search results |
 
 ### Search Result Types
 
@@ -53,49 +53,49 @@ Each result item contains a `type` field and type-specific properties:
 #### QuestionSearchResultModel
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | `string` | Always `'question'` |
-| `questionId` | `number` | Question identifier |
-| `title` | `string` | Question title |
-| `snippet` | `string` | Content preview |
-| `score` | `number` | Question score |
-| `answerCount` | `number` | Number of answers |
-| `hasAcceptedAnswer` | `boolean` | Whether question has accepted answer |
-| `viewCount` | `number` | View count |
-| `tags` | `TagSummaryResponseModel[]` | Associated tags |
-| `owner` | `UserSummaryResponseModel` | Question author |
-| `creationDate` | `Date` | Creation timestamp |
-| `webUrl` | `string` | Direct URL to question |
+| type | `string` | Always `'question'` |
+| questionId | `number` | Question identifier |
+| title | `string` | Question title |
+| snippet | `string` | Content preview |
+| score | `number` | Question score |
+| answerCount | `number` | Number of answers |
+| hasAcceptedAnswer | `boolean` | Whether question has accepted answer |
+| viewCount | `number` | View count |
+| tags | `TagSummaryResponseModel[]` | Associated tags |
+| owner | `UserSummaryResponseModel` | Question author |
+| creationDate | `Date` | Creation timestamp |
+| webUrl | `string` | Direct URL to question |
 
 #### AnswerSearchResultModel
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | `string` | Always `'answer'` |
-| `answerId` | `number` | Answer identifier |
-| `parentQuestionId` | `number` | Parent question ID |
-| `title` | `string` | Answer title (usually question title) |
-| `snippet` | `string` | Answer content preview |
-| `score` | `number` | Answer score |
-| `isAccepted` | `boolean` | Whether answer is accepted |
-| `tags` | `TagSummaryResponseModel[]` | Question tags |
-| `owner` | `UserSummaryResponseModel` | Answer author |
-| `creationDate` | `Date` | Creation timestamp |
-| `webUrl` | `string` | Direct URL to answer |
+| type | `string` | Always `'answer'` |
+| answerId | `number` | Answer identifier |
+| parentQuestionId | `number` | Parent question ID |
+| title | `string` | Answer title (usually question title) |
+| snippet | `string` | Answer content preview |
+| score | `number` | Answer score |
+| isAccepted | `boolean` | Whether answer is accepted |
+| tags | `TagSummaryResponseModel[]` | Question tags |
+| owner | `UserSummaryResponseModel` | Answer author |
+| creationDate | `Date` | Creation timestamp |
+| webUrl | `string` | Direct URL to answer |
 
 #### ArticleSearchResultModel
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | `string` | Always `'article'` |
-| `articleId` | `number` | Article identifier |
-| `title` | `string` | Article title |
-| `snippet` | `string` | Article content preview |
-| `score` | `number` | Article score |
-| `viewCount` | `number` | View count |
-| `articleType` | `ArticleType` | Article category |
-| `readTimeInMinutes` | `number` | Estimated reading time |
-| `tags` | `TagSummaryResponseModel[]` | Associated tags |
-| `owner` | `UserSummaryResponseModel` | Article author |
-| `creationDate` | `Date` | Creation timestamp |
-| `webUrl` | `string` | Direct URL to article |
+| type | `string` | Always `'article'` |
+| articleId | `number` | Article identifier |
+| title | `string` | Article title |
+| snippet | `string` | Article content preview |
+| score | `number` | Article score |
+| viewCount | `number` | View count |
+| articleType | `ArticleType` | Article category |
+| readTimeInMinutes | `number` | Estimated reading time |
+| tags | `TagSummaryResponseModel[]` | Associated tags |
+| owner | `UserSummaryResponseModel` | Article author |
+| creationDate | `Date` | Creation timestamp |
+| webUrl | `string` | Direct URL to article |
 
 ## Examples
 
@@ -650,11 +650,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions for search operation |
-| `ValidationError` | 400 | Invalid search parameters or query format |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions for search operation |
+| ValidationError | 400 | Invalid search parameters or query format |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

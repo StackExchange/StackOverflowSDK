@@ -15,8 +15,8 @@ async removeDownvote(questionId: number, answerId: number): Promise<AnswerSummar
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
-| `answerId` | `number` | Yes | The unique identifier of the answer to remove the downvote from |
+| questionId | `number` | Yes | The unique identifier of the question that contains the answer |
+| answerId | `number` | Yes | The unique identifier of the answer to remove the downvote from |
 
 ## Return Value
 
@@ -151,11 +151,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Cannot remove downvote (no existing downvote, insufficient permissions) |
-| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Cannot remove downvote (no existing downvote, insufficient permissions) |
+| NotFoundError | 404 | Question or answer with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

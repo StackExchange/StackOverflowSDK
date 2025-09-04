@@ -15,8 +15,8 @@ async upvote(questionId: number, answerId: number): Promise<AnswerSummaryRespons
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
-| `answerId` | `number` | Yes | The unique identifier of the answer to upvote |
+| questionId | `number` | Yes | The unique identifier of the question that contains the answer |
+| answerId | `number` | Yes | The unique identifier of the answer to upvote |
 
 ## Return Value
 
@@ -128,11 +128,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Cannot vote (already voted, own answer, insufficient permissions) |
-| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Cannot vote (already voted, own answer, insufficient permissions) |
+| NotFoundError | 404 | Question or answer with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

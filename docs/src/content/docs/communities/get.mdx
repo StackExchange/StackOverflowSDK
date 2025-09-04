@@ -17,7 +17,7 @@ async get(communityId: number): Promise<CommunityResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `communityId` | `number` | Yes | The unique identifier of the community to retrieve |
+| communityId | `number` | Yes | The unique identifier of the community to retrieve |
 
 ## Return Value
 
@@ -25,12 +25,12 @@ Returns a `Promise<CommunityResponseModel>` containing the complete community ob
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | The community's unique identifier |
-| `name` | `string` | The community's name |
-| `description` | `string` | The community's description |
-| `memberCount` | `number` | Number of members in the community |
-| `members` | `CommunityMemberResponseModel[]` | The community's members with detailed information |
-| `tags` | `TagSummaryResponseModel[]` | The community's associated tags |
+| id | `number` | The community's unique identifier |
+| name | `string` | The community's name |
+| description | `string` | The community's description |
+| memberCount | `number` | Number of members in the community |
+| members | `CommunityMemberResponseModel[]` | The community's members with detailed information |
+| tags | `TagSummaryResponseModel[]` | The community's associated tags |
 
 ## Examples
 
@@ -387,11 +387,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access the community |
-| `NotFoundError` | 404 | Community with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access the community |
+| NotFoundError | 404 | Community with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

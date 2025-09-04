@@ -17,7 +17,7 @@ async get(tagId: number): Promise<TagResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tagId` | `number` | Yes | The unique identifier of the tag to retrieve |
+| tagId | `number` | Yes | The unique identifier of the tag to retrieve |
 
 ## Return Value
 
@@ -25,23 +25,23 @@ Returns a `Promise<TagResponseModel>` containing complete tag information:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | The tag's unique identifier |
-| `name` | `string` | The tag's name |
-| `description` | `string` | The tag's description |
-| `postCount` | `number` | Number of posts that have this tag |
-| `subjectMatterExpertCount` | `number \| null` | Total number of SME users (null if SMEs not enabled) |
-| `watcherCount` | `number` | Number of users watching this tag |
-| `creationDate` | `Date` | When the tag was created |
-| `hasSynonyms` | `boolean` | Whether the tag has synonym(s) |
-| `webUrl` | `string` | Direct URL to the tag |
-| `subjectMatterExperts` | `SubjectMatterExpertResponseModel` | Complete SME information |
+| id | `number` | The tag's unique identifier |
+| name | `string` | The tag's name |
+| description | `string` | The tag's description |
+| postCount | `number` | Number of posts that have this tag |
+| subjectMatterExpertCount | `number \| null` | Total number of SME users (null if SMEs not enabled) |
+| watcherCount | `number` | Number of users watching this tag |
+| creationDate | `Date` | When the tag was created |
+| hasSynonyms | `boolean` | Whether the tag has synonym(s) |
+| webUrl | `string` | Direct URL to the tag |
+| subjectMatterExperts | `SubjectMatterExpertResponseModel` | Complete SME information |
 
 ### SubjectMatterExpertResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `users` | `UserSummaryResponseModel[]` | Individual users assigned as SMEs |
-| `userGroups` | `UserGroupResponseModel[]` | User groups assigned as SMEs |
+| users | `UserSummaryResponseModel[]` | Individual users assigned as SMEs |
+| userGroups | `UserGroupResponseModel[]` | User groups assigned as SMEs |
 
 ## Examples
 

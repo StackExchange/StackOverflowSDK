@@ -17,7 +17,7 @@ async delete(collectionId: number): Promise<void>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `collectionId` | `number` | Yes | The unique identifier of the collection to delete |
+| collectionId | `number` | Yes | The unique identifier of the collection to delete |
 
 ## Return Value
 
@@ -324,11 +324,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to delete this collection |
-| `NotFoundError` | 404 | Collection with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to delete this collection |
+| NotFoundError | 404 | Collection with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

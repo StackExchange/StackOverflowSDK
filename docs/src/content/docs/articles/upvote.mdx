@@ -17,7 +17,7 @@ async upvote(articleId: number): Promise<ArticleResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `articleId` | `number` | Yes | The unique identifier of the article to upvote |
+| articleId | `number` | Yes | The unique identifier of the article to upvote |
 
 ## Return Value
 
@@ -269,11 +269,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Cannot vote (already voted, own article, insufficient permissions) |
-| `NotFoundError` | 404 | Article with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Cannot vote (already voted, own article, insufficient permissions) |
+| NotFoundError | 404 | Article with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

@@ -17,17 +17,17 @@ async getLinkedQuestions(articleId: number, options?: GetLinkedQuestionsOptions)
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `articleId` | `number` | Yes | The unique identifier of the article to get linked questions for |
-| `options` | `GetLinkedQuestionsOptions` | No | Configuration options for pagination and sorting |
+| articleId | `number` | Yes | The unique identifier of the article to get linked questions for |
+| options | `GetLinkedQuestionsOptions` | No | Configuration options for pagination and sorting |
 
 ### GetLinkedQuestionsOptions
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `page` | `number` | No | `1` | The page number to retrieve (1-based) |
-| `pageSize` | `15 \| 30 \| 50 \| 100` | No | `30` | Number of questions to return per page |
-| `sort` | `LinkedOrRelatedQuestionsSortParameter` | No | | Sort questions by: `"hot"`, `"creation"`, `"activity"`, or `"score"` |
-| `order` | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| page | `number` | No | 1 | The page number to retrieve (1-based) |
+| pageSize | `15 \| 30 \| 50 \| 100` | No | 30 | Number of questions to return per page |
+| sort | `LinkedOrRelatedQuestionsSortParameter` | No | | Sort questions by: `"hot"`, `"creation"`, `"activity"`, or `"score"` |
+| order | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
 
 ## Return Value
 
@@ -35,13 +35,13 @@ Returns a `Promise<PaginatedLinkedOrRelatedQuestions>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `totalCount` | `number` | Total number of linked questions for the article |
-| `pageSize` | `number` | Number of items per page |
-| `page` | `number` | Current page number |
-| `totalPages` | `number` | Total number of pages available |
-| `sort` | `LinkedOrRelatedQuestionsSortParameter` | Sort parameter used |
-| `order` | `SortOrder` | Sort order used |
-| `items` | `QuestionSummaryResponseModel[]` | Array of linked question objects |
+| totalCount | `number` | Total number of linked questions for the article |
+| pageSize | `number` | Number of items per page |
+| page | `number` | Current page number |
+| totalPages | `number` | Total number of pages available |
+| sort | `LinkedOrRelatedQuestionsSortParameter` | Sort parameter used |
+| order | `SortOrder` | Sort order used |
+| items | `QuestionSummaryResponseModel[]` | Array of linked question objects |
 
 ## Examples
 
@@ -386,11 +386,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access linked questions |
-| `NotFoundError` | 404 | Article with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access linked questions |
+| NotFoundError | 404 | Article with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 

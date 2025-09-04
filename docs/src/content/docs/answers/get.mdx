@@ -15,8 +15,8 @@ async get(questionId: number, answerId: number): Promise<AnswerResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `questionId` | `number` | Yes | The unique identifier of the question that contains the answer |
-| `answerId` | `number` | Yes | The unique identifier of the answer to retrieve |
+| questionId | `number` | Yes | The unique identifier of the question that contains the answer |
+| answerId | `number` | Yes | The unique identifier of the answer to retrieve |
 
 ## Return Value
 
@@ -24,29 +24,29 @@ Returns a `Promise<AnswerResponseModel>` containing the complete answer object w
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | `number` | The answer's unique identifier |
-| `questionId` | `number` | The ID of the answered question |
-| `body` | `string` | The main content of the answer in HTML format |
-| `bodyMarkdown` | `string` | The main content of the answer in Markdown format |
-| `score` | `number` | Answer score (upvotes minus downvotes) |
-| `isAccepted` | `boolean` | Whether this is the accepted answer for the question |
-| `isDeleted` | `boolean` | Whether the answer was deleted |
-| `isBookmarked` | `boolean` | Whether the logged-in user bookmarked the answer |
-| `isFollowed` | `boolean` | Whether the logged-in user followed the answer |
-| `creationDate` | `Date` | When the answer was created |
-| `lastEditDate` | `Date` \| `null` | When the answer was last edited |
-| `lastActivityDate` | `Date` \| `null` | When the answer last had activity |
-| `lockedDate` | `Date` \| `null` | When the answer was locked |
-| `deletionDate` | `Date` \| `null` | When the answer was deleted |
-| `owner` | `UserSummaryResponseModel` | Information about the answer author |
-| `lastEditor` | `UserSummaryResponseModel` | Information about who last edited the answer |
-| `lastActivityUser` | `UserSummaryResponseModel` | Information about who performed the last activity |
-| `commentCount` | `number` | Number of comments on the answer |
-| `webUrl` | `string` \| `null` | Direct URL to the answer |
-| `shareLink` | `string` \| `null` | Link for sharing the answer |
-| `userCanFollow` | `boolean` | Whether the logged-in user can follow the answer |
-| `canBeFollowed` | `boolean` | Whether anyone can follow the answer |
-| `isSubjectMatterExpert` | `boolean` | Whether the answer is from a subject matter expert |
+| id | `number` | The answer's unique identifier |
+| questionId | `number` | The ID of the answered question |
+| body | `string` | The main content of the answer in HTML format |
+| bodyMarkdown | `string` | The main content of the answer in Markdown format |
+| score | `number` | Answer score (upvotes minus downvotes) |
+| isAccepted | `boolean` | Whether this is the accepted answer for the question |
+| isDeleted | `boolean` | Whether the answer was deleted |
+| isBookmarked | `boolean` | Whether the logged-in user bookmarked the answer |
+| isFollowed | `boolean` | Whether the logged-in user followed the answer |
+| creationDate | `Date` | When the answer was created |
+| lastEditDate | `Date` \| null | When the answer was last edited |
+| lastActivityDate | `Date` \| null | When the answer last had activity |
+| lockedDate | `Date` \| null | When the answer was locked |
+| deletionDate | `Date` \| null | When the answer was deleted |
+| owner | `UserSummaryResponseModel` | Information about the answer author |
+| lastEditor | `UserSummaryResponseModel` | Information about who last edited the answer |
+| lastActivityUser | `UserSummaryResponseModel` | Information about who performed the last activity |
+| commentCount | `number` | Number of comments on the answer |
+| webUrl | `string` \| null | Direct URL to the answer |
+| shareLink | `string` \| null | Link for sharing the answer |
+| userCanFollow | `boolean` | Whether the logged-in user can follow the answer |
+| canBeFollowed | `boolean` | Whether anyone can follow the answer |
+| isSubjectMatterExpert | `boolean` | Whether the answer is from a subject matter expert |
 
 ## Examples
 
@@ -110,11 +110,11 @@ This method can throw the following errors:
 
 | Error Type | Status Code | Description |
 |------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing authentication token |
-| `TokenExpiredError` | 401 | Authentication token has expired |
-| `ForbiddenError` | 403 | Insufficient permissions to access the answer |
-| `NotFoundError` | 404 | Question or answer with the specified ID does not exist |
-| `SDKError` | Various | Other API or network errors |
+| AuthenticationError | 401 | Invalid or missing authentication token |
+| TokenExpiredError | 401 | Authentication token has expired |
+| ForbiddenError | 403 | Insufficient permissions to access the answer |
+| NotFoundError | 404 | Question or answer with the specified ID does not exist |
+| SDKError | Various | Other API or network errors |
 
 ### Example Error Handling
 
