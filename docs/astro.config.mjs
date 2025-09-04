@@ -87,7 +87,7 @@ export default defineConfig({
 					{ label: 'join', slug: 'communities/join'},
 					{ label: 'joinbulk', slug: 'communities/joinbulk'},
 					{ label: 'leave', slug: 'communities/leave'},
-					{ label: 'joinbulk', slug: 'communities/joinbulk'},
+					{ label: 'leavebulk', slug: 'communities/leavebulk'},
 					{ label: 'Aliases', slug: 'communities/conveniencemethods'},
 					{ label: 'Sorting', slug: 'communities/sortingmethods'},
 					{ label: 'Transfers', slug: 'communities/transfermethods'},

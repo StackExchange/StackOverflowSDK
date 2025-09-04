@@ -17,16 +17,16 @@ async update(questionId: number, options: UpdateQuestionOptions): Promise<Questi
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| questionId | `number` | Yes | The unique identifier of the question to update |
-| options | `UpdateQuestionOptions` | Yes | Updated question content and metadata |
+| questionId | number | Yes | The unique identifier of the question to update |
+| options | UpdateQuestionOptions | Yes | Updated question content and metadata |
 
 ### UpdateQuestionOptions
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| title | `string` | Yes | Updated question title - the actual question stated briefly in one sentence |
-| body | `string` | Yes | Updated question body - main content in Markdown format |
-| tags | `string[]` | Yes | Updated array of tag names associated with the question |
+| title | string | Yes | Updated question title - the actual question stated briefly in one sentence |
+| body | string | Yes | Updated question body - main content in Markdown format |
+| tags | string[] | Yes | Updated array of tag names associated with the question |
 
 ## Return Value
 

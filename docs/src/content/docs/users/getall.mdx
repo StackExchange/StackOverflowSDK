@@ -19,16 +19,16 @@ async getTopUsers(limit?: number): Promise<PaginatedUsers>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| options | `GetUsersOptions` | No | User filtering and sorting options |
+| options | GetUsersOptions | No | User filtering and sorting options |
 
 ### GetUsersOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| page | `number` | No | Page number (defaults to 1) |
-| pageSize | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
-| sort | `UsersSortParameter` | No | Sort field: `'reputation'` |
-| order | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+| page | number | No | Page number (defaults to 1) |
+| pageSize | 15 \| 30 \| 50 \| 100 | No | Number of results per page (defaults to 15) |
+| sort | UsersSortParameter | No | Sort field: `'reputation'` |
+| order | SortOrder | No | Sort direction: `'asc'` or `'desc'` |
 
 ## Return Value
 
@@ -36,29 +36,29 @@ Returns a `Promise<PaginatedUsers>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| totalCount | `number` | Total number of users found |
-| pageSize | `number` | Number of results per page |
-| page | `number` | Current page number |
-| totalPages | `number` | Total number of pages available |
-| sort | `UsersSortParameter` | Applied sort field |
-| order | `SortOrder` | Applied sort direction |
-| items | `UserResponseModel[]` | Array of user summary objects |
+| totalCount | number | Total number of users found |
+| pageSize | number | Number of results per page |
+| page | number | Current page number |
+| totalPages | number | Total number of pages available |
+| sort | UsersSortParameter | Applied sort field |
+| order | SortOrder | Applied sort direction |
+| items | UserResponseModel[] | Array of user summary objects |
 
 ### UserResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | User's unique identifier |
-| accountId | `number \| null` | User's Stack Overflow network account ID |
-| name | `string` | User's display name |
-| email | `string \| null` | Email address (visible to admins only) |
-| avatarUrl | `string` | URL to user's profile picture |
-| webUrl | `string` | URL to user's profile page |
-| reputation | `number` | User's reputation score |
-| role | `string` | User's role on the site |
-| externalId | `string \| null` | External ID from SCIM or SAML |
-| department | `string \| null` | Organizational department from SAML |
-| jobTitle | `string \| null` | Job title from SAML |
+| id | number | User's unique identifier |
+| accountId | number \| null | User's Stack Overflow network account ID |
+| name | string | User's display name |
+| email | string \| null | Email address (visible to admins only) |
+| avatarUrl | string | URL to user's profile picture |
+| webUrl | string | URL to user's profile page |
+| reputation | number | User's reputation score |
+| role | string | User's role on the site |
+| externalId | string \| null | External ID from SCIM or SAML |
+| department | string \| null | Organizational department from SAML |
+| jobTitle | string \| null | Job title from SAML |
 
 ## Examples
 

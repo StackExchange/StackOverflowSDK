@@ -17,7 +17,7 @@ async getArticleComments(articleId: number): Promise<Array<CommentResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| articleId | `number` | Yes | The unique identifier of the article to retrieve comments for |
+| articleId | number | Yes | The unique identifier of the article to retrieve comments for |
 
 ## Return Value
 
@@ -25,12 +25,12 @@ Returns a `Promise<Array<CommentResponseModel>>` containing an array of comment 
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | The comment's unique identifier |
-| score | `number` | Comment score (upvotes minus downvotes) |
-| body | `string` | The text of the comment in Markdown format |
+| id | number | The comment's unique identifier |
+| score | number | Comment score (upvotes minus downvotes) |
+| body | string | The text of the comment in Markdown format |
 | ownerUserId | `number` \| null | ID of the user that posted the comment |
-| ownerDisplayName | `string` | Name of the user that posted the comment |
-| creationDate | `Date` | When the comment was created |
+| ownerDisplayName | string | Name of the user that posted the comment |
+| creationDate | Date | When the comment was created |
 
 ## Examples
 

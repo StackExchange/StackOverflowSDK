@@ -21,8 +21,8 @@ async addUsers(communityId: number, userIds: number[]): Promise<CommunityRespons
 #### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| communityId | `number` | Yes | The unique identifier of the community |
-| userIds | `number[]` | Yes | Array of user IDs to add to the community |
+| communityId | number | Yes | The unique identifier of the community |
+| userIds | number[] | Yes | Array of user IDs to add to the community |
 
 ---
 
@@ -38,8 +38,8 @@ async removeUsers(communityId: number, userIds: number[]): Promise<CommunityResp
 #### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| communityId | `number` | Yes | The unique identifier of the community |
-| userIds | `number[]` | Yes | Array of user IDs to remove from the community |
+| communityId | number | Yes | The unique identifier of the community |
+| userIds | number[] | Yes | Array of user IDs to remove from the community |
 
 ---
 
@@ -55,8 +55,8 @@ async addUser(communityId: number, userId: number): Promise<CommunityResponseMod
 #### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| communityId | `number` | Yes | The unique identifier of the community |
-| userId | `number` | Yes | The user ID to add to the community |
+| communityId | number | Yes | The unique identifier of the community |
+| userId | number | Yes | The user ID to add to the community |
 
 ---
 
@@ -72,8 +72,8 @@ async removeUser(communityId: number, userId: number): Promise<CommunityResponse
 #### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| communityId | `number` | Yes | The unique identifier of the community |
-| userId | `number` | Yes | The user ID to remove from the community |
+| communityId | number | Yes | The unique identifier of the community |
+| userId | number | Yes | The user ID to remove from the community |
 
 ## Current User Methods
 
@@ -89,7 +89,7 @@ async joinAsMember(communityId: number): Promise<CommunityResponseModel>
 #### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| communityId | `number` | Yes | The unique identifier of the community to join |
+| communityId | number | Yes | The unique identifier of the community to join |
 
 ---
 
@@ -105,7 +105,7 @@ async leaveAsMember(communityId: number): Promise<CommunityResponseModel>
 #### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| communityId | `number` | Yes | The unique identifier of the community to leave |
+| communityId | number | Yes | The unique identifier of the community to leave |
 
 ## Examples
 

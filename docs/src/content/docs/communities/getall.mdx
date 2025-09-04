@@ -17,16 +17,16 @@ async getAll(options?: GetCommunitiesOptions): Promise<PaginatedCommunities>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| options | `GetCommunitiesOptions` | No | Configuration options for pagination and sorting |
+| options | GetCommunitiesOptions | No | Configuration options for pagination and sorting |
 
 ### GetCommunitiesOptions
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| page | `number` | No | 1 | The page number to retrieve (1-based) |
-| pageSize | `15 \| 30 \| 50 \| 100` | No | 30 | Number of communities to return per page |
-| sort | `CommunitySortParameter` | No | | Sort communities by: `"name"` or `"size"` |
-| order | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| page | number | No | 1 | The page number to retrieve (1-based) |
+| pageSize | 15 \| 30 \| 50 \| 100 | No | 30 | Number of communities to return per page |
+| sort | CommunitySortParameter | No | | Sort communities by: `"name"` or `"size"` |
+| order | SortOrder | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
 
 ## Return Value
 
@@ -34,13 +34,13 @@ Returns a `Promise<PaginatedCommunities>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| totalCount | `number` | Total number of communities available |
-| pageSize | `number` | Number of items per page |
-| page | `number` | Current page number |
-| totalPages | `number` | Total number of pages available |
-| sort | `CommunitySortParameter` | Sort parameter used |
-| order | `SortOrder` | Sort order used |
-| items | `CommunitySummaryResponseModel[]` | Array of community summary objects |
+| totalCount | number | Total number of communities available |
+| pageSize | number | Number of items per page |
+| page | number | Current page number |
+| totalPages | number | Total number of pages available |
+| sort | CommunitySortParameter | Sort parameter used |
+| order | SortOrder | Sort order used |
+| items | CommunitySummaryResponseModel[] | Array of community summary objects |
 
 ## Examples
 

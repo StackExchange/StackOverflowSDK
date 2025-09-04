@@ -17,23 +17,23 @@ async getAll(options?: GetQuestionsOptions): Promise<PaginatedQuestions>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| options | `GetQuestionsOptions` | No | Configuration options for pagination, filtering, and sorting |
+| options | GetQuestionsOptions | No | Configuration options for pagination, filtering, and sorting |
 
 ### GetQuestionsOptions
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| page | `number` | No | 1 | The page number to retrieve (1-based) |
-| pageSize | `15 \| 30 \| 50 \| 100` | No | 30 | Number of questions to return per page |
-| sort | `QuestionSortParameter` | No | | Sort questions by: `"activity"`, `"creation"`, or `"score"` |
-| order | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
-| isAnswered | `boolean` | No | | Filter by answered status (true = has answers, false = no answers) |
-| hasAcceptedAnswer | `boolean` | No | | Filter by accepted answer status (true = has accepted answer) |
-| questionId | `number[]` | No | | Filter by specific question IDs |
-| tagId | `number[]` | No | | Filter by specific tag IDs |
-| authorId | `number` | No | | Filter by question author's user ID |
-| from | `Date` | No | | Filter questions created from this date |
-| to | `Date` | No | | Filter questions created up to this date |
+| page | number | No | 1 | The page number to retrieve (1-based) |
+| pageSize | 15 \| 30 \| 50 \| 100 | No | 30 | Number of questions to return per page |
+| sort | QuestionSortParameter | No | | Sort questions by: `"activity"`, `"creation"`, or `"score"` |
+| order | SortOrder | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| isAnswered | boolean | No | | Filter by answered status (true = has answers, false = no answers) |
+| hasAcceptedAnswer | boolean | No | | Filter by accepted answer status (true = has accepted answer) |
+| questionId | number[] | No | | Filter by specific question IDs |
+| tagId | number[] | No | | Filter by specific tag IDs |
+| authorId | number | No | | Filter by question author's user ID |
+| from | Date | No | | Filter questions created from this date |
+| to | Date | No | | Filter questions created up to this date |
 
 ## Return Value
 
@@ -41,13 +41,13 @@ Returns a `Promise<PaginatedQuestions>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| totalCount | `number` | Total number of questions matching the criteria |
-| pageSize | `number` | Number of items per page |
-| page | `number` | Current page number |
-| totalPages | `number` | Total number of pages available |
-| sort | `QuestionSortParameter` | Sort parameter used |
-| order | `SortOrder` | Sort order used |
-| items | `QuestionSummaryResponseModel[]` | Array of question summary objects |
+| totalCount | number | Total number of questions matching the criteria |
+| pageSize | number | Number of items per page |
+| page | number | Current page number |
+| totalPages | number | Total number of pages available |
+| sort | QuestionSortParameter | Sort parameter used |
+| order | SortOrder | Sort order used |
+| items | QuestionSummaryResponseModel[] | Array of question summary objects |
 
 ## Examples
 

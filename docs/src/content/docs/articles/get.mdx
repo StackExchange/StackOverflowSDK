@@ -17,7 +17,7 @@ async get(articleId: number): Promise<ArticleResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| articleId | `number` | Yes | The unique identifier of the article to retrieve |
+| articleId | number | Yes | The unique identifier of the article to retrieve |
 
 ## Return Value
 
@@ -25,24 +25,24 @@ Returns a `Promise<ArticleResponseModel>` containing the complete article object
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | The article's unique identifier |
-| title | `string` | The article title |
-| body | `string` | The article content in HTML format |
-| bodyMarkdown | `string` | The article content in Markdown format |
-| score | `number` | Article score based on upvotes |
-| type | `ArticleType` | The type/category of the article |
-| tags | `string[]` | Array of tags associated with the article |
-| creationDate | `Date` | When the article was created |
+| id | number | The article's unique identifier |
+| title | string | The article title |
+| body | string | The article content in HTML format |
+| bodyMarkdown | string | The article content in Markdown format |
+| score | number | Article score based on upvotes |
+| type | ArticleType | The type/category of the article |
+| tags | string[] | Array of tags associated with the article |
+| creationDate | Date | When the article was created |
 | lastEditDate | `Date` \| null | When the article was last edited |
 | lastActivityDate | `Date` \| null | When the article last had activity |
-| owner | `UserSummaryResponseModel` | Information about the article author |
-| lastEditor | `UserSummaryResponseModel` | Information about who last edited the article |
-| viewCount | `number` | Number of times the article has been viewed |
-| upvoteCount | `number` | Number of upvotes the article has received |
-| isBookmarked | `boolean` | Whether the logged-in user bookmarked the article |
+| owner | UserSummaryResponseModel | Information about the article author |
+| lastEditor | UserSummaryResponseModel | Information about who last edited the article |
+| viewCount | number | Number of times the article has been viewed |
+| upvoteCount | number | Number of upvotes the article has received |
+| isBookmarked | boolean | Whether the logged-in user bookmarked the article |
 | webUrl | `string` \| null | Direct URL to the article |
 | shareLink | `string` \| null | Link for sharing the article |
-| permissions | `ArticlePermissionsRequestModel` | Article permission settings |
+| permissions | ArticlePermissionsRequestModel | Article permission settings |
 
 ## Examples
 

@@ -17,7 +17,7 @@ async get(collectionId: number): Promise<CollectionsResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| collectionId | `number` | Yes | The unique identifier of the collection to retrieve |
+| collectionId | number | Yes | The unique identifier of the collection to retrieve |
 
 ## Return Value
 
@@ -25,16 +25,16 @@ Returns a `Promise<CollectionsResponseModel>` containing the complete collection
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | The collection's unique identifier |
-| title | `string` | A brief title to distinguish the collection and its contents |
-| description | `string` | A detailed description of what the collection contains (supports Markdown) |
-| owner | `UserSummaryResponseModel` | Information about the collection owner |
-| creationDate | `Date` | When the collection was created |
-| isDeleted | `boolean` | Whether the collection was deleted |
-| content | `CollectionContentSummaryResponseModel[]` | The content items (questions and/or articles) contained in this collection |
-| editorUsers | `UserSummaryResponseModel[]` | Users who can edit this collection |
-| editorUserGroups | `UserGroupResponseModel[]` | User groups whose members can modify this collection |
-| tags | `TagSummaryResponseModel[]` | Tags associated with the content items in the collection |
+| id | number | The collection's unique identifier |
+| title | string | A brief title to distinguish the collection and its contents |
+| description | string | A detailed description of what the collection contains (supports Markdown) |
+| owner | UserSummaryResponseModel | Information about the collection owner |
+| creationDate | Date | When the collection was created |
+| isDeleted | boolean | Whether the collection was deleted |
+| content | CollectionContentSummaryResponseModel[] | The content items (questions and/or articles) contained in this collection |
+| editorUsers | UserSummaryResponseModel[] | Users who can edit this collection |
+| editorUserGroups | UserGroupResponseModel[] | User groups whose members can modify this collection |
+| tags | TagSummaryResponseModel[] | Tags associated with the content items in the collection |
 
 ## Examples
 

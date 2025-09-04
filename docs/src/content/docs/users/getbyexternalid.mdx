@@ -17,7 +17,7 @@ async getByExternalId(externalId: string): Promise<Array<UserResponseModel>>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| externalId | `string` | Yes | The external identifier from SCIM or SAML systems |
+| externalId | string | Yes | The external identifier from SCIM or SAML systems |
 
 ## Return Value
 
@@ -27,17 +27,17 @@ Returns a `Promise<Array<UserResponseModel>>` containing an array of user object
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | User's unique identifier |
-| accountId | `number \| null` | User's Stack Overflow network account ID |
-| name | `string` | User's display name |
-| email | `string \| null` | Email address (visible to admins only) |
-| avatarUrl | `string` | URL to user's profile picture |
-| webUrl | `string` | URL to user's profile page |
-| reputation | `number` | User's reputation score |
-| role | `string` | User's role on the site |
-| externalId | `string \| null` | External ID from SCIM or SAML (matches lookup parameter) |
-| department | `string \| null` | Organizational department from SAML |
-| jobTitle | `string \| null` | Job title from SAML |
+| id | number | User's unique identifier |
+| accountId | number \| null | User's Stack Overflow network account ID |
+| name | string | User's display name |
+| email | string \| null | Email address (visible to admins only) |
+| avatarUrl | string | URL to user's profile picture |
+| webUrl | string | URL to user's profile page |
+| reputation | number | User's reputation score |
+| role | string | User's role on the site |
+| externalId | string \| null | External ID from SCIM or SAML (matches lookup parameter) |
+| department | string \| null | Organizational department from SAML |
+| jobTitle | string \| null | Job title from SAML |
 
 ## Examples
 

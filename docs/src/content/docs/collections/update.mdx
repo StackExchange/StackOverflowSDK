@@ -17,8 +17,8 @@ async update(collectionId: number, options: UpdateCollectionOptions): Promise<Co
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| collectionId | `number` | Yes | The unique identifier of the collection to update |
-| options | `UpdateCollectionOptions` | Yes | The collection update options |
+| collectionId | number | Yes | The unique identifier of the collection to update |
+| options | UpdateCollectionOptions | Yes | The collection update options |
 
 ### UpdateCollectionOptions
 
@@ -27,11 +27,11 @@ Based on the underlying `EditCollectionRequestModel`, the following properties a
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | ownerId | `number` \| null | No | The ID of the user who should own the collection (transfers ownership) |
-| title | `string` | No | Updated title for the collection |
-| description | `string` | No | Updated description (supports Markdown) |
-| editorUserIds | `number[]` | No | Updated list of user IDs who can modify this collection |
-| editorUserGroupIds | `number[]` | No | Updated list of user group IDs whose members can modify this collection |
-| contentIds | `number[]` | No | Updated list of question/article IDs that this collection contains, in order |
+| title | string | No | Updated title for the collection |
+| description | string | No | Updated description (supports Markdown) |
+| editorUserIds | number[] | No | Updated list of user IDs who can modify this collection |
+| editorUserGroupIds | number[] | No | Updated list of user group IDs whose members can modify this collection |
+| contentIds | number[] | No | Updated list of question/article IDs that this collection contains, in order |
 
 ## Return Value
 

@@ -18,7 +18,7 @@ async getCurrentUserWatchedTags(): Promise<TagSummaryResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| userId | `number` | Yes | The unique identifier of the user whose watched tags to retrieve |
+| userId | number | Yes | The unique identifier of the user whose watched tags to retrieve |
 
 ## Return Value
 
@@ -26,21 +26,21 @@ Returns a `Promise<TagSummaryResponseModel>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| items | `TagSummaryResponseModel[]` | Array of watched tag summary objects |
+| items | TagSummaryResponseModel[] | Array of watched tag summary objects |
 
 ### TagSummaryResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | Tag's unique identifier |
-| name | `string` | Tag's name |
-| description | `string` | Tag's description |
-| postCount | `number` | Number of posts with this tag |
-| subjectMatterExpertCount | `number \| null` | Number of SMEs for this tag |
-| watcherCount | `number` | Number of users watching this tag |
-| creationDate | `Date` | When the tag was created |
-| hasSynonyms | `boolean` | Whether the tag has synonyms |
-| webUrl | `string` | URL to the tag's page |
+| id | number | Tag's unique identifier |
+| name | string | Tag's name |
+| description | string | Tag's description |
+| postCount | number | Number of posts with this tag |
+| subjectMatterExpertCount | number \| null | Number of SMEs for this tag |
+| watcherCount | number | Number of users watching this tag |
+| creationDate | Date | When the tag was created |
+| hasSynonyms | boolean | Whether the tag has synonyms |
+| webUrl | string | URL to the tag's page |
 
 ## Examples
 

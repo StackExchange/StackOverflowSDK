@@ -31,15 +31,15 @@ async update(userGroupId: number, options: UpdateUserGroupOptions): Promise<User
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| userGroupId | `number` | Yes | The unique identifier of the user group to update |
-| options | `UpdateUserGroupOptions` | Yes | User group update options |
+| userGroupId | number | Yes | The unique identifier of the user group to update |
+| options | UpdateUserGroupOptions | Yes | User group update options |
 
 ##### UpdateUserGroupOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| name | `string` | Yes | The user group's name |
-| description | `string` | No | The user group's description |
+| name | string | Yes | The user group's name |
+| description | string | No | The user group's description |
 
 #### Return Value
 
@@ -62,9 +62,9 @@ async addMember(userGroupId: number, userId: number): Promise<UserGroupResponseM
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| userGroupId | `number` | Yes | The unique identifier of the user group |
-| userIds | `number[]` | Yes | Array of user IDs to add to the group |
-| userId | `number` | Yes | Single user ID to add to the group (for `addMember`) |
+| userGroupId | number | Yes | The unique identifier of the user group |
+| userIds | number[] | Yes | Array of user IDs to add to the group |
+| userId | number | Yes | Single user ID to add to the group (for `addMember`) |
 
 #### Return Value
 
@@ -85,9 +85,9 @@ async removeMembers(userGroupId: number, userIds: number[]): Promise<UserGroupRe
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| userGroupId | `number` | Yes | The unique identifier of the user group |
-| userId | `number` | Yes | User ID to remove from the group |
-| userIds | `number[]` | Yes | Array of user IDs to remove (for `removeMembers`) |
+| userGroupId | number | Yes | The unique identifier of the user group |
+| userId | number | Yes | User ID to remove from the group |
+| userIds | number[] | Yes | Array of user IDs to remove (for `removeMembers`) |
 
 #### Return Value
 
@@ -99,19 +99,19 @@ Returns a `Promise<UserGroupResponseModel>` for single removal or `Promise<UserG
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | User group's unique identifier |
-| name | `string` | User group's name |
-| description | `string` | User group's description |
-| users | `UserSummaryResponseModel[]` | Array of users in the group |
+| id | number | User group's unique identifier |
+| name | string | User group's name |
+| description | string | User group's description |
+| users | UserSummaryResponseModel[] | Array of users in the group |
 
 ### UserSummaryResponseModel Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | User's unique identifier |
-| name | `string` | User's display name |
-| reputation | `number` | User's reputation score |
-| avatarUrl | `string` | URL to user's profile picture |
+| id | number | User's unique identifier |
+| name | string | User's display name |
+| reputation | number | User's reputation score |
+| avatarUrl | string | URL to user's profile picture |
 
 ## Examples
 
@@ -476,16 +476,16 @@ async getAllBySize(options: Omit<GetUserGroupsOptions, 'sort' | 'order'> = {}): 
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| options | `GetUserGroupsOptions` | No | User group filtering and sorting options |
+| options | GetUserGroupsOptions | No | User group filtering and sorting options |
 
 ##### GetUserGroupsOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| page | `number` | No | Page number (defaults to 1) |
-| pageSize | `15 \| 30 \| 50 \| 100` | No | Number of results per page (defaults to 15) |
-| sort | `UserGroupsSortParameter` | No | Sort field: `'name'` or `'size'` |
-| order | `SortOrder` | No | Sort direction: `'asc'` or `'desc'` |
+| page | number | No | Page number (defaults to 1) |
+| pageSize | 15 \| 30 \| 50 \| 100 | No | Number of results per page (defaults to 15) |
+| sort | UserGroupsSortParameter | No | Sort field: `'name'` or `'size'` |
+| order | SortOrder | No | Sort direction: `'asc'` or `'desc'` |
 
 #### Return Value
 
@@ -493,13 +493,13 @@ Returns a `Promise<PaginatedUserGroups>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| totalCount | `number` | Total number of user groups found |
-| pageSize | `number` | Number of results per page |
-| page | `number` | Current page number |
-| totalPages | `number` | Total number of pages available |
-| sort | `UserGroupsSortParameter` | Applied sort field |
-| order | `SortOrder` | Applied sort direction |
-| items | `UserGroupResponseModel[]` | Array of user group objects |
+| totalCount | number | Total number of user groups found |
+| pageSize | number | Number of results per page |
+| page | number | Current page number |
+| totalPages | number | Total number of pages available |
+| sort | UserGroupsSortParameter | Applied sort field |
+| order | SortOrder | Applied sort direction |
+| items | UserGroupResponseModel[] | Array of user group objects |
 
 ### get()
 
@@ -515,7 +515,7 @@ async get(userGroupId: number): Promise<UserGroupResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| userGroupId | `number` | Yes | The unique identifier of the user group |
+| userGroupId | number | Yes | The unique identifier of the user group |
 
 #### Return Value
 
@@ -535,13 +535,13 @@ async create(options: CreateUserGroupOptions): Promise<UserGroupResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| options | `CreateUserGroupOptions` | Yes | User group creation options |
+| options | CreateUserGroupOptions | Yes | User group creation options |
 
 ##### CreateUserGroupOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| name | `string` | Yes | The user group's name |
-| description | `string` | No | The user group's description |
+| name | string | Yes | The user group's name |
+| description | string | No | The user group's description |
 
 ####

@@ -17,7 +17,7 @@ async get(questionId: number): Promise<QuestionResponseModel>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| questionId | `number` | Yes | The unique identifier of the question to retrieve |
+| questionId | number | Yes | The unique identifier of the question to retrieve |
 
 ## Return Value
 
@@ -25,32 +25,32 @@ Returns a `Promise<QuestionResponseModel>` containing complete question informat
 
 | Property | Type | Description |
 |----------|------|-------------|
-| id | `number` | The question's unique identifier |
-| title | `string` | The actual question, stated briefly in one sentence |
-| body | `string` | Question body content in HTML format |
-| bodyMarkdown | `string` | Question body content in Markdown format |
-| tags | `TagSummaryResponseModel[]` | Tags associated with the question |
-| owner | `UserSummaryResponseModel` | Question author information |
-| lastEditor | `UserSummaryResponseModel` | Last user to edit the question |
-| creationDate | `Date` | When the question was created |
-| lastActivityDate | `Date` | Last significant activity (edit, answer, vote, etc.) |
-| score | `number` | Net score (upvotes minus downvotes) |
-| isAnswered | `boolean` | True if question has at least one upvoted answer |
-| answerCount | `number` | Total number of answers |
-| viewCount | `number` | Number of times the question has been viewed |
-| webUrl | `string` | Direct URL to the question |
-| shareUrl | `string` | Shareable URL for the question |
-| isDeleted | `boolean` | True if the question was deleted |
-| isObsolete | `boolean` | True if marked obsolete by moderator |
-| isClosed | `boolean` | True if closed by moderator |
-| bounty | `BountyResponseModel` | Bounty information if active |
-| communities | `CommunitySummaryResponseModel[]` | Associated communities |
-| mentionedUsers | `MentionedUserResponseModel[]` | Users mentioned in the question |
-| mentionedUserGroups | `MentionedUserGroupResponseModel[]` | User groups mentioned |
-| userIsFollowing | `boolean` | True if current user follows this question |
-| userHasUpvoted | `boolean` | True if current user upvoted |
-| userHasDownvoted | `boolean` | True if current user downvoted |
-| userHasBookmarked | `boolean` | True if current user bookmarked |
+| id | number | The question's unique identifier |
+| title | string | The actual question, stated briefly in one sentence |
+| body | string | Question body content in HTML format |
+| bodyMarkdown | string | Question body content in Markdown format |
+| tags | TagSummaryResponseModel[] | Tags associated with the question |
+| owner | UserSummaryResponseModel | Question author information |
+| lastEditor | UserSummaryResponseModel | Last user to edit the question |
+| creationDate | Date | When the question was created |
+| lastActivityDate | Date | Last significant activity (edit, answer, vote, etc.) |
+| score | number | Net score (upvotes minus downvotes) |
+| isAnswered | boolean | True if question has at least one upvoted answer |
+| answerCount | number | Total number of answers |
+| viewCount | number | Number of times the question has been viewed |
+| webUrl | string | Direct URL to the question |
+| shareUrl | string | Shareable URL for the question |
+| isDeleted | boolean | True if the question was deleted |
+| isObsolete | boolean | True if marked obsolete by moderator |
+| isClosed | boolean | True if closed by moderator |
+| bounty | BountyResponseModel | Bounty information if active |
+| communities | CommunitySummaryResponseModel[] | Associated communities |
+| mentionedUsers | MentionedUserResponseModel[] | Users mentioned in the question |
+| mentionedUserGroups | MentionedUserGroupResponseModel[] | User groups mentioned |
+| userIsFollowing | boolean | True if current user follows this question |
+| userHasUpvoted | boolean | True if current user upvoted |
+| userHasDownvoted | boolean | True if current user downvoted |
+| userHasBookmarked | boolean | True if current user bookmarked |
 
 ## Examples
 

@@ -17,21 +17,21 @@ async getAll(options?: GetCollectionsOptions): Promise<PaginatedCollections>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| options | `GetCollectionsOptions` | No | Configuration options for pagination, filtering, and sorting |
+| options | GetCollectionsOptions | No | Configuration options for pagination, filtering, and sorting |
 
 ### GetCollectionsOptions
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| page | `number` | No | 1 | The page number to retrieve (1-based) |
-| pageSize | `15 \| 30 \| 50 \| 100` | No | 30 | Number of collections to return per page |
-| sort | `CollectionsSortParameter` | No | | Sort collections by: `"creation"` or `"lastEdit"` |
-| order | `SortOrder` | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
-| authorIds | `number[]` | No | | Filter collections by specific author/owner IDs |
-| partialTitle | `string` | No | | Filter collections by partial title match (search) |
-| permissions | `CollectionsPermissionsFilter` | No | | Filter by permission level: `"all"`, `"owned"`, or `"editable"` |
-| from | `Date` | No | | Filter collections created after this date |
-| to | `Date` | No | | Filter collections created before this date |
+| page | number | No | 1 | The page number to retrieve (1-based) |
+| pageSize | 15 \| 30 \| 50 \| 100 | No | 30 | Number of collections to return per page |
+| sort | CollectionsSortParameter | No | | Sort collections by: `"creation"` or `"lastEdit"` |
+| order | SortOrder | No | | Sort order: `"asc"` (ascending) or `"desc"` (descending) |
+| authorIds | number[] | No | | Filter collections by specific author/owner IDs |
+| partialTitle | string | No | | Filter collections by partial title match (search) |
+| permissions | CollectionsPermissionsFilter | No | | Filter by permission level: `"all"`, `"owned"`, or `"editable"` |
+| from | Date | No | | Filter collections created after this date |
+| to | Date | No | | Filter collections created before this date |
 
 ## Return Value
 
@@ -39,13 +39,13 @@ Returns a `Promise<PaginatedCollections>` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| totalCount | `number` | Total number of collections matching the criteria |
-| pageSize | `number` | Number of items per page |
-| page | `number` | Current page number |
-| totalPages | `number` | Total number of pages available |
-| sort | `CollectionsSortParameter` | Sort parameter used |
-| order | `SortOrder` | Sort order used |
-| items | `CollectionsResponseModel[]` | Array of collection objects |
+| totalCount | number | Total number of collections matching the criteria |
+| pageSize | number | Number of items per page |
+| page | number | Current page number |
+| totalPages | number | Total number of pages available |
+| sort | CollectionsSortParameter | Sort parameter used |
+| order | SortOrder | Sort order used |
+| items | CollectionsResponseModel[] | Array of collection objects |
 
 ## Examples
 

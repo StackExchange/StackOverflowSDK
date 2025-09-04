@@ -21,15 +21,15 @@ async clearAllSubjectMatterExperts(tagId: number): Promise<SubjectMatterExpertRe
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| tagId | `number` | Yes | The unique identifier of the tag |
-| options | `SetSubjectMatterExpertsOptions` | Yes | SME configuration options |
+| tagId | number | Yes | The unique identifier of the tag |
+| options | SetSubjectMatterExpertsOptions | Yes | SME configuration options |
 
 ### SetSubjectMatterExpertsOptions Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| userIds | `number[]` | No | Array of user IDs to assign as individual SMEs |
-| userGroupIds | `number[]` | No | Array of user group IDs to assign as SME groups |
+| userIds | number[] | No | Array of user IDs to assign as individual SMEs |
+| userGroupIds | number[] | No | Array of user group IDs to assign as SME groups |
 
 ## Return Value
 
@@ -37,8 +37,8 @@ Returns a `Promise<SubjectMatterExpertResponseModel>` containing the updated SME
 
 | Property | Type | Description |
 |----------|------|-------------|
-| users | `UserSummaryResponseModel[]` | Individual users now assigned as SMEs |
-| userGroups | `UserGroupResponseModel[]` | User groups now assigned as SMEs |
+| users | UserSummaryResponseModel[] | Individual users now assigned as SMEs |
+| userGroups | UserGroupResponseModel[] | User groups now assigned as SMEs |
 
 ## Examples
 

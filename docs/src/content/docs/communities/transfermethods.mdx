@@ -22,9 +22,9 @@ async transferUsers(fromCommunityId: number, toCommunityId: number, userIds: num
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| fromCommunityId | `number` | Yes | The unique identifier of the source community to remove users from |
-| toCommunityId | `number` | Yes | The unique identifier of the destination community to add users to |
-| userIds | `number[]` | Yes | Array of user IDs to transfer between communities |
+| fromCommunityId | number | Yes | The unique identifier of the source community to remove users from |
+| toCommunityId | number | Yes | The unique identifier of the destination community to add users to |
+| userIds | number[] | Yes | Array of user IDs to transfer between communities |
 
 ---
 
@@ -43,9 +43,9 @@ async transferUser(fromCommunityId: number, toCommunityId: number, userId: numbe
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| fromCommunityId | `number` | Yes | The unique identifier of the source community to remove user from |
-| toCommunityId | `number` | Yes | The unique identifier of the destination community to add user to |
-| userId | `number` | Yes | The user ID to transfer between communities |
+| fromCommunityId | number | Yes | The unique identifier of the source community to remove user from |
+| toCommunityId | number | Yes | The unique identifier of the destination community to add user to |
+| userId | number | Yes | The user ID to transfer between communities |
 
 ## Return Value
 
@@ -53,8 +53,8 @@ Both methods return a `Promise` containing:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| leftFrom | `CommunityResponseModel` | Updated source community information after user removal |
-| joinedTo | `CommunityResponseModel` | Updated destination community information after user addition |
+| leftFrom | CommunityResponseModel | Updated source community information after user removal |
+| joinedTo | CommunityResponseModel | Updated destination community information after user addition |
 
 ## Examples
 
