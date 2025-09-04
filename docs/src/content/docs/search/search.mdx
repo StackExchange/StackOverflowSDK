@@ -387,84 +387,6 @@ const highScoreResults = comprehensiveResults.filter(item => (item.score || 0) >
 console.log(`Found ${questionResults.length} questions with high scores: ${highScoreResults.length}`);
 ```
 
-### Team vs Public Search
-
-```typescript
-async function compareSearchContexts(query: string, teamId: string) {
-  try {
-    console.log(`Comparing search results for: "${query}"`);
-    
-    // Search in public context
-    const publicResults = await sdk.search.search({
-      query,
-      pageSize: 30,
-      sort: 'relevance'
-    });
-    
-    // Search in team context
-    const teamResults = await sdk.forTeam(teamId).search.search({
-      query,
-      pageSize: 30,
-      sort: 'relevance'
-    });
-    
-    const comparison = {
-      query,
-      public: {
-        totalResults: publicResults.totalCount || 0,
-        questions: publicResults.items?.filter(i => i.type === 'question').length || 0,
-        answers: publicResults.items?.filter(i => i.type === 'answer').length || 0,
-        articles: publicResults.items?.filter(i => i.type === 'article').length || 0,
-        avgScore: 0
-      },
-      team: {
-        totalResults: teamResults.totalCount || 0,
-        questions: teamResults.items?.filter(i => i.type === 'question').length || 0,
-        answers: teamResults.items?.filter(i => i.type === 'answer').length || 0,
-        articles: teamResults.items?.filter(i => i.type === 'article').length || 0,
-        avgScore: 0
-      }
-    };
-    
-    // Calculate average scores
-    if (publicResults.items?.length) {
-      comparison.public.avgScore = publicResults.items.reduce((sum, item) => sum + (item.score || 0), 0) / publicResults.items.length;
-    }
-    
-    if (teamResults.items?.length) {
-      comparison.team.avgScore = teamResults.items.reduce((sum, item) => sum + (item.score || 0), 0) / teamResults.items.length;
-    }
-    
-    console.log('\n=== Search Context Comparison ===');
-    console.log(`\nPublic Results: ${comparison.public.totalResults}`);
-    console.log(`- Questions: ${comparison.public.questions}`);
-    console.log(`- Answers: ${comparison.public.answers}`);
-    console.log(`- Articles: ${comparison.public.articles}`);
-    console.log(`- Avg Score: ${comparison.public.avgScore.toFixed(2)}`);
-    
-    console.log(`\nTeam Results: ${comparison.team.totalResults}`);
-    console.log(`- Questions: ${comparison.team.questions}`);
-    console.log(`- Answers: ${comparison.team.answers}`);
-    console.log(`- Articles: ${comparison.team.articles}`);
-    console.log(`- Avg Score: ${comparison.team.avgScore.toFixed(2)}`);
-    
-    // Show unique content types
-    const publicTypes = new Set(publicResults.items?.map(i => i.type) || []);
-    const teamTypes = new Set(teamResults.items?.map(i => i.type) || []);
-    
-    console.log(`\nContent Types - Public: [${Array.from(publicTypes).join(', ')}]`);
-    console.log(`Content Types - Team: [${Array.from(teamTypes).join(', ')}]`);
-    
-    return comparison;
-  } catch (error) {
-    console.error('Context comparison failed:', error.message);
-    throw error;
-  }
-}
-
-const contextComparison = await compareSearchContexts('docker deployment', 'team-123');
-```
-
 ### Search Result Processing
 
 ```typescript
@@ -737,7 +659,6 @@ if (results) {
 ## Notes
 
 - **Mixed Content Types**: Search returns questions, answers, and articles in a single result set. Use the `type` field to differentiate.
-- **Team vs Public Context**: Search scope depends on SDK initialization. Team searches are limited to team content.
 - **Pagination**: Results are paginated with comprehensive metadata. Use `totalPages` and current `page` to implement navigation.
 - **Sorting Options**: Four sort modes available - relevance (default), newest, active (most recent activity), and score (highest voted).
 - **Query Flexibility**: The `query` parameter is optional. Omitting it returns recent content across all types.

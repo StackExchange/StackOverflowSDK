@@ -345,7 +345,6 @@ if (result.success) {
 - Important articles (like policies) may have additional protection against accidental deletion
 - Consider archiving or marking articles as deprecated instead of deleting for audit trails
 - Deleting articles will also remove associated metadata like vote counts and view statistics
-- The method automatically handles both public and team contexts based on how the client was initialized
 - After successful deletion, subsequent calls to `get()` for the same article will throw a `NotFoundError`
 - Some articles may be protected from deletion due to organizational policies or dependencies
 - Consider creating backups before deletion for important content that might need to be restored

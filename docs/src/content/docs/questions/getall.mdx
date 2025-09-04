@@ -1,9 +1,9 @@
 ---
 title: getAll()
-description: Retrieves a paginated list of questions with comprehensive filtering, sorting, and search options. Works in both public and team contexts.
+description: Retrieves a paginated list of questions with comprehensive filtering, sorting, and search options. 
 ---
 
-Retrieves a paginated list of questions with comprehensive filtering, sorting, and search options. Works in both public and team contexts.
+Retrieves a paginated list of questions with comprehensive filtering, sorting, and search options. 
 
 ## Syntax
 
@@ -292,8 +292,8 @@ const teamQuestions = await teamSDK.questions.getAll({
 
 console.log(`Team questions: ${teamQuestions.totalCount}`);
 
-// Compare team vs public activity
-const [teamRecent, publicRecent] = await Promise.all([
+// Compare team vs Main Site activity
+const [teamRecent, mainRecent] = await Promise.all([
   teamSDK.questions.getAll({ 
     sort: 'creation', 
     order: 'desc', 
@@ -308,7 +308,7 @@ const [teamRecent, publicRecent] = await Promise.all([
 
 console.log('Activity Comparison:');
 console.log(`- Team recent questions: ${teamRecent.totalCount}`);
-console.log(`- Public recent questions: ${publicRecent.totalCount}`);
+console.log(`- Main site recent questions: ${mainRecent.totalCount}`);
 ```
 
 ### Analytics and Reporting
@@ -609,7 +609,6 @@ try {
 
 ## Notes
 
-- **Team vs Public Context**: Questions are retrieved from team context when using `sdk.forTeam()`, otherwise from public context
 - **Date Filtering**: The `from` and `to` parameters filter by question creation date, not last activity date
 - **Answer Status Logic**: `isAnswered: true` means the question has at least one upvoted answer; `hasAcceptedAnswer` is specifically about moderator/author-accepted answers
 - **Sort Parameters**: 

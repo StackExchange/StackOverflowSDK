@@ -255,7 +255,6 @@ try {
 - Date filtering uses the article's creation date
 - When no sorting options are provided, the API uses its default sorting behavior  
 - Page numbers are 1-based (first page is `page: 1`)
-- The method automatically handles both public and team contexts based on how the client was initialized
 - Empty results are returned as an array with `totalCount: 0` rather than throwing an error
 - Large date ranges may return many results - consider using pagination for better performance
 - Tag and author filtering can significantly improve query performance compared to client-side filtering

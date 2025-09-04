@@ -1,9 +1,9 @@
 ---
 title: ask()
-description: Creates a new question with title, body content, and associated tags. Works in both public and team contexts.
+description: Creates a new question with title, body content, and associated tags. 
 ---
 
-Creates a new question with title, body content, and associated tags. Works in both public and team contexts.
+Creates a new question with title, body content, and associated tags. 
 
 ## Syntax
 
@@ -616,4 +616,4 @@ if (createResult.success) {
 - **Rate Limiting**: Consider adding delays between multiple question creations to avoid rate limiting
 - **Validation**: The API validates that title, body, and tags are provided and non-empty
 - **Response Data**: The returned `QuestionResponseModel` includes the question ID, creation date, current score, and other metadata
-- **Permissions**: Users must have appropriate permissions to create questions in the target context (public or team)
+- **Permissions**: Users must have appropriate permissions to create questions in the target context

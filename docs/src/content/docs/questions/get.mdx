@@ -216,68 +216,6 @@ async function processQuestionContent(questionId: number) {
 const contentAnalysis = await processQuestionContent(12345);
 ```
 
-### Team Context Comparison
-
-```typescript
-async function compareQuestionAcrossContexts(questionId: number, teamId: string) {
-  try {
-    // Get question from both public and team contexts
-    const [publicQuestion, teamQuestion] = await Promise.all([
-      sdk.questions.get(questionId),
-      sdk.forTeam(teamId).questions.get(questionId)
-    ]);
-    
-    const comparison = {
-      basic: {
-        sameQuestion: publicQuestion.id === teamQuestion.id,
-        titleMatch: publicQuestion.title === teamQuestion.title,
-        contentMatch: publicQuestion.body === teamQuestion.body
-      },
-      metrics: {
-        public: {
-          score: publicQuestion.score,
-          views: publicQuestion.viewCount,
-          answers: publicQuestion.answerCount
-        },
-        team: {
-          score: teamQuestion.score,
-          views: teamQuestion.viewCount,
-          answers: teamQuestion.answerCount
-        }
-      },
-      userInteractions: {
-        public: {
-          upvoted: publicQuestion.userHasUpvoted,
-          downvoted: publicQuestion.userHasDownvoted,
-          bookmarked: publicQuestion.userHasBookmarked,
-          following: publicQuestion.userIsFollowing
-        },
-        team: {
-          upvoted: teamQuestion.userHasUpvoted,
-          downvoted: teamQuestion.userHasDownvoted,
-          bookmarked: teamQuestion.userHasBookmarked,
-          following: teamQuestion.userIsFollowing
-        }
-      }
-    };
-    
-    console.log('Question Context Comparison:');
-    console.log(`- Same question: ${comparison.basic.sameQuestion}`);
-    console.log(`- Public score: ${comparison.metrics.public.score}`);
-    console.log(`- Team score: ${comparison.metrics.team.score}`);
-    console.log(`- Public views: ${comparison.metrics.public.views}`);
-    console.log(`- Team views: ${comparison.metrics.team.views}`);
-    
-    return comparison;
-  } catch (error) {
-    console.error('Context comparison failed:', error.message);
-    return null;
-  }
-}
-
-const contextComparison = await compareQuestionAcrossContexts(12345, 'team-123');
-```
-
 ### Question Workflow Integration
 
 ```typescript
@@ -664,7 +602,6 @@ if (result.success) {
 
 ## Notes
 
-- **Team vs Public Context**: Question content and metrics may differ between team and public contexts
 - **User Interaction Status**: Properties like `userHasUpvoted`, `userHasBookmarked` reflect the current authenticated user's interactions
 - **Content Formats**: Both HTML (`body`) and Markdown (`bodyMarkdown`) versions are provided
 - **Status Flags**: Multiple boolean flags indicate question state (closed, deleted, obsolete, answered)

@@ -230,7 +230,6 @@ if (result.success) {
 - The score increase depends on the voting system (typically increases by 1)
 - Vote removal is immediate and reflected in the returned response
 - Users cannot remove votes on their own answers (since they can't vote on them in the first place)
-- The method automatically handles both public and team contexts based on how the client was initialized
 - Some platforms may have time limits on vote changes - after a certain period, votes may become locked
 - The returned `AnswerSummaryResponseModel` contains the updated vote-related information
 - Removing a downvote may restore any reputation penalties that were applied to the voter

@@ -457,7 +457,6 @@ if (validation.canDelete) {
 - Deleting a collection does not delete the content items (questions/articles) it contained
 - All editor permissions and associations are removed when a collection is deleted
 - Consider archiving collections instead of deleting them for audit trails
-- The method automatically handles both public and team contexts based on how the client was initialized
 - After successful deletion, subsequent calls to `get()` for the same collection will throw a `NotFoundError`
 - Some collections may be protected from deletion due to organizational policies or dependencies
 - Consider creating backups before deletion for important collections that might need to be restored
