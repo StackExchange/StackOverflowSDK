@@ -76,11 +76,25 @@ export class StackOverflowSDK {
 export class TeamContext {
   public readonly answers: AnswerClient;
   public readonly questions: QuestionClient;
+  public readonly collections: CollectionClient;
+  public readonly users: UserClient;
+  public readonly articles: ArticleClient;
+  public readonly comments: CommentClient;
+  public readonly tags: TagClient;
+  public readonly search: SearchClient;
+  public readonly usergroups: UserGroupClient;
 
   constructor(private config: ReturnType<typeof createConfiguration>, private teamId: string) {
     // Initialize team-specific clients
     this.answers = new AnswerClient(config, teamId);
     this.questions = new QuestionClient(config, teamId);
+    this.collections = new CollectionClient(config, teamId);
+    this.users = new UserClient(config, teamId);
+    this.articles = new ArticleClient(config, teamId);
+    this.comments = new CommentClient(config, teamId);
+    this.tags = new TagClient(config, teamId);
+    this.search = new SearchClient(config, teamId);
+    this.usergroups = new UserGroupClient(config, teamId);
   }
 }
 

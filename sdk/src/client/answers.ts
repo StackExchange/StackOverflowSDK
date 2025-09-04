@@ -11,7 +11,6 @@ import {
 
 export interface CreateAnswerOptions {
   body: string;
-  // Add other answer creation options as needed
 }
 
 export interface GetAnswersOptions {
