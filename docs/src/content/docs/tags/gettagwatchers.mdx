@@ -44,7 +44,7 @@ import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
-  baseUrl: 'https://api.stackoverflowteams.com'
+  baseUrl: 'https://[your-site].stackenterprise.co/api/v3'
 });
 
 // Get users watching a specific tag
@@ -182,5 +182,4 @@ try {
 - **Empty Results**: If no users watch the tag, the response contains an empty array rather than null.
 - **Permission Requirements**: Accessing watcher information may require specific permissions.
 - **Performance**: Single API call with efficient retrieval of watcher list.
-- **Team Context**: Watcher information is context-specific to the current team or public environment.
 - **Privacy**: User information returned depends on privacy settings and permissions.

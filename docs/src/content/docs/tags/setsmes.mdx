@@ -47,7 +47,7 @@ import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
-  baseUrl: 'https://api.stackoverflowteams.com'
+  baseUrl: 'https://[your-site].stackenterprise.co/api/v3'
 });
 
 // Replace all SMEs with a new configuration
@@ -508,7 +508,7 @@ import StackOverflowSDK, { NotFoundError, ForbiddenError, ValidationError } from
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
-  baseUrl: 'https://api.stackoverflowteams.com'
+  baseUrl: 'https://[your-site].stackenterprise.co/api/v3'
 });
 
 try {
@@ -623,5 +623,4 @@ console.log(safeResult.message);
 - **Validation**: Invalid user or group IDs will cause the entire operation to fail without partial updates.
 - **Permission Requirements**: Requires appropriate permissions to modify SME assignments for the tag.
 - **Rate Limiting**: Be mindful of API limits when performing bulk SME updates across multiple tags.
-- **Team Context**: SME assignments are context-specific and operate within the current team or public environment.
 - **Convenience Methods**: Use `replaceAllSubjectMatterExperts()` and `clearAllSubjectMatterExperts()` for cleaner, more explicit code.

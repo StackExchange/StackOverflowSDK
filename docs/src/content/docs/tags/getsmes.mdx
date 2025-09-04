@@ -55,7 +55,7 @@ import StackOverflowSDK from 'so-teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
-  baseUrl: 'https://api.stackoverflowteams.com'
+  baseUrl: 'https://[your-site].stackenterprise.co/api/v3'
 });
 
 // Get Subject Matter Experts for a tag
@@ -564,7 +564,7 @@ import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } 
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
-  baseUrl: 'https://api.stackoverflowteams.com'
+  baseUrl: 'https://[your-site].stackenterprise.co/api/v3'
 });
 
 try {
@@ -627,4 +627,3 @@ if (smeResult.success) {
 - **Permission Requirements**: Accessing SME information may require specific permissions depending on privacy settings.
 - **Group Privacy**: Private groups are indicated by the `isPrivate` flag and may have restricted visibility.
 - **Performance**: This method makes a single API call and is efficient for checking SME assignments.
-- **Team Context**: SME assignments are context-specific and may differ between team and public environments.
