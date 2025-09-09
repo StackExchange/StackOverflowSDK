@@ -36,12 +36,11 @@
     "noUncheckedIndexedAccess": true
   },
   "include": [
-    "src/**/*"
-, "test.ts", "nosdk.js"  ],
+    "src/**/*" ],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts",
+    "test.ts",
     "**/*.spec.ts"
   ]
 }

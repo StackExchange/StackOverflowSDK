@@ -15,7 +15,7 @@
     "README.md"
   ],
   "scripts": {
-    "generateSDK": "openapi-generator-cli generate -i ./src/mock/swagger.json -g typescript -o ./src/generated",
+    "generateSDK": "openapi-generator-cli generate -c generator-settings.json",
     "build": "pnpm generateSDK && pnpm compile",
     "compile": "tsc",
     "clean": "rm -rf dist/",

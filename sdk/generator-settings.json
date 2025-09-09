@@ -1,0 +1,5 @@
+{
+  "inputSpec": "./src/source/swagger.json",
+  "generatorName": "typescript",
+  "outputDir": "./src/generated"
+}
