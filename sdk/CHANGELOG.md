@@ -1,5 +1,11 @@
 # so-teams-sdk
 
+## 1.1.0
+
+### Minor Changes
+
+- be1357f: Added JSDocs
+
 ## 1.0.1
 
 ### Patch Changes
