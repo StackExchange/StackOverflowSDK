@@ -1,5 +1,6 @@
 .gitattributes
 .gitignore
+.openapi-generator-ignore
 AnswersMainApi.md
 AnswersTeamsApi.md
 ArticlesMainApi.md

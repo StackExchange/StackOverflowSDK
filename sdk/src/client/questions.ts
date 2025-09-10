@@ -56,8 +56,8 @@ export interface UpdateQuestionOptions {
 export interface GetQuestionsOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: QuestionSortParameter;
-  order?: SortOrder;
+  sort?: 'activity' | 'creation' | 'score' | QuestionSortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
   isAnswered?: boolean;
   hasAcceptedAnswer?: boolean;
   questionId?: Array<number>;
@@ -172,8 +172,8 @@ export class QuestionClient extends BaseClient {
           this.teamId,
           options.page,
           options.pageSize,
-          options.sort,
-          options.order,
+          options.sort as QuestionSortParameter,
+          options.order as SortOrder,
           options.isAnswered,
           options.hasAcceptedAnswer,
           options.questionId,
@@ -187,8 +187,8 @@ export class QuestionClient extends BaseClient {
       return await this.mainApi.questionsGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order,
+        options.sort as QuestionSortParameter,
+        options.order as SortOrder,
         options.isAnswered,
         options.hasAcceptedAnswer,
         options.questionId,
@@ -486,7 +486,7 @@ export class QuestionClient extends BaseClient {
           options.page,
           options.pageSize,
           options.sort,
-          options.order
+          options.order as SortOrder
         );
       }
       
@@ -495,7 +495,7 @@ export class QuestionClient extends BaseClient {
         options.page,
         options.pageSize,
         options.sort,
-        options.order
+        options.order as SortOrder
       );
     }, 'getLinked');
   }
@@ -533,7 +533,7 @@ export class QuestionClient extends BaseClient {
           options.page,
           options.pageSize,
           options.sort,
-          options.order
+          options.order as SortOrder
         );
       }
       
@@ -542,7 +542,7 @@ export class QuestionClient extends BaseClient {
         options.page,
         options.pageSize,
         options.sort,
-        options.order
+        options.order as SortOrder
       );
     }, 'getRelated');
   }

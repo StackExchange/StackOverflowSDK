@@ -20,8 +20,8 @@ import {
 export interface GetCommunitiesOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: CommunitySortParameter;
-  order?: SortOrder;
+  sort?: 'name' | 'size' | CommunitySortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
 }
 
 /**
@@ -111,8 +111,8 @@ export class CommunityClient extends BaseClient {
       return await this.mainApi.communitiesGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order
+        options.sort as CommunitySortParameter,
+        options.order as SortOrder
       );
     }, 'getAll');
   }

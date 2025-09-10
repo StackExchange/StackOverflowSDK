@@ -43,8 +43,8 @@ export interface UpdateUserGroupOptions {
 export interface GetUserGroupsOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: UserGroupsSortParameter;
-  order?: SortOrder;
+  sort?: 'name' | 'size' | UserGroupsSortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
 }
 
 /**
@@ -131,16 +131,16 @@ export class UserGroupClient extends BaseClient {
           this.teamId,
           options.page,
           options.pageSize,
-          options.sort,
-          options.order
+          options.sort as UserGroupsSortParameter,
+          options.order as SortOrder
         );
       }
       
       return await this.mainApi.userGroupsGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order
+        options.sort as UserGroupsSortParameter,
+        options.order as SortOrder
       );
     }, 'getAll');
   }

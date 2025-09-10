@@ -29,8 +29,8 @@ export interface CreateAnswerOptions {
 export interface GetAnswersOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: AnswersSortParameter;
-  order?: SortOrder;
+  sort?: 'score' | 'modified' | 'creation' | AnswersSortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
 }
 
 /**
@@ -111,12 +111,12 @@ export class AnswerClient extends BaseClient {
     return this.handleApiCall(async () => {
       if (this.teamId && this.teamsApi) {
         return await this.teamsApi.teamsTeamQuestionsQuestionIdAnswersGet(
-          questionId, this.teamId, options.page, options.pageSize, options.sort, options.order 
+          questionId, this.teamId, options.page, options.pageSize, options.sort as AnswersSortParameter, options.order as SortOrder 
         );
       }
       
       return await this.mainApi.questionsQuestionIdAnswersGet(
-        questionId, options.page, options.pageSize, options.sort, options.order
+        questionId, options.page, options.pageSize, options.sort as AnswersSortParameter, options.order as SortOrder
       );
     }, 'getAll');
   }

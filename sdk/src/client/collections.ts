@@ -66,11 +66,11 @@ export interface UpdateCollectionOptions {
 export interface GetCollectionsOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: CollectionsSortParameter;
-  order?: SortOrder;
+  sort?: 'creation' | 'lastEdit' | CollectionsSortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
   authorIds?: Array<number>;
   partialTitle?: string;
-  permissions?: CollectionsPermissionsFilter;
+  permissions?: 'all' | 'owned' | 'editable' | CollectionsPermissionsFilter;
   from?: Date;
   to?: Date;
 }
@@ -169,11 +169,11 @@ export class CollectionClient extends BaseClient {
           this.teamId,
           options.page,
           options.pageSize,
-          options.sort,
-          options.order,
+          options.sort as CollectionsSortParameter,
+          options.order as SortOrder,
           options.authorIds,
           options.partialTitle,
-          options.permissions,
+          options.permissions as CollectionsPermissionsFilter,
           options.from,
           options.to
         );
@@ -182,11 +182,11 @@ export class CollectionClient extends BaseClient {
       return await this.mainApi.collectionsGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order,
+        options.sort as CollectionsSortParameter,
+        options.order as SortOrder,
         options.authorIds,
         options.partialTitle,
-        options.permissions,
+        options.permissions as CollectionsPermissionsFilter,
         options.from,
         options.to
       );

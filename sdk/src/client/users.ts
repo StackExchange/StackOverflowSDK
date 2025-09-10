@@ -22,8 +22,8 @@ import {
 export interface GetUsersOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: UsersSortParameter;
-  order?: SortOrder;
+  sort?: 'reputation' | UsersSortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
 }
 
 /**
@@ -128,16 +128,16 @@ export class UserClient extends BaseClient {
           this.teamId,
           options.page,
           options.pageSize,
-          options.sort,
-          options.order
+          options.sort as UsersSortParameter,
+          options.order as SortOrder
         );
       }
       
       return await this.mainApi.usersGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order
+        options.sort as UsersSortParameter,
+        options.order as SortOrder
       );
     }, 'getAll');
   }

@@ -24,8 +24,8 @@ import {
 export interface GetTagsOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: TagsSortParameter;
-  order?: SortOrder;
+  sort?: 'name' | 'postCount' | 'creationDate' | TagsSortParameter;
+  order?: 'asc' | 'desc' | SortOrder;
   partialName?: string;
   hasSmes?: boolean;
   hasSynonyms?: boolean;
@@ -131,8 +131,8 @@ export class TagClient extends BaseClient {
           this.teamId,
           options.page,
           options.pageSize,
-          options.sort,
-          options.order,
+          options.sort as TagsSortParameter,
+          options.order as SortOrder,
           options.partialName,
           options.hasSmes,
           options.hasSynonyms
@@ -142,8 +142,8 @@ export class TagClient extends BaseClient {
       return await this.mainApi.tagsGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order,
+        options.sort as TagsSortParameter,
+        options.order as SortOrder,
         options.partialName,
         options.hasSmes,
         options.hasSynonyms

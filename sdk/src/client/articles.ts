@@ -59,8 +59,8 @@ export interface UpdateArticleOptions {
 export interface GetArticlesOptions {
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: ArticleSortParameter;
-  order?: SortOrder;
+  sort?: 'activity' | 'creation' | 'score' | ArticleSortParameter;
+  order?: 'asc' | 'desc'| SortOrder;
   tagId?: Array<number>;
   authorId?: number;
   from?: Date;
@@ -171,8 +171,8 @@ export class ArticleClient extends BaseClient {
           this.teamId,
           options.page,
           options.pageSize,
-          options.sort,
-          options.order,
+          options.sort as ArticleSortParameter,
+          options.order as SortOrder,
           options.tagId,
           options.authorId,
           options.from,
@@ -183,8 +183,8 @@ export class ArticleClient extends BaseClient {
       return await this.mainApi.articlesGet(
         options.page,
         options.pageSize,
-        options.sort,
-        options.order,
+        options.sort as ArticleSortParameter,
+        options.order as SortOrder,
         options.tagId,
         options.authorId,
         options.from,

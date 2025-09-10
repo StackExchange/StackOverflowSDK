@@ -17,7 +17,7 @@ export interface SearchOptions {
   query?: string;
   page?: number;
   pageSize?: 15 | 30 | 50 | 100;
-  sort?: SearchSortParameter;
+  sort?: 'relevance' | 'newest' | 'active' | 'score' | SearchSortParameter;
 }
 
 /**
@@ -116,7 +116,7 @@ export class SearchClient extends BaseClient {
           options.query,
           options.page,
           options.pageSize,
-          options.sort
+          options.sort as SearchSortParameter
         );
       }
       
@@ -124,7 +124,7 @@ export class SearchClient extends BaseClient {
         options.query,
         options.page,
         options.pageSize,
-        options.sort
+        options.sort as SearchSortParameter
       );
     }, 'search');
   }
