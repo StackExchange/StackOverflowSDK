@@ -49,4 +49,4 @@ Contributions are welcome! Please open an [issue](https://github.com/StackExchan
 
 ## 📄 License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is licensed under the Apache-2.0 license.
