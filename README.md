@@ -49,4 +49,8 @@ Contributions are welcome! Please open an [issue](https://github.com/StackExchan
 
 ## 📄 License
 
-This project is licensed under the Apache-2.0 license.
+(C) Copyright 2025 Stack Exchange, Inc.
+
+This Stack Overflow for Teams SDK is licensed to you under the terms of the Apache Software License Version 2.0 (Apache 2.0): https://www.apache.org/licenses/LICENSE-2.0.txt
+
+The Teams SDK is 100% open source and freely available to download and use under the terms of the Apache 2.0 license. This SDK enables development with the Stack Overflow for Teams API, which is available to all Teams customers, but may be subject to future changes.
