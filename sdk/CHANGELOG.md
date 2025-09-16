@@ -1,5 +1,11 @@
 # so-teams-sdk
 
+## 1.2.0
+
+### Minor Changes
+
+- ff1b0f8: Added PKCE authentication helpers for both Backend and Frontend services
+
 ## 1.1.2
 
 ### Patch Changes
