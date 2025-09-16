@@ -5,7 +5,7 @@ description: Get up and running with the Stack Overflow SDK in under 5 minutes.
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-Get your Stack Overflow integration running in minutes with our JavaScript SDK. This quickstart covers installation, initialization, and making your first API calls.
+Get your Stack Overflow integration running in minutes with our JavaScript SDK. This quickstart covers installation, authentication setup, initialization, and making your first API calls.
 
 ## Installation
 
@@ -27,39 +27,54 @@ Get your Stack Overflow integration running in minutes with our JavaScript SDK. 
   </TabItem>
 </Tabs>
 
-## 1. Initialize the SDK
-<Tabs>
-  <TabItem label='Basic & Business'>
-    ```typescript title="app.ts"
-    import { StackOverflowSDK } from 'so-teams-sdk';
+## Authentication Setup
 
-    const sdk = new StackOverflowSDK({
-      baseUrl: 'https://api.stackoverflowteams.com/v3',
-      accessToken: 'your-access-token'
-    });
+Before making API calls, you'll need to set up authentication. The approach varies by your Stack Overflow for Teams tier:
 
-    const teamContext = sdk.forTeam('team-slug');
-    ```
-  </TabItem>
-  <TabItem label='Enterprise'>
-    ```typescript title="app.ts"
-    import { StackOverflowSDK } from 'so-teams-sdk';
+### Enterprise - OAuth Available
+Enterprise instances can use built-in OAuth clients or manual tokens:
 
-    const sdk = new StackOverflowSDK({
-      baseUrl: 'https://[your-site].stackenterprise.co/api/v3',
-      accessToken: 'your-access-token'
-    });
-    ```
-  </TabItem>
-</Tabs>
+```typescript
+// Option 1: OAuth setup (recommended for Enterprise)
+import { StackOverflowSDK } from 'so-teams-sdk';
 
-## 2. Make Your First API Call
+const sdk = StackOverflowSDK.enterpriseOAuth({
+  clientId: 'your-client-id',
+  redirectUri: 'https://yourapp.com/callback', 
+  baseUrl: 'https://your-site.stackenterprise.co'
+});
+
+// Option 2: Manual token (if you prefer)
+const sdk = StackOverflowSDK.fromToken(
+  'your-access-token',
+  'https://your-site.stackenterprise.co'
+);
+```
+
+### Basic/Business - Token Required
+Basic and Business tiers require Personal Access Tokens (PATs):
+
+```typescript
+import { StackOverflowSDK } from 'so-teams-sdk';
+
+const sdk = StackOverflowSDK.fromToken(
+  'your-personal-access-token',
+  'https://api.stackoverflowteams.com/v3'  
+);
+
+// Team context required for Basic/Business
+const teamContext = sdk.forTeam('your-team-id');
+```
+
+> 📖 **Need authentication help?** See our [Authentication Guide](/guides/authentication) for detailed OAuth setup and PAT generation.
+
+## Make Your First API Call
 
 Start exploring Stack Overflow data with these basic examples:
 
-```typescript title="api-calls.ts"
-// Fetch recent questions
-async function getAll() {
+```typescript
+// For Enterprise (direct SDK usage)
+async function getQuestions() {
   try {
     const questions = await sdk.questions.getAll();
     console.log('Recent questions:', questions.items);
@@ -69,30 +84,51 @@ async function getAll() {
   }
 }
 
-// Search for content
-async function searchContent(query: string) {
+// For Basic/Business (requires team context)  
+async function getTeamQuestions() {
   try {
-    const results = await sdk.search.query(query);
-    console.log('Search results:', results.items);
-    return results;
+    const teamContext = sdk.forTeam('your-team-id');
+    const questions = await teamContext.questions.getAll();
+    console.log('Team questions:', questions.items);
+    return questions;
   } catch (error) {
-    console.error('Search failed:', error);
-  }
-}
-
-// Get user information
-async function getUser(userId: number) {
-  try {
-    const user = await sdk.users.getUserById(userId);
-    console.log('User details:', user);
-    return user;
-  } catch (error) {
-    console.error('Failed to fetch user:', error);
+    console.error('Failed to fetch questions:', error);
   }
 }
 ```
 
-## 3. Working with Different Content Types
+## Complete Authentication Flow (Enterprise)
+
+If using OAuth on Enterprise, here's a complete authentication flow:
+
+```typescript
+import { StackOverflowSDK, BackendAuthClient } from 'so-teams-sdk';
+
+// 1. Set up authentication client
+const authClient = new BackendAuthClient({
+  clientId: 'your-client-id',
+  redirectUri: 'https://yourapp.com/callback',
+  baseUrl: 'https://your-site.stackenterprise.co'
+});
+
+// 2. Start OAuth flow
+const { url, codeVerifier, state } = await authClient.getAuthUrl();
+// Redirect user to `url`
+
+// 3. Handle callback and get tokens
+const tokens = await authClient.exchangeCodeForToken(code, codeVerifier);
+
+// 4. Initialize SDK with token
+const sdk = StackOverflowSDK.fromToken(
+  tokens.access_token,
+  'https://your-site.stackenterprise.co'
+);
+
+// 5. Make authenticated requests
+const questions = await sdk.questions.getAll();
+```
+
+## Working with Different Content Types
 
 <Tabs>
   <TabItem label="Questions & Answers">
@@ -143,7 +179,7 @@ async function getUser(userId: number) {
   </TabItem>
 </Tabs>
 
-## 4. Team Context
+## Team Context
 
 For Stack Overflow for Teams, use the team context:
 
@@ -173,6 +209,7 @@ async function getTeamAnswers() {
   }
 }
 ```
+
 
 ## Error Handling
 
