@@ -21,12 +21,36 @@ import { FrontendAuthClient } from '../auth/frontend.js';
 import type { AuthConfig } from '../auth/types.js';
 
 /**
+ * Normalizes the base URL to ensure it includes the API path
+ * Only applies to Enterprise instances, this does not modify the B&B URL.
+ * @param baseUrl - The input base URL
+ * @returns Normalized URL with /api/v3 appended if needed for Enterprise instances
+ */
+function normalizeBaseUrl(baseUrl: string): string {
+  // Remove trailing slashes
+  const cleanUrl = baseUrl.replace(/\/+$/, '');
+  
+  // Don't modify the B&B Stack Overflow Teams API URL
+  if (cleanUrl.startsWith('https://api.stackoverflowteams.com')) {
+    return cleanUrl;
+  }
+  
+  // Check if the URL already ends with /api/v3 or contains /api/v3/
+  if (cleanUrl.endsWith('/api/v3') || cleanUrl.includes('/api/v3/')) {
+    return cleanUrl;
+  }
+  
+  // Append /api/v3 to enterprise/private instances only
+  return `${cleanUrl}/api/v3`;
+}
+
+/**
  * Basic configuration for Stack Overflow SDK
  */
 export interface SDKConfig {
   /** Optional access token for authenticated requests */
   accessToken?: string;
-  /** Base URL of the Stack Overflow Enterprise instance */
+  /** Base URL of the Stack Overflow API V3 for your instance */
   baseUrl: string; 
   // httpApi?: HttpLibrary; // defaults to FixedIsomorphicFetchHttpLibrary
 }
@@ -72,21 +96,24 @@ export class StackOverflowSDK {
    * // Basic usage with access token
    * const sdk = new StackOverflowSDK({
    *   accessToken: 'your-token',
-   *   baseUrl: 'https://stackoverflow.enterprise.com'
+   *   baseUrl: 'https://stackoverflow.stackenterprise.co'
    * });
    * 
    * // With OAuth authentication setup
    * const sdk = new StackOverflowSDK({
-   *   baseUrl: 'https://stackoverflow.enterprise.com',
+   *   baseUrl: 'https://stackoverflow.stackenterprise.co',
    *   auth: {
    *     clientId: 'your-client-id',
    *     redirectUri: 'http://localhost:3000/callback',
-   *     baseUrl: 'https://stackoverflow.enterprise.com'
+   *     baseUrl: 'https://stackoverflow.stackenterprise.co'
    *   }
    * });
    * ```
    */
   constructor(config: SDKConfig | AuthSDKConfig) {
+    // Normalize the base URL to include API path
+    const normalizedBaseUrl = normalizeBaseUrl(config.baseUrl);
+    
     // Prepare auth configuration
     const authConfig: AuthMethodsConfiguration = {};
     
@@ -96,11 +123,11 @@ export class StackOverflowSDK {
       };
     }
 
-    // Create configuration parameters
+    // Create configuration parameters with normalized URL
     const configParams: ConfigurationParameters = {
       authMethods: authConfig,
       httpApi: new FixedIsomorphicFetchHttpLibrary(),
-      baseServer: new ServerConfiguration(config.baseUrl, {})
+      baseServer: new ServerConfiguration(normalizedBaseUrl, {})
     };
 
     this.config = createConfiguration(configParams);
@@ -119,9 +146,15 @@ export class StackOverflowSDK {
 
     // Initialize auth clients if auth config is provided
     if ('auth' in config && config.auth) {
+      // Also normalize the auth config base URL
+      const normalizedAuthConfig = {
+        ...config.auth,
+        baseUrl: normalizeBaseUrl(config.auth.baseUrl)
+      };
+      
       this.auth = {
-        backend: new BackendAuthClient(config.auth),
-        frontend: new FrontendAuthClient(config.auth),
+        backend: new BackendAuthClient(normalizedAuthConfig),
+        frontend: new FrontendAuthClient(normalizedAuthConfig),
       };
     }
   }
@@ -134,7 +167,7 @@ export class StackOverflowSDK {
    * @returns TeamContext instance configured for the specified team
    * @example
    * ```typescript
-   * const sdk = StackOverflowSDK.fromToken('token', 'https://stackoverflow.enterprise.com');
+   * const sdk = StackOverflowSDK.fromToken('token', 'https://stackoverflow.stackenterprise.co');
    * const teamContext = sdk.forTeam('team-123');
    * 
    * // Now all operations are scoped to team-123
@@ -150,14 +183,20 @@ export class StackOverflowSDK {
    * Convenient factory method when you already have a valid access token
    * 
    * @param accessToken - Valid Stack Overflow for Teams access token
-   * @param baseUrl - Base URL of your Stack Overflow for Teams instance
+   * @param baseUrl - Base URL of your Stack Overflow for Teams instance (API v3 path automatically appended where needed)
    * @returns Configured SDK instance ready for authenticated API calls
    * @example
    * ```typescript
-   * // Create SDK with existing token (e.g., from cookies, database, etc.)
+   * // Create SDK with existing token (API path automatically added if needed)
    * const sdk = StackOverflowSDK.fromToken(
    *   'your-access-token-here',
-   *   'https://stackoverflow.enterprise.com'
+   *   'https://support-test-teams.stackenterprise.co' // becomes https://support-test-teams.stackenterprise.co/api/v3
+   * );
+   * 
+   * // B&B API usage
+   * const sdk = StackOverflowSDK.fromToken(
+   *   'your-access-token-here',
+   *   'https://api.stackoverflowteams.com/v3/'
    * );
    * 
    * // Make authenticated requests immediately
@@ -184,7 +223,7 @@ export class StackOverflowSDK {
    * const sdk = StackOverflowSDK.enterpriseOAuth({
    *   clientId: 'your-oauth-client-id',
    *   redirectUri: 'https://yourapp.com/callback',
-   *   baseUrl: 'https://stackoverflow.enterprise.com',
+   *   baseUrl: 'https://stackoverflow.stackenterprise.co',
    *   scope: 'write_access'
    * });
    * 
@@ -248,10 +287,8 @@ export { CommunityClient } from './communities.js';
 export { UserClient } from './users.js';
 export { TagClient } from './tags.js';
 export { UserGroupClient } from './userGroups.js';
-
 export { BackendAuthClient, FrontendAuthClient } from '../auth/index.js';
 export type { AuthConfig, TokenResponse, PKCETokens } from '../auth/index.js';
-
 export { FixedIsomorphicFetchHttpLibrary } from '../helper/fixedHttpLibrary.js';
 
 export default StackOverflowSDK;
