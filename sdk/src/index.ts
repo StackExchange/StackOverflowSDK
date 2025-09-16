@@ -1,9 +1,12 @@
+// Main SDK classes and configurations
 export {
     StackOverflowSDK,
     TeamContext,
-    SDKConfig
-} from './client/index.js'
+    SDKConfig,
+    AuthSDKConfig
+} from './client/index.js';
 
+// Client classes
 export {
     AnswerClient,
     QuestionClient,
@@ -15,8 +18,21 @@ export {
     UserClient,
     TagClient,
     UserGroupClient
-} from './client/index.js'
+} from './client/index.js';
 
+// Auth clients and types
+export {
+    BackendAuthClient,
+    FrontendAuthClient
+} from './client/index.js';
+
+export type {
+    AuthConfig,
+    TokenResponse,
+    PKCETokens
+} from './client/index.js';
+
+// Generated API models and types
 export type {
     AnswerRequestModel,
     AnswerResponseModel,
@@ -44,20 +60,31 @@ export type {
     CommunitySummaryResponseModel,
     TagSummaryResponseModel,
     TagResponseModel,
-} from './generated/index.js'
+} from './generated/index.js';
 
+// Configuration utilities
 export { 
     createConfiguration,
     ConfigurationParameters,
     ConfigurationOptions
-} from './generated/configuration.js'
+} from './generated/configuration.js';
 
+// Auth configuration
 export {
     AuthMethodsConfiguration,
     AuthMethods
-} from './generated/auth/auth.js'
+} from './generated/auth/auth.js';
 
+// Server configuration
 export {
     ServerConfiguration,
     server1
-} from './generated/servers.js'
+} from './generated/servers.js';
+
+// HTTP library
+export {
+    FixedIsomorphicFetchHttpLibrary
+} from './client/index.js';
+
+// Default export
+export { default } from './client/index.js';
