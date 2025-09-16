@@ -1,64 +1,173 @@
 ---
 title: Authentication
-description: Learn how to authenticate with the Stack Overflow API to use the SDK.
+description: Learn how to authenticate with the Stack Overflow API using the built-in authentication helpers.
 ---
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-The Stack Overflow SDK requires an access token to authenticate API requests. This guide explains how to obtain and use access tokens with the SDK.
+The Stack Overflow SDK provides built-in authentication helpers that simplify the OAuth 2.0 flow with PKCE for secure token generation. Authentication requirements vary by Stack Overflow for Teams tier.
 
-## Overview
+### Authentication by Tier
 
-The SDK uses OAuth 2.0 with access tokens for authentication. All API calls require a valid access token to be passed during SDK initialization.
+- **Stack Overflow for Teams Enterprise** - Supports OAuth 2.0 with PKCE. Access tokens can be generated dynamically. You can optionally provide a single Access Token manually.
+- **Stack Overflow for Teams Basic/Business** - OAuth is not available. Manual input of Access tokens (PATs) are **required** in order to use the SDK.
+
+### Authentication Clients
+
+The SDK includes two authentication clients for Enterprise instances:
+- **BackendAuthClient** - For server-side Node.js environments with full PKCE implementation
+- **FrontendAuthClient** - For browser environments that communicate with your backend API
+
+### SDK Initialization Options
+
+#### Enterprise - With OAuth Setup
+```typescript
+import StackOverflowSDK from 'so-teams-sdk';
+
+// Option 1: OAuth configuration (no token required initially)
+const sdk = new StackOverflowSDK({
+  baseUrl: 'https://your-site.stackenterprise.co',
+  auth: {
+    clientId: 'your-client-id',
+    redirectUri: 'https://yourapp.com/callback',
+    baseUrl: 'https://your-site.stackenterprise.co',
+    scope: 'read_inbox write_access'
+  }
+});
+
+// Option 2: With existing access token
+const sdk = StackOverflowSDK.fromToken(
+  'your-access-token', 
+  'https://your-site.stackenterprise.co'
+);
+
+// Option 3: Factory method for OAuth setup
+const sdk = StackOverflowSDK.enterpriseOAuth({
+  clientId: 'your-client-id',
+  redirectUri: 'https://yourapp.com/callback',
+  baseUrl: 'https://your-site.stackenterprise.co'
+});
+```
+
+#### Basic/Business - Personal Access Token Required
+```typescript
+import StackOverflowSDK from 'so-teams-sdk';
+
+// PAT is mandatory for Basic/Business tiers
+const sdk = StackOverflowSDK.fromToken(
+  'your-personal-access-token',
+  'https://api.stackoverflowteams.com/v3'
+);
+
+// Team context is required for Basic/Business operations
+const teamContext = sdk.forTeam('your-team-id');
+const questions = await teamContext.questions.getAll();
+```
+
+## Authentication Clients (Enterprise Only)
+
+:::note[Enterprise Feature]
+Authentication clients are only available for Stack Overflow for Teams Enterprise instances. Basic/Business tiers must use Personal Access Tokens during SDK initialization.
+:::
+
+### Backend Authentication (Server-Side)
+
+The `BackendAuthClient` handles the complete OAuth flow with PKCE on your server:
+
+```typescript title="backend-auth.ts"
+import { BackendAuthClient } from 'so-teams-sdk';
+
+const authClient = new BackendAuthClient({
+  clientId: 'your-client-id',
+  redirectUri: 'https://yourapp.com/callback',
+  baseUrl: 'https://your-site.stackenterprise.co',
+  scope: 'read_inbox write_access' // Optional
+});
+
+// Generate authorization URL
+const { url, codeVerifier, state } = await authClient.getAuthUrl();
+
+// Store codeVerifier and state securely (session, database, etc.)
+// Redirect user to the authorization URL
+
+// In your callback handler:
+const tokens = await authClient.exchangeCodeForToken(
+  callbackCode, 
+  storedCodeVerifier
+);
+
+// Validate state for CSRF protection
+const isValidState = authClient.validateState(callbackState, storedState);
+```
+
+### Frontend Authentication (Browser)
+
+The `FrontendAuthClient` communicates with your backend API to handle OAuth securely:
+
+```typescript title="frontend-auth.ts"
+import { FrontendAuthClient } from 'so-teams-sdk';
+
+const frontendClient = new FrontendAuthClient({
+  clientId: 'your-client-id',
+  redirectUri: 'https://yourapp.com/callback',
+  baseUrl: 'https://your-site.stackenterprise.co'
+}, '/api'); // Your backend API base URL
+
+// Start authentication flow
+const authUrl = await frontendClient.startAuth();
+window.location.href = authUrl;
+
+// Handle OAuth callback
+await frontendClient.handleCallback();
+
+// Check authentication status
+const isAuthenticated = await frontendClient.getAuthStatus();
+
+// Manual token submission (for PATs)
+const success = await frontendClient.submitAccessToken(userToken);
+```
+
+## Authentication Configuration
+
+### AuthConfig Interface
 
 ```typescript
-import StackOverflowSDK from 'so-teams-sdk;
-
-const sdk = new StackOverflowSDK({
-  baseUrl: 'https://[your-site].stackenterprise.co',
-  accessToken: 'your-access-token-here'
-});
+interface AuthConfig {
+  /** OAuth client ID from Stack Overflow Enterprise */
+  clientId: string;
+  /** Redirect URI registered with your application */
+  redirectUri: string;  
+  /** Stack Overflow Enterprise instance URL */
+  baseUrl: string;
+  /** OAuth scopes (optional) */
+  scope?: string;
+}
 ```
 
-## Obtaining Access Tokens
+### Available Methods
 
-### For Stack Overflow for Teams Enterprise
+#### BackendAuthClient Methods
 
-If you're using Stack Overflow for Teams Enterprise, follow the comprehensive OAuth implementation guide to generate secure API tokens:
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `generatePKCETokens()` | Generate PKCE tokens for secure OAuth | `Promise<PKCETokens>` |
+| `getAuthUrl()` | Generate authorization URL with PKCE | `Promise<{url, codeVerifier, state}>` |
+| `exchangeCodeForToken()` | Exchange auth code for access token | `Promise<TokenResponse>` |
+| `validateState()` | Validate state parameter for CSRF protection | `boolean` |
 
-**[Secure API Token Generation with OAuth and PKCE →](https://stackoverflow.help/en/articles/19820283-secure-api-token-generation-with-oauth-and-pkce)**
+#### FrontendAuthClient Methods
 
-This guide covers:
-- OAuth Authorization Code flow
-- PKCE (Proof Key for Code Exchange) implementation
-- Token generation and management
-- Security best practices
-
-### For Stack Overflow for Teams
-
-If you're using Stack Overflow for Teams (Business or Basic), the process is simpler. You can generate a Personal Access Token (PAT) by following this guide:
-
-**[Personal Access Tokens (PATs) for API Authentication →](https://stackoverflowteams.help/en/articles/10908790-personal-access-tokens-pats-for-api-authentication)**
-
-PATs allow you to authenticate securely with the API without needing the full OAuth flow.
-
-## Using Access Tokens
-
-Once you have an access token, initialize the SDK with your credentials:
-
-```typescript title="sdk-setup.ts"
-import StackOverflowSDK from 'so-teams-sdk;
-
-// For Stack Overflow for Teams
-const teamsSDK = new StackOverflowSDK({
-  baseUrl: 'https://your-site.stackenterprise.co',
-  accessToken: 'your-access-token'
-});
-
-```
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `startAuth()` | Start OAuth flow via backend API | `Promise<string>` |
+| `completeAuth()` | Complete OAuth with callback params | `Promise<void>` |
+| `handleCallback()` | Handle OAuth callback in current page | `Promise<void>` |
+| `getAuthStatus()` | Check if user is authenticated | `Promise<boolean>` |
+| `submitAccessToken()` | Submit manual access token | `Promise<boolean>` |
+| `logout()` | Clear authentication state | `Promise<boolean>` |
 
 ## Token Scopes
 
-Different API operations require different scopes. Common scopes include:
+Different API operations require different scopes:
 
 | Scope | Description |
 |-------|-------------|
@@ -67,80 +176,90 @@ Different API operations require different scopes. Common scopes include:
 | private_info | Access private user data |
 | no_expiry | Token never expires (use with caution) |
 
-## Environment Variables
+## Security Best Practices
 
-For security, store your access tokens in environment variables:
+<CardGrid>
+  <Card title="PKCE Implementation" icon="shield">
+    The SDK automatically implements PKCE (Proof Key for Code Exchange) to prevent authorization code interception attacks.
+  </Card>
+  <Card title="State Validation" icon="lock">
+    Always validate the state parameter in OAuth callbacks to prevent CSRF attacks using the built-in validation methods.
+  </Card>
+  <Card title="Secure Token Storage" icon="certificate">
+    Follow secure token storage best practices and avoid client-side storage for sensitive authentication data.
+  </Card>
+  <Card title="Environment Variables" icon="key">
+    Keep sensitive configuration like client IDs and secrets in environment variables, not in your source code.
+  </Card>
+</CardGrid>
 
-```typescript title="config.ts"
-export const config = {
-  baseUrl: process.env.STACKOVERFLOW_BASE_URL,
-  accessToken: process.env.STACKOVERFLOW_ACCESS_TOKEN
-};
-```
-
-```typescript title="app.ts"
-import StackOverflowSDK from 'so-teams-sdk;
-import { config } from './config';
-
-const sdk = new StackOverflowSDK(config);
-```
-
-## Token Management
-
-### Token Expiration
-
-Unless you use the `no_expiry` scope, access tokens expire after 24 hours. Monitor token expiration and implement refresh logic as needed.
-
-### Error Handling
+## Error Handling
 
 Handle authentication errors gracefully:
 
 ```typescript title="auth-error-handling.ts"
-async function makeAuthenticatedRequest() {
+async function authenticateUser() {
   try {
-    const questions = await sdk.questions.getQuestions();
-    return questions;
+    const authUrl = await authClient.getAuthUrl();
+    // Handle success
   } catch (error) {
-    if (error.status === 401) {
-      console.error('Authentication failed - token may be expired or invalid');
-      // Implement token refresh or re-authentication logic
-    } else if (error.status === 403) {
-      console.error('Insufficient permissions - check token scopes');
+    if (error.message.includes('clientId')) {
+      console.error('Missing OAuth configuration');
+    } else {
+      console.error('Authentication setup failed:', error);
     }
-    throw error;
   }
+}
+
+// In callback handler
+try {
+  const tokens = await authClient.exchangeCodeForToken(code, codeVerifier);
+} catch (error) {
+  if (error.message.includes('Failed to exchange')) {
+    console.error('Token exchange failed - check OAuth configuration');
+  }
+  throw error;
 }
 ```
 
-## Security Best Practices
+## Alternative: Personal Access Tokens
 
-<CardGrid>
-  <Card title="Secure Storage" icon="lock">
-    Never hardcode access tokens in your source code. Use environment variables or secure configuration management.
-  </Card>
-  <Card title="Token Rotation" icon="refresh">
-    Regularly rotate your access tokens and implement proper token lifecycle management.
-  </Card>
-  <Card title="Scope Limitation" icon="shield">
-    Request only the minimum scopes required for your application functionality.
-  </Card>
-  <Card title="HTTPS Only" icon="certificate">
-    Always use HTTPS when transmitting access tokens to prevent interception.
-  </Card>
-</CardGrid>
+### Enterprise Instances
+For simpler Enterprise implementations, you can generate Tokens manually and use them as seen below:
+
+```typescript
+const sdk = StackOverflowSDK.fromToken(
+  'your-enterprise-pat',
+  'https://your-site.stackenterprise.co'
+);
+
+const questions = await sdk.questions.getAll();
+```
+
+You'll need to follow [this guide](https://stackoverflowteams.help/en/articles/9718149-secure-api-token-generation-with-oauth-and-pkce) to understand how OAuth works on Enterprise.
+
+### Basic/Business Instances (Required)
+For Basic and Business tiers, PATs are the only authentication method available:
+
+**[Personal Access Tokens (PATs) for API Authentication →](https://stackoverflowteams.help/en/articles/10908790-personal-access-tokens-pats-for-api-authentication)**
+
+```typescript
+const sdk = StackOverflowSDK.fromToken(userProvidedPAT, 'https://api.stackoverflowteams.com/v3');
+const teamContext = sdk.forTeam('team-123');
+```
 
 ## Next Steps
 
-Once you have your access token configured:
+Once you have authentication configured with the helpers:
 
-- [Quickstart Guide](/quickstart) - Get started with the SDK
-- [Questions API](/questions/getall/) - Learn about fetching questions
-- [Rate Limits](/guides/rate-limiting) - Understand how rate limits work on SO Teams
+- [Quickstart Guide](/guides/quickstart) - Get started with the SDK
+- [Questions API](/questions/getall/) - Learn about fetching questions  
+- [Rate Limits](/guides/rate-limiting) - Understand API rate limits
 
 :::note[Rate Limits]
-Authentication doesn't bypass API rate limits. Authenticated requests typically have higher rate limits than anonymous requests, but limits still apply.
+Authentication doesn't bypass API rate limits.
 :::
 
 :::tip[Development vs Production]
-Use different access tokens for development and production environments. Consider using shorter-lived tokens in production for enhanced security.
+Use different OAuth applications and tokens for development and production environments. The authentication helpers support this through environment-specific configuration.
 :::
