@@ -1,6 +1,6 @@
 # Stack Overflow for Teams SDK
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 ![Status: Early Access](https://img.shields.io/badge/status-early--access-orange)
 
 > Official TypeScript SDK for interacting with the **Stack Overflow for Teams API**.
