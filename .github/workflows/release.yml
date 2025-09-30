@@ -31,7 +31,7 @@ jobs:
         run: pnpm install
 
       - name: Build SDK
-        run: pnpm --filter=so-teams-sdk build
+        run: pnpm --filter=@stackoverflow/teams-sdk build
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

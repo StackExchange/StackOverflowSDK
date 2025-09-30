@@ -6,7 +6,7 @@
     "dev:docs": "pnpm --filter soteams-sdk-docs dev",
     "build:docs": "pnpm --filter soteams-sdk-docs build",
     "preview:docs": "pnpm --filter soteams-sdk-docs preview",
-    "test": "pnpm --filter so-teams-sdk test"
+    "test": "pnpm --filter @stackoverflow/teams-sdk test"
   },
   "engines": {
     "node": ">=18.20.8"

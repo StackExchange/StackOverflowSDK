@@ -40,7 +40,7 @@ Returns a `Promise<TagWatchersResponseModel>` containing:
 ### Basic Tag Watchers Retrieval
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -157,7 +157,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from 'so-teams-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError, AuthenticationError } from '@stackoverflow/teams-sdk';
 
 try {
   const watchers = await sdk.tags.getTagWatchers(12345);

@@ -100,7 +100,7 @@ Each result item contains a `type` field and type-specific properties:
 ### Basic Search
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -579,7 +579,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { ValidationError, ForbiddenError, AuthenticationError } from 'so-teams-sdk';
+import StackOverflowSDK, { ValidationError, ForbiddenError, AuthenticationError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

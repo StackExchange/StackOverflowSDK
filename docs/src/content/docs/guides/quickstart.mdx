@@ -12,17 +12,17 @@ Get your Stack Overflow integration running in minutes with our JavaScript SDK. 
 <Tabs>
   <TabItem label="npm">
     ```bash
-    npm install so-teams-sdk
+    npm install @stackoverflow/teams-sdk
     ```
   </TabItem>
   <TabItem label="yarn">
     ```bash
-    yarn add so-teams-sdk
+    yarn add @stackoverflow/teams-sdk
     ```
   </TabItem>
   <TabItem label="pnpm">
     ```bash
-    pnpm add so-teams-sdk
+    pnpm add @stackoverflow/teams-sdk
     ```
   </TabItem>
 </Tabs>
@@ -36,7 +36,7 @@ Enterprise instances can use built-in OAuth clients or manual tokens:
 
 ```typescript
 // Option 1: OAuth setup (recommended for Enterprise)
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = StackOverflowSDK.enterpriseOAuth({
   clientId: 'your-client-id',
@@ -55,7 +55,7 @@ const sdk = StackOverflowSDK.fromToken(
 Basic and Business tiers require Personal Access Tokens (PATs):
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = StackOverflowSDK.fromToken(
   'your-personal-access-token',
@@ -102,7 +102,7 @@ async function getTeamQuestions() {
 If using OAuth on Enterprise, here's a complete authentication flow:
 
 ```typescript
-import { StackOverflowSDK, BackendAuthClient } from 'so-teams-sdk';
+import { StackOverflowSDK, BackendAuthClient } from '@stackoverflow/teams-sdk';
 
 // 1. Set up authentication client
 const authClient = new BackendAuthClient({

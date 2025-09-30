@@ -14,11 +14,11 @@ A comprehensive TypeScript/JavaScript SDK for interacting with the Stack Overflo
 ## Installation
 
 ```bash
-npm install stack-overflow-teams-sdk
+npm install @stackoverflow/teams-sdk
 ```
 
 ```bash
-yarn add stack-overflow-teams-sdk
+yarn add @stackoverflow/teams-sdk
 ```
 
 ## Quick Start
@@ -26,7 +26,7 @@ yarn add stack-overflow-teams-sdk
 ### Basic Setup
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-oauth2-access-token',

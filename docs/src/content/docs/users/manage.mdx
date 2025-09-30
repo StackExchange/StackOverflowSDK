@@ -71,7 +71,7 @@ Returns a `Promise<PaginatedManageUsers>` containing:
 ### Basic User Management
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-admin-access-token',
@@ -485,7 +485,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { ForbiddenError, UnsupportedOperationError, ValidationError } from 'so-teams-sdk';
+import StackOverflowSDK, { ForbiddenError, UnsupportedOperationError, ValidationError } from '@stackoverflow/teams-sdk';
 
 async function safeUserManagement(options: ManageUsersOptions = {}) {
   try {

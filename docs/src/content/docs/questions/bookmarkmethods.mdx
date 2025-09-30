@@ -44,7 +44,7 @@ Both methods return a `Promise<QuestionResponseModel>` containing the updated qu
 ### Basic Bookmark Operations
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -699,7 +699,7 @@ Both bookmark methods can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { ConflictError, NotFoundError, AuthenticationError } from 'so-teams-sdk';
+import StackOverflowSDK, { ConflictError, NotFoundError, AuthenticationError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

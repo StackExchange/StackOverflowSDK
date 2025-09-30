@@ -52,7 +52,7 @@ Returns a `Promise<PaginatedQuestions>` containing:
 ### Basic Usage
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -573,7 +573,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { AuthenticationError, ValidationError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { AuthenticationError, ValidationError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

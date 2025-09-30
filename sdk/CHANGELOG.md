@@ -1,4 +1,10 @@
-# so-teams-sdk
+# @stackoverflow/teams-sdk
+
+## 1.2.2
+
+### Patch Changes
+
+- Updated README
 
 ## 1.2.1
 

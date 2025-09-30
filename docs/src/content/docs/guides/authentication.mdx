@@ -21,7 +21,7 @@ The SDK includes two authentication clients for Enterprise instances:
 
 #### Enterprise - With OAuth Setup
 ```typescript
-import StackOverflowSDK from 'so-teams-sdk';
+import StackOverflowSDK from '@stackoverflow/teams-sdk';
 
 // Option 1: OAuth configuration (no token required initially)
 const sdk = new StackOverflowSDK({
@@ -50,7 +50,7 @@ const sdk = StackOverflowSDK.enterpriseOAuth({
 
 #### Basic/Business - Personal Access Token Required
 ```typescript
-import StackOverflowSDK from 'so-teams-sdk';
+import StackOverflowSDK from '@stackoverflow/teams-sdk';
 
 // PAT is mandatory for Basic/Business tiers
 const sdk = StackOverflowSDK.fromToken(
@@ -74,7 +74,7 @@ Authentication clients are only available for Stack Overflow for Teams Enterpris
 The `BackendAuthClient` handles the complete OAuth flow with PKCE on your server:
 
 ```typescript title="backend-auth.ts"
-import { BackendAuthClient } from 'so-teams-sdk';
+import { BackendAuthClient } from '@stackoverflow/teams-sdk';
 
 const authClient = new BackendAuthClient({
   clientId: 'your-client-id',
@@ -104,7 +104,7 @@ const isValidState = authClient.validateState(callbackState, storedState);
 The `FrontendAuthClient` communicates with your backend API to handle OAuth securely:
 
 ```typescript title="frontend-auth.ts"
-import { FrontendAuthClient } from 'so-teams-sdk';
+import { FrontendAuthClient } from '@stackoverflow/teams-sdk';
 
 const frontendClient = new FrontendAuthClient({
   clientId: 'your-client-id',

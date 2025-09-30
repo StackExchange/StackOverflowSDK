@@ -27,7 +27,7 @@ Returns a `Promise<AnswerSummaryResponseModel>` containing updated answer summar
 ### Basic Upvote
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -89,7 +89,7 @@ const teamSDK = sdk.forTeam('team-123');
 const result = await teamSDK.answers.upvote(123, 456);
 
 // Or with direct client initialization
-import { AnswerClient } from 'so-teams-sdk';
+import { AnswerClient } from '@stackoverflow/teams-sdk';
 const teamAnswerClient = new AnswerClient(config, 'team-123');
 const voteResult = await teamAnswerClient.upvote(123, 456);
 ```
@@ -97,7 +97,7 @@ const voteResult = await teamAnswerClient.upvote(123, 456);
 ### Handling Vote State Changes
 
 ```typescript
-import StackOverflowSDK, { ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { ForbiddenError } from '@stackoverflow/teams-sdk';
 
 async function toggleUpvote(questionId: number, answerId: number) {
   try {
@@ -137,7 +137,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

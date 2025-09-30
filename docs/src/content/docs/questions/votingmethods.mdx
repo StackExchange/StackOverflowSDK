@@ -79,7 +79,7 @@ All voting methods return a `Promise<QuestionResponseModel>` containing the upda
 ### Basic Voting Operations
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -687,7 +687,7 @@ All voting methods can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { ForbiddenError, ConflictError, NotFoundError, AuthenticationError } from 'so-teams-sdk';
+import StackOverflowSDK, { ForbiddenError, ConflictError, NotFoundError, AuthenticationError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

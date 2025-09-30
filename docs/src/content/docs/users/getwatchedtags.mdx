@@ -47,7 +47,7 @@ Returns a `Promise<TagSummaryResponseModel>` containing:
 ### Basic Watched Tags Retrieval
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -533,7 +533,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { UserNotFoundError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { UserNotFoundError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 async function safeGetWatchedTags(userId: number): Promise<TagSummaryResponseModel | null> {
   try {

@@ -39,7 +39,7 @@ Returns a `Promise<CollectionsResponseModel>` containing the complete collection
 ### Basic Usage
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -202,7 +202,7 @@ const teamSDK = sdk.forTeam('team-123');
 const teamCollection = await teamSDK.collections.get(123);
 
 // Or with direct client initialization
-import { CollectionClient } from 'so-teams-sdk';
+import { CollectionClient } from '@stackoverflow/teams-sdk';
 const teamCollectionClient = new CollectionClient(config, 'team-123');
 const collection = await teamCollectionClient.get(123);
 ```
@@ -355,7 +355,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

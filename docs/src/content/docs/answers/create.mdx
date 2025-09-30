@@ -33,7 +33,7 @@ Returns a `Promise<AnswerResponseModel>` containing the newly created answer wit
 ### Basic Answer Creation
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -91,7 +91,7 @@ const teamAnswer = await teamSDK.answers.create(123, {
 });
 
 // Or with direct client initialization
-import { AnswerClient } from 'so-teams-sdk';
+import { AnswerClient } from '@stackoverflow/teams-sdk';
 const teamAnswerClient = new AnswerClient(config, 'team-123');
 const answer = await teamAnswerClient.create(123, {
   body: 'Team-specific answer content.'
@@ -101,7 +101,7 @@ const answer = await teamAnswerClient.create(123, {
 ### With Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

@@ -27,7 +27,7 @@ Returns a `Promise<void>`. The method completes successfully if the deletion was
 ### Basic Answer Deletion
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -98,7 +98,7 @@ const teamSDK = sdk.forTeam('team-123');
 await teamSDK.answers.delete(123, 456);
 
 // Or with direct client initialization
-import { AnswerClient } from 'so-teams-sdk';
+import { AnswerClient } from '@stackoverflow/teams-sdk';
 const teamAnswerClient = new AnswerClient(config, 'team-123');
 await teamAnswerClient.delete(123, 456);
 ```
@@ -118,7 +118,7 @@ This method can throw the following errors:
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',

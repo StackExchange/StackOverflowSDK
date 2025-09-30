@@ -110,7 +110,7 @@ async leaveAsMember(communityId: number): Promise<CommunityResponseModel>
 ### User Management Operations
 
 ```typescript
-import { StackOverflowSDK } from 'so-teams-sdk';
+import { StackOverflowSDK } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token',
@@ -498,7 +498,7 @@ All convenience methods inherit the same error handling behavior as their underl
 ### Example Error Handling
 
 ```typescript
-import StackOverflowSDK, { NotFoundError, ForbiddenError } from 'so-teams-sdk';
+import StackOverflowSDK, { NotFoundError, ForbiddenError } from '@stackoverflow/teams-sdk';
 
 const sdk = new StackOverflowSDK({
   accessToken: 'your-access-token', 

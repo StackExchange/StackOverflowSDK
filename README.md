@@ -23,19 +23,19 @@ The Stack Overflow for Teams SDK lets you build powerful applications and integr
 Using npm:
 
 ```bash
-npm install so-teams-sdk
+npm install @stackoverflow/teams-sdk
 ````
 
 Using yarn:
 
 ```bash
-yarn add so-teams-sdk
+yarn add @stackoverflow/teams-sdk
 ```
 
 Using pnpm:
 
 ```bash
-yarn add so-teams-sdk
+yarn add @stackoverflow/teams-sdk
 ```
 
 ## 📚 Documentation
