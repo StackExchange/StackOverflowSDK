@@ -1,5 +1,11 @@
 # @stackoverflow/teams-sdk
 
+## 1.3.0
+
+### Minor Changes
+
+- Added user agent header to identify calls originating from the SDK
+
 ## 1.2.2
 
 ### Patch Changes

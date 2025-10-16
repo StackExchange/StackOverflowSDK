@@ -11,26 +11,35 @@ import "whatwg-fetch";
  * Stack Overflow APIs often return valid JSON or plain text responses without Content-Type headers,
  * which causes the auto-generated SDK's ObjectSerializer to fail. This library
  * intercepts responses and adds the appropriate Content-Type header based on content detection.
+ * 
+ * Additionally, this library automatically adds the 'SOInternalSDK' User-Agent header
+ * to all outgoing requests for analytics tracking.
  */
 export class FixedIsomorphicFetchHttpLibrary implements HttpLibrary {
     public send(request: RequestContext): Observable<ResponseContext> {
         let method = request.getHttpMethod().toString();
         let body = request.getBody();
         
+        // Get existing headers
+        const headers = request.getHeaders();
+        
+        // Add User-Agent header to all requests
+        headers['User-Agent'] = 'SOInternalSDK';
+        
         const resultPromise = fetch(request.getUrl(), {
             method: method,
             body: body as any,
-            headers: request.getHeaders(),
+            headers: headers,
             signal: request.getSignal(),
             credentials: "same-origin"
         }).then(async (resp: any) => {
-            const headers: { [name: string]: string } = {};
+            const responseHeaders: { [name: string]: string } = {};
             resp.headers.forEach((value: string, name: string) => {
-              headers[name] = value;
+              responseHeaders[name] = value;
             });
             
             // CORE FIX: Add Content-Type header if missing
-            const hasContentType = Object.keys(headers).some(
+            const hasContentType = Object.keys(responseHeaders).some(
                 key => key.toLowerCase() === 'content-type'
             );
             
@@ -42,9 +51,9 @@ export class FixedIsomorphicFetchHttpLibrary implements HttpLibrary {
                 
                 // Detect content type based on content
                 if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                    headers['content-type'] = 'application/json';
+                    responseHeaders['content-type'] = 'application/json';
                 } else {
-                    headers['content-type'] = 'text/plain';
+                    responseHeaders['content-type'] = 'text/plain';
                 }
             }
             
@@ -53,7 +62,7 @@ export class FixedIsomorphicFetchHttpLibrary implements HttpLibrary {
               binary: () => resp.blob()
             };
             
-            return new ResponseContext(resp.status, headers, body);
+            return new ResponseContext(resp.status, responseHeaders, body);
         });
         return from<Promise<ResponseContext>>(resultPromise);
     }
