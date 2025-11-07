@@ -30,7 +30,7 @@ function normalizeBaseUrl(baseUrl: string): string {
   // Remove trailing slashes
   const cleanUrl = baseUrl.replace(/\/+$/, '');
   
-  // Don't modify the B&B Stack Overflow Teams API URL
+  // Don't modify the B&B Stack Overflow Internal API URL
   if (cleanUrl.startsWith('https://api.stackoverflowteams.com')) {
     return cleanUrl;
   }
@@ -243,7 +243,7 @@ export class StackOverflowSDK {
 }
 
 /**
- * Team-specific context for Stack Overflow Internal API operations (required for Basic and Business Teams)
+ * Team-specific context for Stack Overflow Internal API operations (required for Basic and Business Internal teams)
  * Provides access to all API clients scoped to a specific team
  */
 export class TeamContext {
