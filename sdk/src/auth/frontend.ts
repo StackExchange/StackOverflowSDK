@@ -1,7 +1,7 @@
 import { AuthConfig } from './types.js';
 
 /**
- * Frontend authentication client for Stack Overflow Enterprise
+ * Frontend authentication client for Stack Overflow Internal Enterprise
  * This client communicates with your backend API to handle OAuth flows securely.
  * The backend performs all PKCE operations and token exchanges.
  */
@@ -11,7 +11,7 @@ export class FrontendAuthClient {
 
   /**
    * Creates a new frontend authentication client
-   * @param config - Authentication configuration for Stack Overflow Enterprise
+   * @param config - Authentication configuration for Stack Overflow Internal Enterprise
    * @param apiBaseUrl - Base URL of your backend API that handles OAuth operations
    */
   constructor(config: AuthConfig, apiBaseUrl: string = '/api') {
@@ -28,7 +28,7 @@ export class FrontendAuthClient {
    * @example
    * ```typescript
    * const authUrl = await frontendClient.startAuth();
-   * window.location.href = authUrl; // Redirect user to Stack Overflow Enterprise
+   * window.location.href = authUrl; // Redirect user to Stack Overflow Internal Enterprise
    * ```
    */
   async startAuth(): Promise<string> {
@@ -44,8 +44,8 @@ export class FrontendAuthClient {
    * Complete the authentication process by sending the callback parameters to your backend
    * Your backend will validate the state, exchange the code for tokens, and store them securely
    * 
-   * @param code - The authorization code received from Stack Overflow Enterprise callback
-   * @param state - The state parameter received from Stack Overflow Enterprise callback
+   * @param code - The authorization code received from Stack Overflow Internal Enterprise callback
+   * @param state - The state parameter received from Stack Overflow Internal Enterprise callback
    * @throws {Error} When the backend request fails or authentication is invalid
    * @example
    * ```typescript
@@ -117,9 +117,9 @@ export class FrontendAuthClient {
 
   /**
    * Submit an access token directly (for cases where user provides their own token)
-   * Allows users to manually provide a Stack Overflow Enterprise access token
+   * Allows users to manually provide a Stack Overflow Internal Enterprise access token
    * 
-   * @param token - The Stack Overflow Enterprise access token
+   * @param token - The Stack Overflow Internal Enterprise access token
    * @returns Promise resolving to true if token was accepted, false otherwise
    * @example
    * ```typescript

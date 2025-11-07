@@ -8,7 +8,7 @@ export default defineConfig({
    integrations: [
    	starlight({
    		favicon: '/favicon.ico',
-   		title: 'Stack Overflow for Teams SDK',
+   		title: 'Stack Overflow Internal SDK',
 		editLink: {
         baseUrl: 'https://github.com/StackExchange/StackOverflowSDK/edit/main/docs',
       	},

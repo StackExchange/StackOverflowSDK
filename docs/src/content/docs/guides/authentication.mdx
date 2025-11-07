@@ -4,12 +4,12 @@ description: Learn how to authenticate with the Stack Overflow API using the bui
 ---
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-The Stack Overflow SDK provides built-in authentication helpers that simplify the OAuth 2.0 flow with PKCE for secure token generation. Authentication requirements vary by Stack Overflow for Teams tier.
+The Stack Overflow SDK provides built-in authentication helpers that simplify the OAuth 2.0 flow with PKCE for secure token generation. Authentication requirements vary by Stack Internal tier.
 
 ### Authentication by Tier
 
-- **Stack Overflow for Teams Enterprise** - Supports OAuth 2.0 with PKCE. Access tokens can be generated dynamically. You can optionally provide a single Access Token manually.
-- **Stack Overflow for Teams Basic/Business** - OAuth is not available. Manual input of Access tokens (PATs) are **required** in order to use the SDK.
+- **Stack Internal Enterprise** - Supports OAuth 2.0 with PKCE. Access tokens can be generated dynamically. You can optionally provide a single Access Token manually.
+- **Stack Internal Basic/Business** - OAuth is not available. Manual input of Access tokens (PATs) are **required** in order to use the SDK.
 
 ### Authentication Clients
 
@@ -66,7 +66,7 @@ const questions = await teamContext.questions.getAll();
 ## Authentication Clients (Enterprise Only)
 
 :::note[Enterprise Feature]
-Authentication clients are only available for Stack Overflow for Teams Enterprise instances. Basic/Business tiers must use Personal Access Tokens during SDK initialization.
+Authentication clients are only available for Stack Internal Enterprise instances. Basic/Business tiers must use Personal Access Tokens during SDK initialization.
 :::
 
 ### Backend Authentication (Server-Side)
@@ -132,11 +132,11 @@ const success = await frontendClient.submitAccessToken(userToken);
 
 ```typescript
 interface AuthConfig {
-  /** OAuth client ID from Stack Overflow Enterprise */
+  /** OAuth client ID from Stack Internal Enterprise */
   clientId: string;
   /** Redirect URI registered with your application */
   redirectUri: string;  
-  /** Stack Overflow Enterprise instance URL */
+  /** Stack Internal Enterprise instance URL */
   baseUrl: string;
   /** OAuth scopes (optional) */
   scope?: string;

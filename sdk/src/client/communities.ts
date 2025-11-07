@@ -43,7 +43,7 @@ export interface LeaveCommunityBulkOptions {
 }
 
 /**
- * Client for managing communities in Stack Overflow for Teams
+ * Client for managing communities in Stack Overflow Internal
  * 
  * The CommunityClient provides methods for managing community membership and retrieving
  * community information. Communities are organizational units that group users together,

@@ -64,8 +64,8 @@ export interface AuthSDKConfig extends SDKConfig {
 }
 
 /**
- * Main Stack Overflow for Teams SDK client
- * Provides access to all Stack Overflow for Teams API endpoints and authentication flows
+ * Main Stack Overflow Internal SDK client
+ * Provides access to all Stack Overflow Internal API endpoints and authentication flows
  */
 export class StackOverflowSDK {
   private config: ReturnType<typeof createConfiguration>;
@@ -89,7 +89,7 @@ export class StackOverflowSDK {
   };
 
   /**
-   * Creates a new Stack Overflow for Teams SDK instance
+   * Creates a new Stack Overflow Internal SDK instance
    * @param config - SDK configuration with optional authentication setup
    * @example
    * ```typescript
@@ -182,8 +182,8 @@ export class StackOverflowSDK {
    * Create an authenticated SDK instance from an existing access token
    * Convenient factory method when you already have a valid access token
    * 
-   * @param accessToken - Valid Stack Overflow for Teams access token
-   * @param baseUrl - Base URL of your Stack Overflow for Teams instance (API v3 path automatically appended where needed)
+   * @param accessToken - Valid Stack Overflow Internal access token
+   * @param baseUrl - Base URL of your Stack Overflow Internal instance (API v3 path automatically appended where needed)
    * @returns Configured SDK instance ready for authenticated API calls
    * @example
    * ```typescript
@@ -212,7 +212,7 @@ export class StackOverflowSDK {
   }
 
   /**
-   * Create an SDK instance configured for Stack Overflow Enterprise OAuth authentication
+   * Create an SDK instance configured for Stack Overflow Internal Enterprise OAuth authentication
    * Sets up both backend and frontend auth clients for handling OAuth flows
    * 
    * @param authConfig - Complete authentication configuration including OAuth settings
@@ -243,7 +243,7 @@ export class StackOverflowSDK {
 }
 
 /**
- * Team-specific context for Stack Overflow for Teams API operations (required for Basic and Business Teams)
+ * Team-specific context for Stack Overflow Internal API operations (required for Basic and Business Teams)
  * Provides access to all API clients scoped to a specific team
  */
 export class TeamContext {

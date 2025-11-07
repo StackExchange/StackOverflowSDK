@@ -76,7 +76,7 @@ export interface GetCollectionsOptions {
 }
 
 /**
- * Client for managing collections in Stack Overflow for Teams
+ * Client for managing collections in Stack Overflow Internal
  * 
  * The CollectionClient provides comprehensive methods for creating, reading, updating,
  * and deleting collections of questions and articles. Collections help organize related

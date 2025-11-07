@@ -43,7 +43,7 @@ export interface SetSubjectMatterExpertsOptions {
 }
 
 /**
- * Client for managing tags and Subject Matter Experts in Stack Overflow for Teams
+ * Client for managing tags and Subject Matter Experts in Stack Overflow Internal
  * 
  * The TagClient provides comprehensive methods for tag discovery, management, and
  * Subject Matter Expert (SME) administration. Tags are used to categorize and organize

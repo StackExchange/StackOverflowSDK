@@ -2,7 +2,7 @@ import { AuthConfig, TokenResponse, PKCETokens } from './types.js';
 import crypto from 'crypto';
 
 /**
- * Backend authentication client for Stack Overflow Enterprise using PKCE flow
+ * Backend authentication client for Stack Overflow Internal Enterprise using PKCE flow
  * Designed for server-side Node.js environments with access to crypto module
  */
 export class BackendAuthClient {
@@ -10,7 +10,7 @@ export class BackendAuthClient {
 
   /**
    * Creates a new backend authentication client
-   * @param config - Authentication configuration for Stack Overflow Enterprise
+   * @param config - Authentication configuration for Stack Overflow Internal Enterprise
    */
   constructor(config: AuthConfig) {
     this.config = config;
@@ -44,7 +44,7 @@ export class BackendAuthClient {
   }
 
   /**
-   * Generate authorization URL for Stack Overflow Enterprise with PKCE
+   * Generate authorization URL for Stack Overflow Internal Enterprise with PKCE
    * Creates the URL where users should be redirected to authorize your application
    * 
    * @returns Promise resolving to authorization data including the URL and tokens to store
@@ -67,7 +67,7 @@ export class BackendAuthClient {
 
     const { codeVerifier, codeChallenge, state } = await this.generatePKCETokens();
     
-    // Stack Overflow Enterprise uses /oauth endpoint, not /oauth/authorize
+    // Stack Overflow Internal Enterprise uses /oauth endpoint, not /oauth/authorize
     const authUrl = `${this.config.baseUrl}/oauth?client_id=${
       this.config.clientId
     }&redirect_uri=${encodeURIComponent(
@@ -106,7 +106,7 @@ export class BackendAuthClient {
       throw new Error('clientId and redirectUri are required for authentication');
     }
 
-    // Stack Overflow Enterprise uses /oauth/access_token/json endpoint
+    // Stack Overflow Internal Enterprise uses /oauth/access_token/json endpoint
     const tokenUrl = `${this.config.baseUrl}/oauth/access_token/json`;
     
     const queryParams = new URLSearchParams({

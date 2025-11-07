@@ -48,7 +48,7 @@ export interface ManageUsersOptions {
 }
 
 /**
- * Client for managing users and user information in Stack Overflow for Teams
+ * Client for managing users and user information in Stack Overflow Internal
  * 
  * The UserClient provides comprehensive methods for user discovery, management,
  * and profile access. It supports both basic user browsing and advanced administrative
