@@ -40,7 +40,7 @@ yarn add @stackoverflow/teams-sdk
 
 ## 📚 Documentation
 
-* [Quick Start Guide](https://sdk.stackoverflowteams.com/)
+* [Quick Start Guide](https://sdk.stackoverflow.help/)
 * [API v3 Overview](https://stackoverflowteams.help/en/articles/9085836-api-v3-overview)
 
 ## 🛠 Contributing
