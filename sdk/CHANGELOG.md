@@ -1,5 +1,15 @@
 # @stackoverflow/teams-sdk
 
+## 1.4.0
+
+### Minor Changes
+
+- 0fcf078: Changed naming conventions from "Stack Overflow for Teams" and "Stack Overflow Enterprise" to "Stack Overflow Internal" and "Stack Internal Enterprise"
+
+### Patch Changes
+
+- 0fcf078: Leftover changes from the update in naming conventions to Stack Overflow Internal
+
 ## 1.3.0
 
 ### Minor Changes
