@@ -15,7 +15,7 @@ export abstract class BaseClient {
   }
 
   /**
-   * Helper method to determine which API to use (Main vs Teams)
+   * Helper method to determine which API to use (Main vs Internal teams)
    */
   protected chooseApi<TMain, TTeams>(
     mainApi: TMain,

@@ -48,7 +48,7 @@ export interface GetUserGroupsOptions {
 }
 
 /**
- * Client for managing user groups in Stack Overflow for Teams
+ * Client for managing user groups in Stack Overflow Internal
  * 
  * The UserGroupClient provides comprehensive methods for creating, reading, and updating
  * user groups, as well as managing group membership. User groups are organizational

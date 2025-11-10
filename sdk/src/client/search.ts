@@ -21,7 +21,7 @@ export interface SearchOptions {
 }
 
 /**
- * Client for performing searches across Stack Overflow for Teams content
+ * Client for performing searches across Stack Overflow Internal content
  * 
  * The SearchClient provides comprehensive search functionality across all content types
  * including questions, answers, articles, and other searchable content. It supports

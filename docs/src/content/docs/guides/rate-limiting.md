@@ -1,9 +1,9 @@
 ---
 title: Rate Limiting and Throttling
-description: Understanding API throttling and rate limits for Stack Overflow for Teams API v3.
+description: Understanding API throttling and rate limits for Stack Overflow Internal API v3.
 ---
 
-Stack Overflow for Teams API v3 uses request throttling to prevent abuse and ensure optimum performance for all users. We currently implement two different types of throttling to alleviate excessive API calls: burst throttle rate limiter (short-term) and token bucket rate limiter (long-term). Both throttling methods monitor the number of requests coming from each access token.
+Stack Overflow Internal API v3 uses request throttling to prevent abuse and ensure optimum performance for all users. We currently implement two different types of throttling to alleviate excessive API calls: burst throttle rate limiter (short-term) and token bucket rate limiter (long-term). Both throttling methods monitor the number of requests coming from each access token.
 
 ## Burst Throttle Rate Limiter
 

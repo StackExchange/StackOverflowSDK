@@ -83,7 +83,7 @@ export interface GetLinkedQuestionsOptions {
 }
 
 /**
- * Client for managing articles in Stack Overflow for Teams
+ * Client for managing articles in Stack Overflow Internal
  * 
  * The ArticleClient provides comprehensive methods for creating, reading, updating,
  * and deleting articles, as well as managing upvotes and retrieving linked questions.

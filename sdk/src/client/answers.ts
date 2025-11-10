@@ -34,7 +34,7 @@ export interface GetAnswersOptions {
 }
 
 /**
- * Client for managing answers in Stack Overflow for Teams
+ * Client for managing answers in Stack Overflow Internal
  * 
  * The AnswerClient provides methods to create, read, update, and delete answers,
  * as well as handle voting and moderation actions. It supports both main site

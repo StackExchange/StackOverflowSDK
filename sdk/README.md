@@ -1,10 +1,10 @@
-# Stack Overflow for Teams SDK
+# Stack Overflow Internal SDK
 
-A comprehensive TypeScript/JavaScript SDK for interacting with the Stack Overflow for Teams API. This toolkit provides easy-to-use methods for accessing questions, answers, users, and other resources in your Stack Overflow for Teams instance.
+A comprehensive TypeScript/JavaScript SDK for interacting with the Stack Internal API. This toolkit provides easy-to-use methods for accessing questions, answers, users, and other resources in your Stack Internal instance.
 
 ## Features
 
-- 🚀 **Simple API wrapper** - Clean, intuitive interface for all Stack Overflow for Teams endpoints
+- 🚀 **Simple API wrapper** - Clean, intuitive interface for all Stack Internal endpoints
 - 🔒 **OAuth2 authentication** - Built-in support for access token authentication
 - 📦 **Modular design** - Organized client modules for different resource types
 - 🎯 **Team context support** - Switch between different teams seamlessly
@@ -101,7 +101,7 @@ interface SDKConfig {
 
 ### Authentication
 
-Basic and Business customers can follow the official Stack Overflow for Teams guide to create a Personal Access Token (PAT) for API authentication:
+Basic and Business customers can follow the official Stack Internal guide to create a Personal Access Token (PAT) for API authentication:
 
 👉 [Personal Access Tokens (PATs) for API Authentication](https://stackoverflowteams.help/en/articles/10908790-personal-access-tokens-pats-for-api-authentication)
 

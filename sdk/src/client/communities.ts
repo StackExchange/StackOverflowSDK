@@ -43,7 +43,7 @@ export interface LeaveCommunityBulkOptions {
 }
 
 /**
- * Client for managing communities in Stack Overflow for Teams
+ * Client for managing communities in Stack Overflow Internal
  * 
  * The CommunityClient provides methods for managing community membership and retrieving
  * community information. Communities are organizational units that group users together,
@@ -75,7 +75,7 @@ export class CommunityClient extends BaseClient {
   constructor(config: ReturnType<typeof import('../generated/configuration').createConfiguration>) {
     super();
     this.mainApi = new CommunitiesMainApi(config);
-    // Note: Communities API has no Teams API variant - only Main API
+    // Note: Communities API has no Private Team API variant - only Main API
   }
 
   /**

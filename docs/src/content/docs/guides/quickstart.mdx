@@ -29,7 +29,7 @@ Get your Stack Overflow integration running in minutes with our JavaScript SDK. 
 
 ## Authentication Setup
 
-Before making API calls, you'll need to set up authentication. The approach varies by your Stack Overflow for Teams tier:
+Before making API calls, you'll need to set up authentication. The approach varies by your Stack Internal tier:
 
 ### Enterprise - OAuth Available
 Enterprise instances can use built-in OAuth clients or manual tokens:
@@ -181,7 +181,7 @@ const questions = await sdk.questions.getAll();
 
 ## Team Context
 
-For Stack Overflow for Teams, use the team context:
+For Stack Internal Basic/Business, use the team context:
 
 ```typescript title="team-example.ts"
 // Switch to team context

@@ -4,11 +4,11 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-   site: 'https://sdk.stackoverflowteams.com',
+   site: 'https://sdk.stackoverflow.help',
    integrations: [
    	starlight({
    		favicon: '/favicon.ico',
-   		title: 'Stack Overflow for Teams SDK',
+   		title: 'Stack Overflow Internal SDK',
 		editLink: {
         baseUrl: 'https://github.com/StackExchange/StackOverflowSDK/edit/main/docs',
       	},

@@ -3,7 +3,7 @@ import { CommentsMainApi, CommentsTeamsApi } from '../generated/index.js';
 import { CommentResponseModel } from '../generated/index.js';
 
 /**
- * Client for retrieving comments from articles, questions, and answers in Stack Overflow for Teams
+ * Client for retrieving comments from articles, questions, and answers in Stack Overflow Internal
  * 
  * The CommentClient provides methods to retrieve comments associated with different types of content.
  * Comments are read-only through this API and provide additional context and discussion around

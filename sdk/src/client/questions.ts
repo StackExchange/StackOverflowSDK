@@ -83,11 +83,11 @@ export interface GetLinkedQuestionsOptions {
 }
 
 /**
- * Client for managing questions in Stack Overflow for Teams
+ * Client for managing questions in Stack Overflow Internal
  * 
  * The QuestionClient provides comprehensive methods for creating, reading, updating,
  * and deleting questions, as well as managing votes, bookmarks, and discovering
- * related content. Questions are the core content type in Stack Overflow for Teams,
+ * related content. Questions are the core content type in Stack Overflow Internal,
  * supporting rich interactions including voting, bookmarking, flagging, and
  * relationship discovery with other questions.
  * 
